@@ -1,0 +1,42 @@
+name: Bug report
+description: Report a problem (NOT a security vulnerability)
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ⚠️ **Do not report security vulnerabilities here.**
+        Use private reporting instead — see [SECURITY.md](../../security/policy).
+
+        ⚠️ **Never paste a real seed, mnemonic, or private key.** Use only test data.
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened?
+      description: A clear description of the bug.
+    validations:
+      required: true
+  - type: textarea
+    id: repro
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. Open seedforge.html in ...
+        2. Click ...
+        3. See ...
+    validations:
+      required: true
+  - type: input
+    id: browser
+    attributes:
+      label: Browser and version
+      placeholder: e.g. Firefox 130, Chrome 128
+    validations:
+      required: true
+  - type: input
+    id: filehash
+    attributes:
+      label: SHA-256 of your seedforge.html
+      description: Helps us know exactly which build you used.
+    validations:
+      required: false

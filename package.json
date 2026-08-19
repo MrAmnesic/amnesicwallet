@@ -1,0 +1,45 @@
+{
+  "name": "seedforge",
+  "version": "1.0.0",
+  "description": "Offline, single-file BIP-39 deterministic wallet generator (Bitcoin, Ethereum/EVM, TRON, Solana).",
+  "license": "GPL-3.0-or-later",
+  "private": false,
+  "type": "commonjs",
+  "keywords": [
+    "bip39",
+    "bip32",
+    "wallet",
+    "offline",
+    "cold-wallet",
+    "air-gapped",
+    "bitcoin",
+    "ethereum",
+    "tron",
+    "solana",
+    "self-custody",
+    "privacy"
+  ],
+  "scripts": {
+    "build": "node scripts/build.js",
+    "test": "node tests/derivation.test.js",
+    "hash": "node scripts/hash.js",
+    "release": "npm run build && npm test && npm run hash"
+  },
+  "dependencies": {
+    "@noble/ed25519": "3.1.0",
+    "@noble/hashes": "2.2.0",
+    "@scure/bip32": "2.2.0",
+    "@scure/bip39": "2.2.0",
+    "bech32": "2.0.0",
+    "bs58": "6.0.0",
+    "ethers": "6.17.0",
+    "qrcode": "1.5.4",
+    "slip39": "^0.1.9"
+  },
+  "devDependencies": {
+    "esbuild": "0.28.1"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

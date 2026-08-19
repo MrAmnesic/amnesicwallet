@@ -1,0 +1,53 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install exact dependencies
+        run: npm ci
+
+      - name: Test, build, hash
+        run: npm run release
+
+      - name: Generate provenance checksums
+        run: |
+          cd dist
+          sha256sum seedforge.html > seedforge.html.sha256
+          cat seedforge.html.sha256
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            dist/seedforge.html
+            dist/seedforge.html.sha256
+          generate_release_notes: true
+          body: |
+            ## SeedForge ${{ github.ref_name }}
+
+            Offline single-file BIP-39 wallet generator.
+
+            ### Verify integrity
+            ```bash
+            sha256sum seedforge.html
+            ```
+            Compare against `seedforge.html.sha256` attached to this release,
+            or reproduce the build locally with `npm ci && npm run build`.

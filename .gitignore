@@ -1,0 +1,46 @@
+# Dependencies
+node_modules/
+.npm/
+.pnp
+.pnp.js
+
+# Build output. dist/seedforge.html is the published artifact and is kept
+# under version control so its hash can be checked without building.
+# bundle.min.js is only an intermediate step of the build: it is regenerated
+# by `npm run build` and would just be a second copy of the same code.
+dist/bundle.min.js
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Editor / OS
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# Test / coverage artifacts
+coverage/
+.nyc_output/
+*.tmp
+
+# Environment / secrets — NEVER commit these
+.env
+.env.*
+*.key
+*.pem
+secrets/
+
+# ⚠️ SECURITY: never commit anything containing a real seed, mnemonic,
+# private key, or wallet backup. These patterns are a safety net only.
+*seed*.txt
+*mnemonic*.txt
+*private*key*
+wallet-backup*
