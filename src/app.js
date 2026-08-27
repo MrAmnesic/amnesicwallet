@@ -1011,7 +1011,7 @@ function renderGenerateTab() {
 
         <div class="config-box">
           <div class="config-row">
-            <label class="config-label config-label-center">Where does your randomness come from?</label>
+            <label class="config-label config-label-center">Where does your randomness come from?${help('dice')}</label>
             <div class="mode-grid">
               <button class="mode-card ${entropyMode === 'classic' ? 'mode-active' : ''}" id="mode-classic" data-mode="classic">
                 <span class="mode-icon">🖥️</span>
@@ -1019,7 +1019,7 @@ function renderGenerateTab() {
                 <span class="mode-desc">The browser's generator, the rhythm of your fingers on the keyboard, the movement of the mouse.</span>
               </button>
               <button class="mode-card ${entropyMode === 'dice' ? 'mode-active' : ''}" id="mode-dice" data-mode="dice">
-                <span class="mode-icon">🎲</span>${help('dice')}
+                <span class="mode-icon">🎲</span>
                 <span class="mode-title">Four sources</span>
                 <span class="mode-desc">Adds real dice rolls.</span>
               </button>
@@ -1890,22 +1890,59 @@ function showTypingOverlay(diceBytes) {
     else showPassphraseStep();
   });
 
-  inp.addEventListener('keydown', (e) => {
+  let lastValue = '';
+  let countedOnKeydown = false;
+
+  function record(key) {
     if (finished) return;
-    if (e.key === 'Tab') return;
-    typingCollector.feed(e.key);
+    typingCollector.feed(key);
     const pct = Math.round(typingCollector.progress() * 100);
     fill.style.width = pct + '%';
     status.textContent = pct + '%';
-    if (pct >= 100 && !finished) {
+    if (pct >= 100) {
       finished = true;
       status.textContent = 'Collected. One more step…';
       const typeBytes = typingCollector.bytes();
-      inp.value = ''; // the text is no longer needed: out of memory
+      inp.value = ''; lastValue = ''; // the text is no longer needed: out of memory
+      inp.blur();                     // lets the on-screen keyboard close
       setTimeout(() => showMouseOverlay(diceBytes, typeBytes), 700);
     }
+  }
+
+  // Physical keyboards report the key that was pressed, and that is the
+  // best source: it also covers keys that leave the text unchanged.
+  inp.addEventListener('keydown', (e) => {
+    if (finished) return;
+    if (e.key === 'Tab') return;
+    // On-screen keyboards on Android report EVERY key as "Unidentified"
+    // with keyCode 229. Counting those would give a single distinct key
+    // and the progress bar would stop at 10% for ever. The 'input'
+    // handler below reads what was actually typed instead.
+    if (!e.key || e.key === 'Unidentified' || e.keyCode === 229) return;
+    countedOnKeydown = true;
+    record(e.key);
   });
-  setTimeout(() => inp.focus(), 100);
+
+  // On-screen keyboards: the characters are only visible here.
+  inp.addEventListener('input', () => {
+    if (finished) return;
+    const value = inp.value;
+    if (countedOnKeydown) { countedOnKeydown = false; lastValue = value; return; }
+    let added = '';
+    if (value.length > lastValue.length) {
+      added = value.startsWith(lastValue) ? value.slice(lastValue.length) : value.slice(-1);
+    }
+    lastValue = value;
+    if (added) for (const ch of added) record(ch);
+    else record('\b');   // a deletion is a keystroke too, with its own timing
+  });
+
+  setTimeout(() => {
+    inp.focus();
+    // On a phone the on-screen keyboard covers the lower half of the
+    // screen: bring the field and its progress bar back into view.
+    if (inp.scrollIntoView) setTimeout(() => inp.scrollIntoView({ block: 'center' }), 400);
+  }, 100);
 }
 
 
@@ -1915,8 +1952,8 @@ function showMouseOverlay(diceBytes, typeBytes) {
   overlayRoot().innerHTML = `
     <div class="ov"><div class="ov-card">
       <div class="ov-badge">Last source &middot; Your hand</div>
-      <h3>🖱️ Now draw some chaos</h3>
-      <p>Move the mouse (or your finger) inside the box. Every curve, every hesitation, every change of direction becomes randomness that nobody could reproduce.</p>
+      <h3>✍️ Now draw some chaos</h3>
+      <p>Drag your finger — or the mouse — around inside the box. Every curve, every hesitation, every change of direction becomes randomness that nobody could reproduce.</p>
       <p class="hint">It is added to everything else${typeBytes ? ' — keyboard' : ''}${diceBytes ? ', dice' : ''} and the browser generator. No source replaces the others: they are mixed together.</p>
       <div class="mouse-area" id="mouse-area">
         <span class="mouse-hint">Move around in here ✋</span>
@@ -3566,7 +3603,7 @@ function renderGuideSteps() {
         <div class="step-line"><span class="sl-n">3</span><span class="sl-t"><strong>Choose where the randomness comes from:</strong> three sources (browser, keyboard, mouse) or four, adding real physical dice.</span></div>
         <div class="step-line"><span class="sl-n">4</span><span class="sl-t"><strong>Choose the type of backup:</strong> BIP-39 (a single phrase) or SLIP-39 (several sheets with a threshold). If you're undecided, BIP-39 with 12 words is fine in almost every case.</span></div>
         <div class="step-line"><span class="sl-n">5</span><span class="sl-t"><strong>Decide about the passphrase.</strong> The program asks you explicitly. Using one is recommended, because it adds a further layer of protection beyond the seed alone. If you don't know what it is, you can carry on without and add one later.</span></div>
-        <div class="step-line"><span class="sl-n">6</span><span class="sl-t"><strong>Fill the entropy bars:</strong> type any keys freely and at random, then move the mouse. If you chose the dice, enter the rolls first.</span></div>
+        <div class="step-line"><span class="sl-n">6</span><span class="sl-t"><strong>Fill the entropy bars:</strong> type any keys freely and at random, then move the mouse — or, on a phone, drag your finger inside the box. If you chose the dice, enter the rolls first.</span></div>
         <div class="step-line"><span class="sl-n">7</span><span class="sl-t"><strong>Choose how to keep the seed:</strong> a single sheet, split sequentially, or with a Shamir threshold.</span></div>
         <div class="step-line"><span class="sl-n">8</span><span class="sl-t"><strong>Save the backup</strong>, then use <em>Check the seed again</em> to confirm you transcribed it correctly. You can write the words in plain text, exactly as they appear on screen. Or, for greater privacy, you can save them in a format that shows no words at all: click <em>Powers-of-2 backup</em> and you get a grid of dots. Anyone finding it sees only marked boxes, without being able to read the seed.<br><br>To read the grid back you need the numbered BIP-39 dictionary. You can download it from SeedForge or find it elsewhere: what matters is that the numbering starts at <strong>1</strong> and not at 0, otherwise every word is shifted by one position and the conversion comes out wrong.</span></div>
         <div class="step-line"><span class="sl-n">9</span><span class="sl-t"><strong>Select the networks</strong> and calculate the addresses. Those are public: you can share them without risk in order to receive.</span></div>

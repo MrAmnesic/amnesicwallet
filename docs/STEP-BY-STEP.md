@@ -12,7 +12,7 @@
 
 **5.** **Decide about the passphrase.** The program asks you explicitly. Using one is recommended, because it adds a further layer of protection beyond the seed alone. If you don't know what it is, you can carry on without and add one later.
 
-**6.** **Fill the entropy bars:** type any keys freely and at random, then move the mouse. If you chose the dice, enter the rolls first.
+**6.** **Fill the entropy bars:** type any keys freely and at random, then move the mouse — or, on a phone, drag your finger inside the box. If you chose the dice, enter the rolls first.
 
 **7.** **Choose how to keep the seed:** a single sheet, split sequentially, or with a Shamir threshold.
 

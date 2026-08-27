@@ -1,6 +1,6 @@
 {
   "name": "seedforge",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Offline, single-file BIP-39 deterministic wallet generator (Bitcoin, Ethereum/EVM, TRON, Solana).",
   "license": "GPL-3.0-or-later",
   "private": false,

@@ -3168,7 +3168,7 @@ Minimum version required to store current data is: `+o+`.
 
         <div class="config-box">
           <div class="config-row">
-            <label class="config-label config-label-center">Where does your randomness come from?</label>
+            <label class="config-label config-label-center">Where does your randomness come from?${ho("dice")}</label>
             <div class="mode-grid">
               <button class="mode-card ${Dp==="classic"?"mode-active":""}" id="mode-classic" data-mode="classic">
                 <span class="mode-icon">\u{1F5A5}\uFE0F</span>
@@ -3176,7 +3176,7 @@ Minimum version required to store current data is: `+o+`.
                 <span class="mode-desc">The browser's generator, the rhythm of your fingers on the keyboard, the movement of the mouse.</span>
               </button>
               <button class="mode-card ${Dp==="dice"?"mode-active":""}" id="mode-dice" data-mode="dice">
-                <span class="mode-icon">\u{1F3B2}</span>${ho("dice")}
+                <span class="mode-icon">\u{1F3B2}</span>
                 <span class="mode-title">Four sources</span>
                 <span class="mode-desc">Adds real dice rolls.</span>
               </button>
@@ -3519,11 +3519,11 @@ body{font-family:'Courier New',monospace;background:#fff;color:#000}
       <div class="ov-row" style="margin-top:6px">
         <button class="btn btn-ghost btn-small" id="type-back">\u2190 Back</button>
       </div>
-    </div></div>`;let e=document.getElementById("type-inp"),t=document.getElementById("type-fill"),n=document.getElementById("type-status"),s=!1;document.getElementById("type-back").addEventListener("click",()=>{if(mo==="multisig"||mo==="multisolo"){rt();return}tt&&tt.useDice&&je?Cf():$p()}),e.addEventListener("keydown",o=>{if(s||o.key==="Tab")return;Sf.feed(o.key);let i=Math.round(Sf.progress()*100);if(t.style.width=i+"%",n.textContent=i+"%",i>=100&&!s){s=!0,n.textContent="Collected. One more step\u2026";let a=Sf.bytes();e.value="",setTimeout(()=>jI(r,a),700)}}),setTimeout(()=>e.focus(),100)}function jI(r,e){Pf=iI(),Pf.start(),Mt().innerHTML=`
+    </div></div>`;let e=document.getElementById("type-inp"),t=document.getElementById("type-fill"),n=document.getElementById("type-status"),s=!1;document.getElementById("type-back").addEventListener("click",()=>{if(mo==="multisig"||mo==="multisolo"){rt();return}tt&&tt.useDice&&je?Cf():$p()});let o="",i=!1;function a(c){if(s)return;Sf.feed(c);let l=Math.round(Sf.progress()*100);if(t.style.width=l+"%",n.textContent=l+"%",l>=100){s=!0,n.textContent="Collected. One more step\u2026";let d=Sf.bytes();e.value="",o="",e.blur(),setTimeout(()=>jI(r,d),700)}}e.addEventListener("keydown",c=>{s||c.key!=="Tab"&&(!c.key||c.key==="Unidentified"||c.keyCode===229||(i=!0,a(c.key)))}),e.addEventListener("input",()=>{if(s)return;let c=e.value;if(i){i=!1,o=c;return}let l="";if(c.length>o.length&&(l=c.startsWith(o)?c.slice(o.length):c.slice(-1)),o=c,l)for(let d of l)a(d);else a("\b")}),setTimeout(()=>{e.focus(),e.scrollIntoView&&setTimeout(()=>e.scrollIntoView({block:"center"}),400)},100)}function jI(r,e){Pf=iI(),Pf.start(),Mt().innerHTML=`
     <div class="ov"><div class="ov-card">
       <div class="ov-badge">Last source &middot; Your hand</div>
-      <h3>\u{1F5B1}\uFE0F Now draw some chaos</h3>
-      <p>Move the mouse (or your finger) inside the box. Every curve, every hesitation, every change of direction becomes randomness that nobody could reproduce.</p>
+      <h3>\u270D\uFE0F Now draw some chaos</h3>
+      <p>Drag your finger \u2014 or the mouse \u2014 around inside the box. Every curve, every hesitation, every change of direction becomes randomness that nobody could reproduce.</p>
       <p class="hint">It is added to everything else${e?" \u2014 keyboard":""}${r?", dice":""} and the browser generator. No source replaces the others: they are mixed together.</p>
       <div class="mouse-area" id="mouse-area">
         <span class="mouse-hint">Move around in here \u270B</span>
@@ -4287,7 +4287,7 @@ body{font-family:'Courier New',monospace;background:#fff;color:#000}
         <div class="step-line"><span class="sl-n">3</span><span class="sl-t"><strong>Choose where the randomness comes from:</strong> three sources (browser, keyboard, mouse) or four, adding real physical dice.</span></div>
         <div class="step-line"><span class="sl-n">4</span><span class="sl-t"><strong>Choose the type of backup:</strong> BIP-39 (a single phrase) or SLIP-39 (several sheets with a threshold). If you're undecided, BIP-39 with 12 words is fine in almost every case.</span></div>
         <div class="step-line"><span class="sl-n">5</span><span class="sl-t"><strong>Decide about the passphrase.</strong> The program asks you explicitly. Using one is recommended, because it adds a further layer of protection beyond the seed alone. If you don't know what it is, you can carry on without and add one later.</span></div>
-        <div class="step-line"><span class="sl-n">6</span><span class="sl-t"><strong>Fill the entropy bars:</strong> type any keys freely and at random, then move the mouse. If you chose the dice, enter the rolls first.</span></div>
+        <div class="step-line"><span class="sl-n">6</span><span class="sl-t"><strong>Fill the entropy bars:</strong> type any keys freely and at random, then move the mouse \u2014 or, on a phone, drag your finger inside the box. If you chose the dice, enter the rolls first.</span></div>
         <div class="step-line"><span class="sl-n">7</span><span class="sl-t"><strong>Choose how to keep the seed:</strong> a single sheet, split sequentially, or with a Shamir threshold.</span></div>
         <div class="step-line"><span class="sl-n">8</span><span class="sl-t"><strong>Save the backup</strong>, then use <em>Check the seed again</em> to confirm you transcribed it correctly. You can write the words in plain text, exactly as they appear on screen. Or, for greater privacy, you can save them in a format that shows no words at all: click <em>Powers-of-2 backup</em> and you get a grid of dots. Anyone finding it sees only marked boxes, without being able to read the seed.<br><br>To read the grid back you need the numbered BIP-39 dictionary. You can download it from SeedForge or find it elsewhere: what matters is that the numbering starts at <strong>1</strong> and not at 0, otherwise every word is shifted by one position and the conversion comes out wrong.</span></div>
         <div class="step-line"><span class="sl-n">9</span><span class="sl-t"><strong>Select the networks</strong> and calculate the addresses. Those are public: you can share them without risk in order to receive.</span></div>

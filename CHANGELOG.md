@@ -5,6 +5,25 @@ Notable changes are recorded here, one entry per published version.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.1] — 2026-08
+
+### Fixed
+- **Wallet creation was blocked on Android phones.** On-screen keyboards
+  (Gboard and most others) report every key as `Unidentified` with key code
+  229, so the entropy collector saw a single distinct key and the progress bar
+  stopped at 10% for ever. Keystrokes are now also read from the `input`
+  event, which carries the characters actually typed. The strength
+  requirements are unchanged: 20 keystrokes, 5 seconds, 10 distinct keys.
+- **The "Four sources" card could not be selected by tapping its centre.** The
+  contextual help "?" was nested inside the button — invalid HTML, and on a
+  narrow screen it sat exactly where a finger lands, so the tap opened the
+  help instead of choosing dice. The "?" now belongs to the question above.
+
+### Changed
+- The entropy step and the step-by-step guide name the finger before the
+  mouse, and the input field scrolls back into view when the on-screen
+  keyboard covers it.
+
 ## [1.0.0] — 2026-08
 
 First public release.
