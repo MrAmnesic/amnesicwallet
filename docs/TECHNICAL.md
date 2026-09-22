@@ -1,25 +1,28 @@
-# SeedForge — Technical documentation
+# AmnesicWallet — Technical documentation
 
 **Implementation specification, security model and declared limits**
 
-Document version: 1.1
-Reference: `seedforge.html` — SHA-256 hash published with every release
+Document version: 1.2 — describes AmnesicWallet 1.1.0
+
+Reference: `amnesicwallet.html` — SHA-256 hash published with every release, in `SHA256SUMS` and on the website
 
 ---
 
 ## Preliminary notice
 
-This document describes how SeedForge works technically. It is not a promotional document and it contains no security guarantees: the statements made here are verifiable by reading the source code, reproducing the build and running the tests described in section 8.
+This document describes how AmnesicWallet works technically. It is not a promotional document and it contains no security guarantees: the statements made here are verifiable by reading the source code, reproducing the build and running the tests described in section 8.
 
-SeedForge is free software distributed under the GNU General Public License v3 or later, **without any warranty**, express or implied. Custody of keys and backups is the sole responsibility of the user. The authors have no access to the wallets generated, keep no data and can under no circumstances recover seeds, passphrases or funds.
+AmnesicWallet is free software distributed under the GNU General Public License v3 or later, **without any warranty**, express or implied. Custody of keys and backups is the sole responsibility of the user. The authors have no access to the wallets generated, keep no data and can under no circumstances recover seeds, passphrases or funds.
 
 The software does not constitute financial, legal or tax advice. Users are responsible for verifying that their use complies with the regulations applicable in their jurisdiction.
+
+AmnesicWallet was previously published as SeedForge (versions 1.0.x) and, before that, as Crypto Vault. The formats of every backup it produces are unchanged across those names (section 5).
 
 ---
 
 ## 1. Object and scope
 
-SeedForge is a web application contained in a single HTML file that generates cryptographic keys for cryptocurrency wallets according to public standards, and derives their public addresses.
+AmnesicWallet is a web application contained in a single HTML file that generates cryptographic keys for cryptocurrency wallets according to public standards, and derives their public addresses.
 
 ### 1.1 Implemented functions
 
@@ -30,16 +33,19 @@ SeedForge is a web application contained in a single HTML file that generates cr
 | Derivation paths | BIP-44, BIP-49, BIP-84, BIP-86, BIP-48 |
 | Taproot addresses | BIP-341 |
 | Multisig key ordering | BIP-67 |
+| Output descriptors and their checksum | BIP-380 and following |
 | Interoperable threshold backup | SLIP-39 |
 | ed25519 curve derivation | SLIP-10 |
-| Binary representation of the backup | No standard: scheme documented in 5.4 |
+| Ethereum address checksum | EIP-55 |
 | Coin identifiers | SLIP-44 |
+| Threshold backup of an existing BIP-39 seed | No standard: scheme documented in 5.2 |
+| Binary representation of the backup | No standard: scheme documented in 5.4 |
 
 ### 1.2 Deliberately unimplemented functions
 
-- **Transaction signing.** The software does not build, sign or broadcast transactions. Signing would require connectivity or interaction with nodes, which is incompatible with the isolation model adopted here.
+- **Transaction building and signing.** Signing itself could be done offline, but spending needs a full wallet: coin selection, fee estimation, transaction formats, and eventually a connection to broadcast. Keeping all of that out keeps the program small enough to be read and checked. Users spend with a dedicated wallet, ideally a hardware one.
 - **Balance lookups.** No queries to blockchains, explorers or third-party services.
-- **Persistence.** No writes to `localStorage`, `sessionStorage`, `IndexedDB`, cookies or the filesystem. Cryptographic material exists exclusively in the volatile memory of the browser tab and ceases to exist when the page is closed.
+- **Persistence.** No writes to `localStorage`, `sessionStorage`, `IndexedDB`, cookies or the filesystem. Cryptographic material exists only in the memory of the browser tab.
 - **Telemetry.** No usage data collection, no identifiers, no network requests at runtime.
 
 ---
@@ -48,53 +54,86 @@ SeedForge is a web application contained in a single HTML file that generates cr
 
 ### 2.1 Distribution model
 
-The product is a single self-contained HTML file. All cryptographic libraries are embedded into the file at build time. At runtime no external resource is requested: no CDN, no remote fonts, no external images.
+The product is a single self-contained HTML file. All libraries are embedded into it at build time. At runtime no external resource is requested: no CDN, no remote fonts, no external images. QR codes are drawn locally as `data:` images.
 
 Verifiable consequence: the file behaves identically on a device that has never had connectivity.
 
-### 2.2 Build chain
+### 2.2 Source layout
+
+| File | Content |
+|---|---|
+| `src/core.js` | **All the cryptography**: entropy, BIP-39/32 derivation, addresses, descriptors, multisig, Shamir, SLIP-39, powers-of-2 grid. No DOM, no timers, no storage, no network. |
+| `src/app.js` | The interface only: screens, texts, printing. It calls `core.js` for every cryptographic operation. |
+| `src/index.html` | Structure and stylesheet. |
+| `src/crypto-shim.js`, `src/buffer-shim.js` | Adapters that let the `slip39` library run in a browser (2.5). |
+
+The separation means that the code tested by `npm test` (section 8.3) is the code that runs in the page: the test suite imports `core.js` itself, bundled with the same options.
+
+### 2.3 Build chain
 
 ```
-src/app.js        application code
-src/index.html    structure and stylesheets
+src/core.js + src/app.js + src/index.html
       │
-      ├── esbuild (bundling, minification, ES2020 target)
-      │     └── alias:  crypto  → src/crypto-shim.js
-      │     └── inject: src/buffer-shim.js
+      ├── esbuild — scripts/esbuild-options.js (shared with the tests)
+      │     bundling, minification, ES2020 target
+      │     alias:  crypto → src/crypto-shim.js
+      │     inject: src/buffer-shim.js
       │
       └── scripts/build.js
-            └── dist/seedforge.html
+            ├── inlines the bundle into index.html
+            ├── refuses to write the file if the bundle contains a network API
+            │   (fetch, XMLHttpRequest, WebSocket, EventSource, sendBeacon,
+            │   RTCPeerConnection, importScripts), Math.random, a storage API
+            │   (localStorage, sessionStorage, indexedDB, document.cookie),
+            │   eval / new Function, or any URL other than the SVG namespace
+            ├── adds the Content-Security-Policy (2.4) with the SHA-256 of the script
+            ├── self-checks the result (one </script>, DOCTYPE first, hash matches)
+            └── dist/amnesicwallet.html
 ```
 
-Dependencies are pinned to exact versions in `package-lock.json`. The `npm ci` command installs exactly those versions, making the build reproducible.
+Dependencies are pinned to exact versions in `package.json` and `package-lock.json`; `npm ci` installs exactly those, which makes the build reproducible byte for byte. `scripts/hash.js` writes the file's SHA-256 to `SHA256SUMS` and to the presentation page (`site/index.html`).
 
-### 2.3 Cryptographic libraries
+### 2.4 Content-Security-Policy
 
-| Library | Use |
-|---|---|
-| `@scure/bip39` | Mnemonic encoding and validation, PBKDF2 |
-| `@scure/bip32` | Hierarchical deterministic derivation |
-| `@noble/hashes` | SHA-256, SHA-512, RIPEMD-160, HMAC, PBKDF2 |
-| `@noble/curves` | secp256k1 arithmetic (required for Taproot) |
-| `@noble/ed25519` | ed25519 curve (Solana) |
-| `slip39` | SLIP-39 splitting and reassembly |
-| `bech32` | bech32 and bech32m encoding |
-| `bs58` | Base58 encoding |
+The published file contains, before any script:
 
-The `@noble` and `@scure` families are dependency-free implementations, independently audited and widely adopted across the ecosystem.
+```
+default-src 'none'; script-src 'sha256-…'; style-src 'unsafe-inline';
+img-src data:; base-uri 'none'; form-action 'none'
+```
 
-### 2.4 Browser environment adapters
+- `default-src 'none'` covers `connect-src`, `frame-src`, `font-src`, `worker-src` and every other fetch directive: the browser refuses any connection the page might attempt, whatever the code does.
+- `script-src` allows only the one inline script whose SHA-256 is listed. Inline event handlers, injected scripts and a modified bundle would not run.
+- `img-src data:` allows only the QR codes generated locally.
 
-The `slip39` library is written for Node.js and uses the `crypto` module and the `Buffer` global, both absent in browsers. Two minimal adapters were written:
+This is a second, independent barrier: the build already guarantees that no network code is present; the policy makes the browser enforce it even if that guarantee were wrong. Printed documents open in a blank window created by the page and inherit the same policy.
 
-- **`src/crypto-shim.js`** — exposes `randomBytes` (backed by `crypto.getRandomValues`), `pbkdf2Sync` and `createHmac` (backed by `@noble/hashes`). No other function is exposed.
-- **`src/buffer-shim.js`** — exposes `Buffer.from` and a few helper functions, returning `Uint8Array`.
+Limits, stated plainly: a policy delivered inside the page cannot forbid navigation (opening or redirecting a window to an address), and it does not cover WebRTC in every browser. The build's text checks, for their part, recognise the forbidden names only as written, not deliberately disguised code. Against those cases the protections are that the file contains no URL at all (checked at build time), that its code is public and reproducible, and — above all — running it on a disconnected device.
 
-The adapters were validated by running the entire official SLIP-39 vector suite through them (section 8.3).
+### 2.5 Libraries
 
-### 2.5 Language
+| Library | Version | Use |
+|---|---|---|
+| `@scure/bip39` | 2.4.0 | Mnemonic encoding and validation, PBKDF2 seed |
+| `@scure/bip32` | 2.4.0 | Hierarchical deterministic derivation |
+| `@scure/base` | 2.4.0 | bech32, bech32m, Base58, Base58Check |
+| `@noble/hashes` | 2.4.0 | SHA-256, SHA-512, Keccak-256, RIPEMD-160, HMAC, PBKDF2 |
+| `@noble/curves` | 2.4.0 | secp256k1 (Taproot tweak, Ethereum/TRON public keys), ed25519 (Solana) |
+| `slip39` | 0.1.9 | SLIP-39 splitting and reassembly |
+| `qrcode` | 1.5.4 | QR codes, drawn locally |
 
-The interface is in English only. There is no runtime translation layer and no localisation catalogue: every string that appears on screen is written directly in the source, which keeps the shipped file smaller and removes an entire class of "untranslated string" defects.
+The `@noble` and `@scure` families are dependency-free implementations by the same author, independently audited and widely adopted. Version 1.1.0 removed four libraries used by earlier versions (`ethers`, `bech32`, `bs58`, `@noble/ed25519`), whose functions are now covered by the ones above: the file went from about 730 KB to about 360 KB.
+
+The `slip39` library is written for Node.js and uses the `crypto` module and the `Buffer` global. Two adapters replace them:
+
+- **`src/crypto-shim.js`** exposes only `randomBytes` (backed by `crypto.getRandomValues`), `pbkdf2Sync` and `createHmac` (backed by `@noble/hashes`).
+- **`src/buffer-shim.js`** exposes `Buffer.from` and a few helpers, returning `Uint8Array`.
+
+The adapters are exercised by the whole official SLIP-39 vector suite on every test run (section 8.3).
+
+### 2.6 Language
+
+The interface is in English only. There is no runtime translation layer: every string on screen is written directly in the source.
 
 ---
 
@@ -102,45 +141,54 @@ The interface is in English only. There is no runtime translation layer and no l
 
 ### 3.1 Requirement
 
-The security of a deterministic wallet depends entirely on the unpredictability of the initial value. A faulty generator makes the robustness of every subsequent operation irrelevant. Real cases of fund loss caused by malfunctioning pseudo-random generators are documented.
+The security of a deterministic wallet depends entirely on the unpredictability of the initial value. A faulty generator makes every later operation irrelevant; real funds have been lost to generators that were far less random than they seemed.
 
 ### 3.2 Sources
 
-**Primary source — system CSPRNG.** `crypto.getRandomValues()`, the standard interface exposed by the browser and fed by the operating system generator (`/dev/urandom` on Linux and macOS, `BCryptGenRandom` on Windows). 64 bytes are requested.
+**System CSPRNG — always.** `crypto.getRandomValues()`, fed by the operating system generator. 64 bytes are drawn for every key.
 
-**Secondary source — typing dynamics.** For every keystroke the key code and a high-resolution timestamp are recorded. The relevant entropic contribution lies in the inter-keystroke intervals, not in the characters. Minimum thresholds enforced: 20 characters, 5 seconds, 10 distinct keys.
+**Typing dynamics.** For every keystroke, the key value and a high-resolution timestamp (`performance.now()`) are recorded; the useful contribution lies mainly in the intervals. Thresholds: 20 keystrokes, 5 seconds, 10 distinct keys. On phones, whose on-screen keyboards do not report keys, the characters are read from the input field instead.
 
-**Tertiary source — pointer dynamics.** Sampling of coordinates and timestamps during pointer movement. Progress is conditional on four criteria being satisfied jointly: minimum time (8 seconds), number of events, distance travelled and direction changes. A fast straight-line movement does not satisfy the criteria.
+**Pointer dynamics.** Coordinates and timestamps of mouse or finger movement. Progress requires, jointly: 8 seconds, 100 events, 1000 px travelled and 8 changes of direction.
 
-**Quaternary source (optional) — physical dice rolls.** A sequence entered manually by the user. Each roll of a six-sided die contributes log₂6 ≈ 2.585 bits. The number of rolls required is computed from the selected seed length. This is the only source generated entirely outside the computer system.
+**Dice (optional).** Rolls entered by the user: log₂6 ≈ 2.585 bits each, so 50 rolls for 128 bits and 100 for 256 bits. With two dice thrown together, identical dice cannot be told apart and people tend to enter the smaller number first; a pair is then worth log₂21 ≈ 4.39 bits, so the program asks for 30 double rolls (128 bits) or 59 (256 bits). The only source generated entirely outside the computer.
+
+Each user source is reduced to a 32-byte SHA-256 digest; the raw samples are then cleared.
 
 ### 3.3 Combination
 
 ```
-entropy = SHA-256( CSPRNG(64) ‖ H(keyboard) ‖ H(mouse) ‖ H(dice) )
+entropy = SHA-256( "AmnesicWallet/entropy/v1" ‖ CSPRNG(64)
+                   ‖ 0x01 ‖ H(pointer) ‖ 0x02 ‖ H(dice) ‖ 0x03 ‖ H(keyboard) )[0 … n)
 ```
 
-For lengths above 32 bytes the function is iterated with a domain counter.
+with `n` = 16, 20, 24, 28 or 32 bytes for 12 to 24 words. Each user source enters as a one-byte label and a fixed-length digest; a missing optional source is left out, label included. The input is therefore unambiguous: no two different sets of sources can produce it. The domain string makes the digest impossible to confuse with a hash computed for any other purpose.
 
-Three implementation invariants:
+Invariants, enforced in `combineEntropy` and covered by tests:
 
-1. The CSPRNG contribution is **always present and never conditional**.
-2. The additional sources are **additive**: they never replace or disable the CSPRNG.
-3. Given the properties of the hash function used, the result is no weaker than the strongest of the input sources.
+1. The CSPRNG contribution is **always present and never conditional**; the function has no code path without it.
+2. The user sources are **added**, never substituted: they cannot disable or replace the CSPRNG.
+3. Modelling SHA-256 as a random oracle, the output is unpredictable to anyone who cannot predict **all** the inputs. An attacker who knew or controlled the keyboard, the pointer and the dice would still face the 512 bits of the CSPRNG; a faulty CSPRNG would still be covered by the user sources.
 
-### 3.4 Statistical checks
+**Multisig with all keys generated locally.** The first key uses the combination above; each further key calls `combineEntropy` again, with a **fresh 64-byte CSPRNG draw** and the same user digests. Keys are therefore independent as long as the CSPRNG is; if it returned the same bytes twice, the vault would contain a duplicate key, which `multisigAddress` refuses (4.4).
 
-Before use, the generated entropy is subjected to three checks. The failure of any one of them **stops generation**, with no fallback to weaker modes.
+After use, the digests and the dice rolls are overwritten (best effort, see 6.3).
+
+### 3.4 Checks on the generator
+
+Before use, the raw CSPRNG output is subjected to three checks. The failure of any one of them **stops generation**, with no fallback.
 
 | Check | Failure condition |
 |---|---|
 | Constant value | All bytes identical |
-| Repeatability | Two consecutive calls produce identical output |
-| Balance (monobit) | Fraction of bits set to 1 outside the range [0.25 – 0.75] |
+| Repeatability | Two further 32-byte draws are identical |
+| Balance (monobit) | Fraction of bits set to 1 outside [0.25, 0.75] |
 
-At start-up the availability and operation of the CSPRNG is also verified. If the check fails, the generation function stays disabled.
+At start-up the presence and operation of the CSPRNG are verified; if the check fails, generation stays disabled.
 
-**Declared limit.** These checks detect macroscopic failures. No software check can measure the actual entropy of a sequence: an output with degraded but statistically plausible entropy would not be caught.
+The checks run on the generator's output, not on the final digest: SHA-256 output looks random even when its input is not, so a test there could only produce false alarms. (Version 1.0.x also tested the digest; that test was removed in 1.1.0 for this reason.)
+
+**Declared limit.** These checks detect catastrophic failures only. No software check can measure the real entropy of a sequence: degraded but plausible-looking output would not be caught. That is what the independent sources are for.
 
 ---
 
@@ -148,7 +196,7 @@ At start-up the availability and operation of the CSPRNG is also verified. If th
 
 ### 4.1 BIP-39
 
-The entropy is extended with a checksum equal to the first `n/32` bits of its own SHA-256, split into groups of 11 bits, and each group indexes a word in the official English dictionary of 2048 words.
+The entropy is extended with a checksum equal to the first `ENT/32` bits of its SHA-256, split into groups of 11 bits, each indexing a word of the official English dictionary of 2048 words.
 
 | Words | Entropy | Checksum |
 |---|---|---|
@@ -158,9 +206,9 @@ The entropy is extended with a checksum equal to the first `n/32` bits of its ow
 | 21 | 224 bits | 7 bits |
 | 24 | 256 bits | 8 bits |
 
-The 64-byte binary seed is obtained through `PBKDF2-HMAC-SHA512` with 2048 iterations and salt `"mnemonic" ‖ passphrase`.
+The 64-byte seed is obtained with `PBKDF2-HMAC-SHA512`, 2048 iterations, salt `"mnemonic" ‖ passphrase`, both NFKD-normalised. When a passphrase is created, the program refuses leading or trailing spaces, which are invisible on paper.
 
-Only the English dictionary is used. The localised dictionaries, although part of the standard, have uneven support in destination wallets and would introduce a concrete risk of unrecoverability.
+Only the English dictionary is used: localised dictionaries have uneven support in other wallets and would add a real risk of unrecoverability.
 
 ### 4.2 Derivation paths
 
@@ -173,22 +221,29 @@ Only the English dictionary is used. The localised dictionaries, although part o
 | Bitcoin — P2WSH multisig | `m/48'/0'/0'/2'` | BIP-48 |
 | Ethereum and EVM networks | `m/44'/60'/0'/0/0` | BIP-44 |
 | TRON | `m/44'/195'/0'/0/0` | SLIP-44 |
-| Solana | `m/44'/501'/0'/0'` | SLIP-10 |
+| Solana | `m/44'/501'/0'/0'` | SLIP-10 (ed25519, hardened only) |
 
-### 4.3 Bitcoin address construction
+### 4.3 Address construction
 
 - **Legacy (P2PKH):** Base58Check(0x00 ‖ RIPEMD160(SHA256(pubkey)))
-- **P2SH-SegWit:** redeem script `0x0014{hash160(pubkey)}`, address Base58Check(0x05 ‖ hash160(redeem))
+- **P2SH-SegWit:** redeem script `0x0014 ‖ hash160(pubkey)`, address Base58Check(0x05 ‖ hash160(redeem))
 - **Native SegWit (P2WPKH):** bech32, witness v0, program `hash160(pubkey)`
-- **Taproot (P2TR):** x-only internal key `P`; tweak `t = tagged_hash("TapTweak", P)`; output key `Q = P + tG`; bech32m encoding, witness v1. No script tree (key-path spend, BIP-86).
+- **Taproot (P2TR):** internal key `P` with even Y; tweak `t = H_TapTweak(x(P))`; output key `Q = P + t·G`; bech32m, witness v1, program `x(Q)`. No script tree (BIP-86).
+- **Ethereum:** last 20 bytes of Keccak-256 of the uncompressed public key, with the EIP-55 mixed-case checksum.
+- **TRON:** the same 20 bytes, Base58Check with version byte 0x41.
+- **Solana:** SLIP-10 ed25519 private key at `m/44'/501'/0'/0'`, public key in Base58.
 
 ### 4.4 Multisig
 
-Script `OP_m <pubkey…> OP_n OP_CHECKMULTISIG`, wrapped in P2WSH. Public keys are sorted lexicographically according to BIP-67, which makes the resulting address independent of the order in which they were entered.
+Script `OP_m <pubkey…> OP_n OP_CHECKMULTISIG`, wrapped in P2WSH; public keys sorted according to BIP-67, so the address does not depend on the order in which keys were entered. From 2 to 15 keys; threshold from 1 to n (with a warning that a threshold of 1 lets any single key spend).
 
-The descriptor produced has the form `wsh(sortedmulti(m,[fingerprint/48h/0h/0h/2h]xpub…/0/*,…))` and can be imported into wallets that support the descriptor standard.
+Accepted co-signer keys: an **xpub**, or the **Zpub** that Electrum shows for native-SegWit multisig (converted to the same key). Refused, each with its own explanation: private keys of any kind (xprv, yprv, zprv, Yprv, Zprv), testnet keys, keys labelled for another script type (ypub, zpub, Ypub), malformed keys, and **the same key twice** — a duplicate would let one person provide two signatures. Duplicates are recognised by what determines the derived keys (chain code and public key), not by the text: the same key given once as xpub and once as Zpub, or with altered metadata (depth, parent fingerprint, child number), is refused.
 
-In the mode where all keys are generated locally, each key derives from an independent invocation of the entropy combination function, with a fresh draw from the CSPRNG. The resulting keys are therefore statistically independent.
+The descriptor produced is `wsh(sortedmulti(m, …))#checksum`, where every key generated in this program carries its origin, `[fingerprint/48h/0h/0h/2h]xpub…/0/*`, so Sparrow and hardware wallets recognise their own keys. Keys pasted from others appear without origin, since it cannot be known.
+
+### 4.5 Watch-only descriptors
+
+For a single-signature wallet, the account xpub and a descriptor are offered for monitoring without spending ability, e.g. `wpkh([fingerprint/84h/0h/0h]xpub…/0/*)#checksum` (respectively `tr(…)`, `sh(wpkh(…))`, `pkh(…)` for the other formats). The checksum follows BIP-380; the implementation is tested against the specification's example and against embit.
 
 ---
 
@@ -196,49 +251,54 @@ In the mode where all keys are generated locally, each key derives from an indep
 
 ### 5.1 Sequential split
 
-Partitioning of the word sequence into consecutive groups. No cryptographic transformation. Reassembly is manual and requires no software.
+Partitioning of the word sequence into consecutive groups. No cryptographic transformation; reassembly is manual and needs no software.
 
-**Property:** knowledge of a proper subset of the groups reduces the search space in proportion to the known words. It offers no theoretical secrecy guarantee; it offers resistance to partial discovery and independence from any tool.
+**Property:** knowing some groups reduces the search space by the words they contain. The program states, for the chosen split, how many words someone holding every part but one would still be missing, and what that means: with 12 words in 3 parts, 4 missing words (40 bits after the checksum) are within reach of a single computer; with 24 words in 3 parts, 8 missing words are not. No verification code is attached to these parts: the words are numbered and carry the BIP-39 checksum, and a code would only help someone guessing a missing part.
 
-### 5.2 Internal threshold scheme (Shamir)
+### 5.2 Threshold scheme for an existing seed (Shamir)
 
-Shamir Secret Sharing applied to the BIP-39 entropy.
+Shamir Secret Sharing applied byte by byte to the BIP-39 entropy. It works on any BIP-39 seed, including ones created elsewhere, which SLIP-39 cannot represent.
 
-- Finite field GF(2⁸), irreducible polynomial `0x11b`
-- Exponential and logarithm tables built with **generator 3**
-- Lagrange interpolation for reconstruction
-- Each share is converted back into a valid BIP-39 mnemonic
-- Verification code: first 2 bytes of the SHA-256 of the original entropy, in hexadecimal
+- Finite field GF(2⁸), irreducible polynomial `0x11b`; exponential and logarithm tables built with **generator 3**. (Generator 2 is not primitive for `0x11b`: it only reaches 51 of the 255 non-zero elements.)
+- For each byte, a polynomial of degree m − 1 whose constant term is the secret byte and whose other coefficients are drawn from the CSPRNG, **uniformly, zero included**. Uniform coefficients are what the proof of perfect secrecy requires; excluding zero (as some implementations do) would slightly bias the parts.
+- Parts are the values at x = 1 … n (n ≤ 16, threshold 2 ≤ m ≤ n), each encoded as a BIP-39 mnemonic of the same length as the seed.
+- Reconstruction by Lagrange interpolation at x = 0. The part number, the length of every part and the uniqueness of the numbers are checked.
+- Verification code: the first 2 bytes of SHA-256 of the entropy, in hexadecimal (4 characters).
 
-**Implementation note.** Generator 2 is not primitive with respect to the polynomial `0x11b`: it generates a subgroup of 51 elements instead of the 255 required. Using generator 3 is a correctness condition of the scheme.
+**Security property.** With fewer parts than the threshold, every value of the secret remains exactly equally likely: this is information-theoretic secrecy, not computational hardness. The verification code, printed on every sheet, is the only information that is not perfectly hidden: it reveals 16 bits of a hash, leaving at least 2¹¹² candidates for a 12-word seed.
 
-**Security property.** With fewer shares than the threshold, the distribution of the secret remains uniform: no information is revealed. This is perfect secrecy in the information-theoretic sense, not computational hardness.
+**Detection of errors.** With fewer parts than the threshold, or a wrong part, interpolation still returns a value — which is always a valid-looking seed. Only the verification code detects it (a wrong result passes with probability 1/65,536). Without the code the program says plainly that the result cannot be confirmed.
 
-**Declared limit.** The scheme is not an interoperable public standard. Reassembly requires this software or an equivalent implementation. The file should be kept together with the shares.
+**What is printed.** Each sheet carries the part number and total ("Part 2 of 5"), the threshold, the verification code and one line saying it is reassembled with AmnesicWallet. Sheets printed by 1.0.x showed only "Part 2", and the code had to be copied by hand.
+
+**Compatibility.** The format is frozen. `tests/vectors/shamir-compat.json` contains parts produced by SeedForge 1.0.1; every combination of three of them must reassemble, and the test suite fails otherwise.
+
+**Declared limit.** This scheme is not a public standard; reassembly needs this program or a reimplementation of this section. The file should be kept together with the parts.
 
 ### 5.3 SLIP-39
 
-Implementation conforming to the SLIP-39 specification, through the `slip39` library and the adapters described in 2.4.
+Implementation of SLIP-39 through the `slip39` library and the adapters of 2.5.
 
-- Dedicated dictionary of 1024 words; shares of 20 or 33 words
-- The first three words encode the identifier and parameters and are identical across the shares of the same set
-- The master secret is encrypted with the passphrase before splitting
+- One group, threshold m of n sheets (2 ≤ m ≤ n ≤ 7 in the interface); 128-bit master secret, i.e. 20-word sheets.
+- Shares are created with the **extendable-backup flag** set (ext = 1), as the current revision of the specification recommends and as Trezor does. Programs that predate that revision may not read them correctly.
+- Iteration exponent 1 (20,000 PBKDF2-SHA256 iterations in the encryption of the master secret), the default of Trezor's reference implementation. Version 1.0.x used exponent 0; the exponent is written in the sheets, so older sheets remain readable.
+- The passphrase may contain only printable ASCII, as the specification requires; the rule is enforced both when the passphrase is chosen and at recovery.
+- **Self-check:** before the sheets are shown, every subset of m sheets is recombined and must return the master secret (at most 35 recombinations, about one second on a desktop computer).
+- Recovery shows Bitcoin in all four formats, because the owner of a Trezor backup may use any of them.
 
-**Substantive difference from BIP-39.** The reassembled master secret is used **directly** as the seed for generating the BIP-32 root key, without going through PBKDF2. It follows that, for the same initial entropy, BIP-39 and SLIP-39 produce distinct wallets. The shares of the two schemes are in no way interchangeable.
+**Difference from BIP-39.** The master secret is used **directly** as the BIP-32 seed, without PBKDF2. For the same entropy, BIP-39 and SLIP-39 give different wallets; their shares are not interchangeable.
 
-**Passphrase behaviour.** In accordance with the specification, a wrong passphrase produces no error: it generates a different master secret and therefore a distinct, empty wallet.
+**Passphrase behaviour.** A wrong passphrase gives no error: it decrypts to another master secret, i.e. a different, empty wallet.
 
----
+Sheets produced by the program have been recovered with Trezor's own reference implementation (`python-shamir-mnemonic`), for every subset of three out of five, with matching addresses (section 8.5).
 
 ### 5.4 Binary representation (powers-of-2 backup)
 
-Every BIP-39 word is identified by its index in the dictionary, represented as a sum of powers of two across twelve columns (2048 … 1).
+Every BIP-39 word is identified by its number in the dictionary, written as a sum of powers of two across twelve columns (2048 … 1).
 
-**Choice of numbering.** The internal BIP-39 index is zero-based; the printed document instead uses the numbering 1–2048. With zero-based numbering the first word of the dictionary (`abandon`) would have the value 0, and the corresponding row would carry no marks, indistinguishable from a row that has not been filled in yet. One-based numbering removes this ambiguity: no row is ever empty.
+**Numbering from 1.** The internal BIP-39 index starts at 0; the printed grid uses 1–2048. With zero-based numbering the first word (`abandon`) would have no marks at all and look like an unfilled row. With one-based numbering no row is ever empty.
 
-Correctness verified across all 2048 words, both encoding and decoding.
-
-The document produced shows neither the words nor the numeric indexes: it contains only the grid. Conversion requires the numbered list of BIP-39 words, which is also printable and public by nature.
+The grid shows neither words nor numbers. Reading it back needs the numbered list of BIP-39 words, which the program can also print.
 
 ---
 
@@ -246,48 +306,45 @@ The document produced shows neither the words nor the numeric indexes: it contai
 
 ### 6.1 Assumptions
 
-The model assumes that:
-
-- the device on which the software runs is not compromised;
-- the file executed matches the published one, verifiable through the SHA-256 hash;
-- the JavaScript engine and the browser CSPRNG behave according to their specifications.
+- The device on which the software runs is not compromised.
+- The file executed matches the published one, verifiable through its SHA-256.
+- The browser, its JavaScript engine and its CSPRNG behave according to their specifications.
 
 ### 6.2 Threats addressed
 
 | Threat | Countermeasure |
 |---|---|
-| Network exfiltration | Total absence of network code |
-| Unintended persistence to disk | No storage APIs used |
-| Faulty or manipulated CSPRNG | Mixing with independent sources, including sources outside the system (dice) |
-| Macroscopic generator failure | Blocking statistical checks |
-| Discovery of the paper backup | Passphrase, threshold splitting |
-| Partial loss of the backup | Threshold schemes (Shamir, SLIP-39) |
-| Transcription error | BIP-39 checksum, verification code, double-check function |
-| Compromise of one signing device | Multisig with keys on separate devices |
+| Network exfiltration | No network code (checked at build time) and a Content-Security-Policy that makes the browser refuse any connection |
+| Injected or modified script | CSP allows only the script with the published hash |
+| Persistence to disk | No storage APIs (checked at build time) |
+| Faulty or manipulated CSPRNG | Mixing with independent sources, including one outside the computer (dice) |
+| Catastrophic generator failure | Blocking checks on the raw output |
+| Discovery of the paper backup | Passphrase; threshold splitting; multisig |
+| Partial loss of the backup | Threshold schemes (Shamir, SLIP-39); multisig |
+| Transcription error | BIP-39 checksum, verification code, "check again" function |
+| Mixing up co-signer keys | Refusal of private keys, duplicates, testnet and wrong script types; key origins in the descriptor |
 
 ### 6.3 Threats not addressed
 
 The model does **not** protect against:
 
-- a compromised operating system, keyloggers, malware with access to process memory;
+- a compromised operating system, keyloggers, malware reading process memory;
 - physical compromise of the device during or after generation;
 - observation of the screen (video recording, reflections, bystanders);
-- user error in keeping the backups;
-- loss of the passphrase, which makes the funds permanently inaccessible;
-- vulnerabilities present in the browser engine or in the embedded libraries;
-- defects in the entropy combination logic, which no number of additional sources could compensate for.
+- user error in keeping the backups, or loss of the passphrase;
+- vulnerabilities in the browser engine or in the embedded libraries;
+- the clipboard: words copied with the Copy button stay there until overwritten, and some systems keep a clipboard history;
+- **memory remanence.** JavaScript offers no way to guarantee that a value is erased: strings are immutable and the garbage collector decides when memory is reused. The program overwrites the buffers it controls, and "Generate a new wallet" drops every secret of the session (wallet, seeds being checked, multisig keys) and closes the print windows it opened; but only closing the tab — better, shutting down a live system such as Tails — releases everything.
 
-For these reasons the user-facing documentation recommends running the tool on a system isolated from the network, preferably booted from removable media and without persistence.
+For these reasons the documentation recommends running the tool on a system isolated from the network, preferably booted from removable media without persistence.
 
 ---
 
 ## 7. Personal data
 
-The software does not collect, process or transmit personal data. There are no servers, endpoints or recipients.
+The software does not collect, process or transmit personal data. There are no servers, endpoints or recipients. All material lives in the memory of the browser tab for the duration of the session; no files, cookies or storage entries are created.
 
-All cryptographic material lives in the volatile memory of the browser tab for the duration of the session. Closing the page ends it. No files, cookies or local storage entries are created.
-
-The printable documents generated by the software are produced locally and never pass through any external service. Those documents are deliberately free of headers, marks, dates and explanatory text, to limit what could be inferred from an accidental discovery.
+Printed documents are produced locally. The Seed Card and the address lists carry neutral titles and no program name, to limit what an accidental discovery reveals. Shamir parts and SLIP-39 sheets carry only what is needed to use them years later: their number, the total, the threshold and — for Shamir — the verification code.
 
 ---
 
@@ -298,29 +355,50 @@ Every statement in this document can be verified independently.
 ### 8.1 Integrity of the distributed file
 
 ```bash
-sha256sum seedforge.html                       # Linux, macOS
-Get-FileHash seedforge.html -Algorithm SHA256  # Windows
+sha256sum amnesicwallet.html                       # Linux, macOS
+Get-FileHash amnesicwallet.html -Algorithm SHA256  # Windows
 ```
 
-The value must match the one published in the `SHA256SUMS` file of the release.
+The value must match `SHA256SUMS`, the release notes and the website. See `docs/VERIFICATION.md`.
 
 ### 8.2 Build reproducibility
 
 ```bash
-git clone <repository>
-cd seedforge
+git clone https://github.com/MrAmnesic/amnesicwallet.git
+cd amnesicwallet
 npm ci
 npm run build
-sha256sum dist/seedforge.html
+sha256sum dist/amnesicwallet.html
 ```
 
-### 8.3 Test vectors
+Continuous integration performs exactly this on every change (with dependency install scripts disabled) and compares the result with the committed file, `SHA256SUMS` and the hash on the presentation page. A pull request that does not match fails; a change pushed directly to `main` without the rebuilt file receives it in a separate commit made by CI, from the output of the checks — so the committed file is always one that CI built from the public sources. The release stops if the tagged file differs from a fresh build, and the website is published from the committed file after the same comparison (`scripts/prepare-site.js`).
+
+### 8.3 Test suite
 
 ```bash
 npm test
 ```
 
-**BIP-39 / BIP-32.** Canonical mnemonic `abandon × 11 + about`:
+`scripts/test.js` bundles `tests/core.test.js` together with `src/core.js`, using the build's own esbuild options and adapters, and runs it. About 1,400 checks, all with expected values from outside the project:
+
+| Area | Source of the expected values |
+|---|---|
+| BIP-39 entropy ↔ words ↔ seed ↔ root xprv | 24 official vectors (trezor/python-mnemonic) |
+| Bitcoin addresses | Published examples of BIP-44, BIP-49, BIP-84, BIP-86 |
+| Addresses of every format and network, account xpubs, fingerprints, BIP-48 xpubs, Zpub handling | Computed with **bip_utils** and **embit** (Python) for 5 mnemonics × 2 passphrases |
+| Multisig vaults (addresses at indexes 0 and 5, key order, descriptor checksum) and every refusal | embit; constructed invalid keys |
+| Ethereum checksum | EIP-55 examples |
+| Solana derivation | SLIP-10 ed25519 official vectors |
+| Descriptor checksum | BIP-380 example |
+| SLIP-39 recovery, including the xprv | 45 official vectors (trezor/python-shamir-mnemonic), 15 valid and 30 that must be rejected |
+| SLIP-39 creation | Round trips for several thresholds, with and without passphrase; fewer sheets than the threshold must fail |
+| GF(2⁸) | FIPS-197 examples; inverse and commutativity over the whole field |
+| Shamir split and reassembly | All subsets of every size, 5 lengths × 5 configurations; below-threshold subsets must not give the secret |
+| Shamir compatibility | Parts produced by SeedForge 1.0.1 |
+| Entropy | The formula of 3.3 recomputed; every source changes the result; invalid lengths and sources refused; broken CSPRNG output stops generation |
+| Collectors, dice, grid, sequential split | Simulated clock; exact counts |
+
+Canonical mnemonic `abandon × 11 + about`, no passphrase:
 
 | Network | Expected address |
 |---|---|
@@ -329,52 +407,49 @@ npm test
 | Bitcoin P2SH-SegWit | `37VucYSaXLCAsxYyAPfbSi9eh4iEcbShgf` |
 | Bitcoin Legacy | `1LqBGSKuX5yYUonjxT5qGfpUsXKYYWeabA` |
 | Ethereum | `0x9858EfFD232B4033E47d90003D41EC34EcaEda94` |
+| TRON | `TUEZSdKsoDHQMeZwihtdoBiN46zxhGWYdH` |
 | Solana | `HAgk14JpMQLgt6rVgv7cBQFJWFto5Dqxi472uT3DKpqk` |
-
-**SLIP-39.** The 45 official vectors of the `trezor/python-shamir-mnemonic` project all pass, including the resulting extended private key. Verification was performed through the browser adapters described in 2.4, not through native Node.js APIs.
-
-**Internal threshold scheme.** Verified by reconstruction from random subsets of cardinality equal to the threshold, and by failure with lower cardinality.
 
 ### 8.4 Verifying the absence of network traffic
 
-Run the file with a traffic analyser active, or on a physically disconnected device. No outbound packet should be observed during the entire generation and derivation cycle.
+Run the file with a traffic analyser active, or on a physically disconnected device: no outbound packet should be observed. In the browser's developer tools, any attempted connection would appear as a Content-Security-Policy violation.
 
 ### 8.5 Cross-checking
 
-Import the same mnemonic into an independent implementation (Sparrow, Electrum) and compare the derived addresses. Agreement between independent implementations is the most significant verification available to an end user.
+Import the same words into an independent implementation — Sparrow or Electrum, still offline — and compare the derived addresses. Agreement between independent implementations is the most significant verification available to an end user.
+
+For release 1.1.0, beyond the test suite, the maintainers drove the built page in a browser through every function (generation with each source, 24 words with a Unicode passphrase, dice, Shamir split and recovery, SLIP-39 creation and recovery, multisig in both modes, every check path, printing), and compared what the page displayed with bip_utils, embit and python-shamir-mnemonic. They also checked 300 further seeds (5 lengths, 3 passphrases including Unicode) — 12,481 values — and found them identical to those of SeedForge 1.0.1.
 
 ### 8.6 Code inspection
 
-The application code lives in `src/app.js`. Elements verifiable by direct inspection:
+All cryptography is in `src/core.js`, about 650 lines. Elements verifiable by direct inspection:
 
-- absence of `Math.random()` in cryptographic contexts;
-- absence of `fetch`, `XMLHttpRequest`, `WebSocket`, `EventSource`, `navigator.sendBeacon`;
-- absence of `localStorage`, `sessionStorage`, `indexedDB`, `document.cookie`;
-- derivation paths declared in plain text for each network.
+- the entropy combination (`combineEntropy`) and its unconditional CSPRNG draw;
+- the Shamir field, split and reassembly (`GF`, `shamirSplit`, `shamirCombine`);
+- the derivation paths declared in plain text for each network;
+- the absence of `Math.random`, network and storage APIs — also enforced by `scripts/build.js` on the final bundle.
 
 ---
 
 ## 9. Declared limits
 
-Consistently with the absence of any warranty, the following is stated explicitly.
+**No independent audit.** The code has not undergone a paid professional security review. Passing official vectors attests to the correctness of the derivations, not to the absence of vulnerabilities.
 
-**No independent audit.** The code has not undergone a paid professional security review. Passing the official vectors attests to the correctness of the derivations, not to the absence of vulnerabilities.
+**No long operational track record.** The project does not have the years of use on significant value that characterise established implementations. That experience cannot be replaced by design arguments.
 
-**No operational track record.** The project does not have the years of use on significant value that characterises established implementations. That experience cannot be replaced by design arguments.
+**Limited reach of the generator checks.** See 3.4.
 
-**Limited reach of the statistical checks.** See section 3.4.
+**Dependence on the program for Shamir parts.** See 5.2. SLIP-39 does not have this limitation.
 
-**Dependence on the internal threshold scheme.** See section 5.2. The SLIP-39 scheme does not have this limitation.
+**Dependence on the execution environment.** See 6.3.
 
-**Dependence on the execution environment.** See section 6.3.
-
-For significant amounts, the combined use of dedicated hardware devices and multisig configurations with keys generated by heterogeneous tools is recommended.
+For significant amounts, hardware devices and multisig configurations with keys generated by different tools are the stronger choice.
 
 ---
 
 ## 10. Licence and references
 
-The software is distributed under the GNU General Public License, version 3 or (at your option) any later version. The full text is in the `LICENSE` file of the repository. Anyone who distributes a modified version must release its source code under the same licence and state the changes made. The bundled third-party libraries (@scure, @noble, bech32, bs58, ethers, qrcode, slip39) are MIT licensed, which is compatible with the GPL.
+The software is distributed under the GNU General Public License, version 3 or (at your option) any later version; the full text is in `LICENSE`. Anyone who distributes a modified version must release its source code under the same licence and state the changes made. The bundled libraries (@noble, @scure, qrcode, slip39) are MIT licensed, which is compatible with the GPL.
 
 **Reference specifications**
 
@@ -384,8 +459,11 @@ The software is distributed under the GNU General Public License, version 3 or (
 - BIP-48 — Multi-Script Hierarchy for Multi-Sig Wallets
 - BIP-67 — Deterministic Pay-to-script-hash multi-signature addresses
 - BIP-341 — Taproot: SegWit version 1 spending rules
+- BIP-380 — Output Script Descriptors
+- EIP-55 — Mixed-case checksum address encoding
 - SLIP-10 — Universal private key derivation from master private key
 - SLIP-39 — Shamir's Secret-Sharing for Mnemonic Codes
 - SLIP-44 — Registered coin types for BIP-0044
+- FIPS-197 — Advanced Encryption Standard (arithmetic in GF(2⁸))
 
-**Security reports.** Vulnerabilities should be reported following the procedure described in the `SECURITY.md` file, privately and before any public disclosure.
+**Security reports.** Vulnerabilities should be reported following `SECURITY.md`, privately and before any public disclosure.

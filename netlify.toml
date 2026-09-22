@@ -1,0 +1,10 @@
+# Netlify publishes the presentation page in site/ together with the
+# application file exactly as committed in dist/ — nothing is rebuilt on
+# Netlify's servers. scripts/prepare-site.js refuses to deploy if the file's
+# SHA-256 differs from SHA256SUMS or from the hash printed on the page.
+[build]
+  publish = "site"
+  command = "node scripts/prepare-site.js"
+
+# Headers and redirects live in site/_headers and site/_redirects, so they
+# also apply when the site/ folder is deployed by hand.

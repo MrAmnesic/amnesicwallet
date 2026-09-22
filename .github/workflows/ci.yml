@@ -5,38 +5,117 @@ on:
     branches: [main]
   pull_request:
     branches: [main]
+  workflow_dispatch:
 
 permissions:
   contents: read
 
+# Actions are pinned to full commit SHAs (the tag is in the comment), so a
+# moved or compromised tag cannot change what runs here. Dependabot keeps
+# them up to date.
+#
+# Editing on github.com: when a change to the sources reaches main without
+# the rebuilt file, the second job commits the rebuilt file, hashes and
+# documents. On a pull request the same situation is an error instead.
 jobs:
   build-and-test:
     runs-on: ubuntu-latest
+    outputs:
+      stale: ${{ steps.compare.outputs.stale }}
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
-          node-version: 20
+          node-version: 24
           cache: npm
 
+      # --ignore-scripts: no install script of any dependency runs here.
       - name: Install exact dependencies
-        run: npm ci
+        run: npm ci --ignore-scripts
 
-      - name: Run derivation test vectors
+      - name: Test the real code against official and independent vectors
         run: npm test
 
-      - name: Build single-file artifact
+      - name: Build the single-file artifact
         run: npm run build
 
-      - name: Compute artifact hash
+      - name: Write the hash to SHA256SUMS and the presentation page
         run: node scripts/hash.js
 
+      - name: Extract the guide and the FAQ from the app
+        run: npm run docs
+
+      - name: Compare with the committed files
+        id: compare
+        run: |
+          if git diff --quiet -- dist/amnesicwallet.html SHA256SUMS site/index.html docs/STEP-BY-STEP.md docs/FAQ.md; then
+            echo "stale=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "stale=true" >> "$GITHUB_OUTPUT"
+            git diff --stat
+          fi
+
+      - name: On a pull request, the rebuilt files must be committed
+        if: steps.compare.outputs.stale == 'true' && github.event_name == 'pull_request'
+        run: |
+          echo "::error::dist/amnesicwallet.html, SHA256SUMS, site/index.html or docs/ do not match the sources. Run 'npm run build && npm run hash && npm run docs' and commit."
+          exit 1
+
+      - name: The presentation page can be published
+        run: node scripts/prepare-site.js
+
       - name: Upload built artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
-          name: seedforge-html
-          path: dist/seedforge.html
+          name: amnesicwallet-html
+          path: dist/amnesicwallet.html
           if-no-files-found: error
+
+      - name: Keep the rebuilt files for the next job
+        if: steps.compare.outputs.stale == 'true' && github.event_name != 'pull_request'
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: rebuilt
+          path: |
+            dist/amnesicwallet.html
+            SHA256SUMS
+            site/index.html
+            docs/STEP-BY-STEP.md
+            docs/FAQ.md
+          if-no-files-found: error
+
+  # Runs no project or dependency code: it only commits the files the job
+  # above produced, so the write permission never meets third-party code.
+  commit-rebuilt-files:
+    needs: build-and-test
+    if: needs.build-and-test.outputs.stale == 'true' && github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Take the rebuilt files
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: rebuilt
+          path: .
+
+      - name: Commit them
+        env:
+          TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add dist/amnesicwallet.html SHA256SUMS site/index.html docs/STEP-BY-STEP.md docs/FAQ.md
+          git commit -m "Rebuild amnesicwallet.html, its SHA-256 and the docs from source" \
+                     -m "SHA-256: $(cut -d' ' -f1 SHA256SUMS)"
+          git push "https://x-access-token:${TOKEN}@github.com/${GITHUB_REPOSITORY}.git" HEAD:main

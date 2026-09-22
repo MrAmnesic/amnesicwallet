@@ -17,10 +17,12 @@ import { sha256 } from '@noble/hashes/sha2.js';
    Uint8Array satisfies both needs (slice, length, indexes). */
 function toBytes(x) {
   if (x instanceof Uint8Array) return x;
-  if (Array.isArray(x)) return Uint8Array.from(x);
-  if (x && typeof x.length === 'number') return Uint8Array.from(x);
-  if (typeof x === 'string') return new TextEncoder().encode(x);
-  return new Uint8Array(0);
+  if (typeof x === 'string') return new TextEncoder().encode(x);   // before the length check: strings have one too
+  if (Array.isArray(x) || (x && typeof x.length === 'number')) {
+    if (!Array.prototype.every.call(x, (b) => Number.isInteger(b) && b >= 0 && b <= 255)) throw new Error('not a byte array');
+    return Uint8Array.from(x);
+  }
+  throw new Error('unsupported input');
 }
 
 export function randomBytes(length = 32) {

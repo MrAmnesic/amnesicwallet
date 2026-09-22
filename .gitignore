@@ -4,7 +4,7 @@ node_modules/
 .pnp
 .pnp.js
 
-# Build output. dist/seedforge.html is the published artifact and is kept
+# Build output. dist/amnesicwallet.html is the published artifact and is kept
 # under version control so its hash can be checked without building.
 # bundle.min.js is only an intermediate step of the build: it is regenerated
 # by `npm run build` and would just be a second copy of the same code.
@@ -44,3 +44,6 @@ secrets/
 *mnemonic*.txt
 *private*key*
 wallet-backup*
+
+# Copied from dist/ at deploy time (scripts/prepare-site.js)
+site/amnesicwallet.html

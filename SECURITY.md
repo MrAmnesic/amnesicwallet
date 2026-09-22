@@ -26,6 +26,9 @@ In scope:
 - Any network communication or data exfiltration (the app must be fully offline).
 - Persistence of sensitive data (seed/keys written to disk, `localStorage`, etc.).
 - Supply-chain concerns in the build (unexpected code in the bundled output).
+- Weaknesses in the backup schemes (Shamir parts, SLIP-39 sheets, sequential
+  split) or in the multisig key checks.
+- Ways to bypass the page's Content-Security-Policy.
 
 Out of scope:
 - Issues requiring a compromised operating system or browser.
@@ -34,6 +37,9 @@ Out of scope:
 
 ## Verifying you run authentic code
 
-- Always download from the official **Releases** page.
-- **Verify the SHA-256** against [`SHA256SUMS`](./SHA256SUMS).
-- Prefer the **reproducible build**: rebuild from source and compare hashes.
+- Download from the official **Releases** page or from
+  [amnesicwallet.netlify.app](https://amnesicwallet.netlify.app).
+- **Verify the SHA-256** against [`SHA256SUMS`](./SHA256SUMS): the release
+  page, the repository and the website must all show the same value.
+- Prefer the **reproducible build**: rebuild from source and compare hashes
+  (see [docs/VERIFICATION.md](./docs/VERIFICATION.md)).

@@ -21,7 +21,7 @@ body:
     attributes:
       label: Steps to reproduce
       placeholder: |
-        1. Open seedforge.html in ...
+        1. Open amnesicwallet.html in ...
         2. Click ...
         3. See ...
     validations:
@@ -36,7 +36,7 @@ body:
   - type: input
     id: filehash
     attributes:
-      label: SHA-256 of your seedforge.html
+      label: SHA-256 of your amnesicwallet.html
       description: Helps us know exactly which build you used.
     validations:
       required: false

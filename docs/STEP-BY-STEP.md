@@ -1,4 +1,4 @@
-# SeedForge — Step-by-step guide
+# AmnesicWallet — Step-by-step guide
 
 ## Creating a personal wallet
 
@@ -10,7 +10,7 @@
 
 **4.** **Choose the type of backup:** BIP-39 (a single phrase) or SLIP-39 (several sheets with a threshold). If you're undecided, BIP-39 with 12 words is fine in almost every case.
 
-**5.** **Decide about the passphrase.** The program asks you explicitly. Using one is recommended, because it adds a further layer of protection beyond the seed alone. If you don't know what it is, you can carry on without and add one later.
+**5.** **Decide about the passphrase.** The program asks you explicitly. It protects you if someone finds the words, but it must be kept as carefully as they are: forget it and the funds are lost. If you are unsure, carry on without. Keep in mind that it cannot be added to this wallet later: the same words with a passphrase open a different wallet, to which you would have to move the funds.
 
 **6.** **Fill the entropy bars:** type any keys freely and at random, then move the mouse — or, on a phone, drag your finger inside the box. If you chose the dice, enter the rolls first.
 
@@ -18,11 +18,11 @@
 
 **8.** **Save the backup**, then use *Check the seed again* to confirm you transcribed it correctly. You can write the words in plain text, exactly as they appear on screen. Or, for greater privacy, you can save them in a format that shows no words at all: click *Powers-of-2 backup* and you get a grid of dots. Anyone finding it sees only marked boxes, without being able to read the seed.
 
-To read the grid back you need the numbered BIP-39 dictionary. You can download it from SeedForge or find it elsewhere: what matters is that the numbering starts at **1** and not at 0, otherwise every word is shifted by one position and the conversion comes out wrong.
+To read the grid back you need the numbered BIP-39 dictionary. You can download it from AmnesicWallet or find it elsewhere: what matters is that the numbering starts at **1** and not at 0, otherwise every word is shifted by one position and the conversion comes out wrong.
 
 **9.** **Select the networks** and calculate the addresses. Those are public: you can share them without risk in order to receive.
 
-**10.** **Verify in a second program.** Import the same seed into Sparrow or MetaMask and check that the address matches. It's the check worth more than any promise.
+**10.** **Verify in a second program, still offline.** On the same disconnected device, restore the words in another program — Sparrow or Electrum, for example — check that the first address matches, then delete that wallet from the program. Two independent tools that agree are worth more than any promise; typing the words into a program on a connected device would undo the care taken so far.
 
 ---
 
@@ -68,7 +68,7 @@ The **Check wallet** section has four paths.
 
 ## Spending the funds
 
-SeedForge does not sign transactions by design: signing requires a connection, and the offline guarantee is what makes it trustworthy. To spend, you import the seed into a compatible wallet.
+AmnesicWallet does not sign transactions, by design: it stays a small generator that can be read and checked, with no reason ever to go online. To spend, you use the words in a wallet that signs.
 
 **₿.** **Bitcoin → Sparrow or Electrum.**
 
@@ -78,6 +78,6 @@ SeedForge does not sign transactions by design: signing requires a connection, a
 
 **🛡.** **For significant amounts: hardware wallet.** Enter the seed into a Ledger or Trezor using the physical buttons. The key never touches the computer and transactions are signed inside the device.
 
-> MetaMask has become multichain: besides Ethereum and the EVM networks it natively handles **Solana**, **Bitcoin** (since December 2025) and **TRON** (since January 2026). By importing the seed there you can therefore follow **all four networks** of SeedForge from a single wallet. One useful clarification: for Bitcoin MetaMask uses only the **Native SegWit** format (bc1q…), so it will not show any Taproot or Legacy addresses. For Bitcoin, in any case, Sparrow remains the most specific and complete tool.
+> MetaMask has become multichain: besides Ethereum and the EVM networks it natively handles **Solana**, **Bitcoin** (since December 2025) and **TRON** (since January 2026). By importing the seed there you can therefore follow **all four networks** of AmnesicWallet from a single wallet. One useful clarification: for Bitcoin MetaMask uses only the **Native SegWit** format (bc1q…), so it will not show any Taproot or Legacy addresses. For Bitcoin, in any case, Sparrow remains the most specific and complete tool.
 
 ---

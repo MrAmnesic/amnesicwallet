@@ -1,5 +1,5 @@
 /*
- * SeedForge — offline BIP-39 wallet generator
+ * AmnesicWallet — offline BIP-39 wallet generator
  * Copyright (C) 2026 MrAmnesic
  *
  * This program is free software: you can redistribute it and/or modify it
@@ -15,464 +15,62 @@
  * You should have received a copy of the GNU General Public License along
  * with this program. If not, see <https://www.gnu.org/licenses/>.
  *
- * Bundled third-party libraries (@scure, @noble, bech32, bs58, ethers,
- * qrcode, slip39) are distributed under the MIT licence; their notices are
- * kept in the source tree.
+ * Bundled third-party libraries (@noble/curves, @noble/hashes, @scure/base,
+ * @scure/bip32, @scure/bip39, qrcode, slip39) are distributed under the MIT
+ * licence; their notices are kept in the source tree.
+ *
+ * This file is the user interface. All the cryptography is in core.js.
  */
 
-import { generateMnemonic, mnemonicToSeedSync, entropyToMnemonic, mnemonicToEntropy, validateMnemonic } from '@scure/bip39';
-import { wordlist } from '@scure/bip39/wordlists/english.js';
-import { HDKey } from '@scure/bip32';
-import { sha256, sha512 } from '@noble/hashes/sha2.js';
-import { ripemd160 } from '@noble/hashes/legacy.js';
-import { hmac } from '@noble/hashes/hmac.js';
-import { bech32, bech32m } from 'bech32';
-import slip39lib from 'slip39';
-import { secp256k1 } from '@noble/curves/secp256k1.js';
-import { ethers } from 'ethers';
+import {
+  WORD_OPTIONS, ENT_BYTES, CHAINS, BTC_FORMATS, METAL_COLS,
+  isSecureRandomAvailable, combineEntropy, createMouseCollector, createTypingCollector,
+  diceRollsNeeded, diceBytesFrom, shamirSplit, shamirCombine, verificationCode, classicSplit,
+  deriveAll, deriveBTC, deriveBTCMany, btcAccountInfo, btcPath, deriveMultisigXpub, multisigAddress, KeyError,
+  slip39Create, slip39Recover, isSlip39Passphrase, metalRows, normalizeWords,
+  entropyToMnemonic, mnemonicToEntropy, mnemonicToSeedSync, validateMnemonic, wordlist, HDKey,
+} from './core.js';
 import QRCode from 'qrcode';
-import bs58 from 'bs58';
-import { getPublicKey as ed25519GetPublicKey, hashes as ed25519hashes } from '@noble/ed25519';
 
-ed25519hashes.sha512 = sha512;
-
-/* ════════════════════════════════════════════════════════════════
-   ENTROPY — secure source, statistical checks, mouse, dice
-   ════════════════════════════════════════════════════════════════ */
-
-function isSecureRandomAvailable() {
-  try {
-    if (typeof crypto === 'undefined' || typeof crypto.getRandomValues !== 'function') return false;
-    const probe = new Uint8Array(16);
-    crypto.getRandomValues(probe);
-    return probe.some(b => b !== 0);
-  } catch (_) { return false; }
-}
 const SECURE_RANDOM_OK = isSecureRandomAvailable();
-
-/* Statistical checks (3 safety nets).
-   They do not prove cryptographic security: they catch catastrophic
-   generator failures (e.g. entropy collapsed because of a bug). */
-function statisticalChecks(bytes) {
-  // 1. Constant value
-  const first = bytes[0];
-  if (bytes.every(b => b === first)) {
-    return { ok: false, reason: 'constant' };
-  }
-  // 2. Two independent draws
-  const a = new Uint8Array(bytes.length);
-  const b = new Uint8Array(bytes.length);
-  crypto.getRandomValues(a);
-  crypto.getRandomValues(b);
-  if (a.every((v, i) => v === b[i])) {
-    return { ok: false, reason: 'duplicate' };
-  }
-  // 3. Monobit: bits set to 1 between 25% and 75%
-  let ones = 0;
-  for (const byte of bytes) {
-    let v = byte;
-    while (v) { ones += v & 1; v >>= 1; }
-  }
-  const ratio = ones / (bytes.length * 8);
-  if (ratio < 0.25 || ratio > 0.75) {
-    return { ok: false, reason: 'unbalanced' };
-  }
-  return { ok: true };
-}
-
-/* Entropy combination. Non-negotiable rule:
-   crypto.getRandomValues() is ALWAYS present and unconditional.
-   Mouse and dice ADD to it, they never replace it.
-   final_entropy = SHA-256(csprng || mouse || dice) truncated to N bytes */
-function combineEntropy(nBytes, mouseBytes, diceBytes, typeBytes) {
-  const base = new Uint8Array(64);
-  crypto.getRandomValues(base);
-
-  const chk = statisticalChecks(base);
-  if (!chk.ok) throw new Error('RNG_ANOMALY:' + chk.reason);
-
-  const parts = [base];
-  if (mouseBytes && mouseBytes.length) parts.push(mouseBytes);
-  if (diceBytes && diceBytes.length) parts.push(diceBytes);
-  if (typeBytes && typeBytes.length) parts.push(typeBytes);
-
-  let total = 0; for (const p of parts) total += p.length;
-  const concat = new Uint8Array(total);
-  let off = 0;
-  for (const p of parts) { concat.set(p, off); off += p.length; }
-
-  // SHA-256 → 32 bytes; for 32 final bytes two blocks are needed (counter)
-  const h1 = sha256(concat);
-  if (nBytes <= 32) {
-    const out = h1.slice(0, nBytes);
-    const chk2 = statisticalChecks(out);
-    if (!chk2.ok) throw new Error('RNG_ANOMALY:' + chk2.reason);
-    return out;
-  }
-  const c2 = new Uint8Array(concat.length + 1);
-  c2.set(concat); c2[concat.length] = 0x02;
-  const h2 = sha256(c2);
-  const out = new Uint8Array(nBytes);
-  out.set(h1); out.set(h2.slice(0, nBytes - 32), 32);
-  const chk2 = statisticalChecks(out);
-  if (!chk2.ok) throw new Error('RNG_ANOMALY:' + chk2.reason);
-  return out;
-}
-
-/* Entropy collection from mouse/touch.
-   Criteria (all reachable with normal movement):
-   - minimum time ~8 seconds
-   - minimum number of events
-   - total distance travelled
-   - direction changes (one fast straight line is not enough) */
-function createMouseCollector() {
-  const samples = [];
-  let startT = 0;
-  let dist = 0;
-  let turns = 0;
-  let lastDx = 0, lastDy = 0;
-  return {
-    start() { samples.length = 0; startT = performance.now(); dist = 0; turns = 0; lastDx = 0; lastDy = 0; },
-    feed(x, y) {
-      const t = performance.now();
-      const prev = samples[samples.length - 1];
-      if (prev) {
-        const dx = x - prev.x, dy = y - prev.y;
-        dist += Math.hypot(dx, dy);
-        // direction change: the sign of dx or dy flips
-        if ((dx !== 0 && lastDx !== 0 && Math.sign(dx) !== Math.sign(lastDx)) ||
-            (dy !== 0 && lastDy !== 0 && Math.sign(dy) !== Math.sign(lastDy))) {
-          turns++;
-        }
-        if (dx !== 0) lastDx = dx;
-        if (dy !== 0) lastDy = dy;
-      }
-      samples.push({ x, y, t });
-    },
-    progress() {
-      if (!samples.length) return 0;
-      const elapsed = (performance.now() - startT) / 1000;
-      const timeP = Math.min(elapsed / 8, 1);           // ≥8 seconds (the main criterion)
-      const countP = Math.min(samples.length / 100, 1); // ≥100 events
-      const distP = Math.min(dist / 1000, 1);           // ≥1000 px travelled
-      const turnP = Math.min(turns / 8, 1);             // ≥8 direction changes
-      return Math.min(timeP, countP, distP, turnP);
-    },
-    bytes() {
-      const buf = new Float64Array(samples.length * 3);
-      samples.forEach((s, i) => { buf[i * 3] = s.x; buf[i * 3 + 1] = s.y; buf[i * 3 + 2] = s.t; });
-      return sha256(new Uint8Array(buf.buffer));
-    },
-  };
-}
-
-/* Entropy collection from the keyboard.
-   The genuinely unpredictable part is not the characters (humans
-   choose them badly) but the TIMING between keystrokes, measured
-   to the millisecond. It therefore requires length + time + variety. */
-function createTypingCollector() {
-  const events = [];
-  let startT = 0;
-  const seen = new Set();
-  return {
-    start() { events.length = 0; seen.clear(); startT = performance.now(); },
-    feed(key) {
-      events.push({ k: key, t: performance.now() });
-      seen.add(key);
-    },
-    progress() {
-      if (!events.length) return 0;
-      const elapsed = (performance.now() - startT) / 1000;
-      const lenP = Math.min(events.length / 20, 1);   // ≥20 characters
-      const timeP = Math.min(elapsed / 5, 1);         // ≥5 seconds
-      const varP = Math.min(seen.size / 10, 1);       // ≥10 distinct keys
-      return Math.min(lenP, timeP, varP);
-    },
-    count() { return events.length; },
-    bytes() {
-      const enc = new TextEncoder();
-      const parts = events.map(e => e.k + ':' + e.t.toFixed(3));
-      return sha256(enc.encode(parts.join('|')));
-    },
-  };
-}
-
-
-function diceRollsNeeded(entropyBits, twoDice) {
-  const single = Math.ceil(entropyBits / Math.log2(6));
-  return twoDice ? Math.ceil(single / 2) : single;
-}
-function diceBytesFrom(rolls) {
-  return sha256(new Uint8Array(rolls));
-}
-
-/* ════════════════════════════════════════════════════════════════
-   SHAMIR GF(256) — applied directly to the BIP-39 entropy.
-   Not SLIP-39 (which does not round-trip with BIP-39). Each part is
-   itself a valid BIP-39 mnemonic (y-bytes → words), plus the part
-   number (x coordinate) and a verification code.
-   ════════════════════════════════════════════════════════════════ */
-const GF = (() => {
-  const exp = new Uint8Array(512), log = new Uint8Array(256);
-  // Generator 0x03 (as in the AES tables): 2 does NOT generate the whole
-  // multiplicative group of GF(2^8) with polynomial 0x11b, 3 does.
-  let x = 1;
-  for (let i = 0; i < 255; i++) {
-    exp[i] = x; log[x] = i;
-    const xt = ((x << 1) ^ ((x & 0x80) ? 0x11b : 0)) & 0xff; // xtime = x*2
-    x = x ^ xt;                                              // x*3
-  }
-  for (let i = 255; i < 512; i++) exp[i] = exp[i - 255];
-  const mul = (a, b) => (a === 0 || b === 0) ? 0 : exp[log[a] + log[b]];
-  const div = (a, b) => { if (b === 0) throw new Error('div0'); return a === 0 ? 0 : exp[(log[a] - log[b] + 255) % 255]; };
-  return { mul, div };
-})();
-
-function shamirSplit(secret, n, m) {
-  if (m < 2 || n < m || n > 16) throw new Error('invalid parameters');
-  const shares = Array.from({ length: n }, () => new Uint8Array(secret.length));
-  for (let byteI = 0; byteI < secret.length; byteI++) {
-    const coeffs = new Uint8Array(m);
-    coeffs[0] = secret[byteI];
-    const rnd = new Uint8Array(m - 1);
-    crypto.getRandomValues(rnd);
-    for (let i = 1; i < m; i++) coeffs[i] = rnd[i - 1];
-    for (let xi = 1; xi <= n; xi++) {
-      let y = 0, xp = 1;
-      for (let c = 0; c < m; c++) { y ^= GF.mul(coeffs[c], xp); xp = GF.mul(xp, xi); }
-      shares[xi - 1][byteI] = y;
-    }
-  }
-  return shares; // shares[i] has x coordinate = i+1
-}
-
-function shamirCombine(parts) {
-  // parts: [{x, y:Uint8Array}]
-  const len = parts[0].y.length;
-  const secret = new Uint8Array(len);
-  for (let byteI = 0; byteI < len; byteI++) {
-    let acc = 0;
-    for (let i = 0; i < parts.length; i++) {
-      let num = 1, den = 1;
-      for (let j = 0; j < parts.length; j++) {
-        if (i === j) continue;
-        num = GF.mul(num, parts[j].x);
-        den = GF.mul(den, parts[i].x ^ parts[j].x);
-      }
-      acc ^= GF.mul(parts[i].y[byteI], GF.div(num, den));
-    }
-    secret[byteI] = acc;
-  }
-  return secret;
-}
-
-function verificationCode(entropy) {
-  const h = sha256(entropy);
-  return Array.from(h.slice(0, 2)).map(b => b.toString(16).padStart(2, '0')).join('').toUpperCase();
-}
-
-/* ════════════════════════════════════════════════════════════════
-   ADDRESS DERIVATIONS (unchanged since v1, verified against vectors)
-   + BIP-48 xpub and P2WSH multisig address for the Multisig section
-   ════════════════════════════════════════════════════════════════ */
-const CHAINS = [
-  { id: 'btc', name: 'Bitcoin',    tag: 'Native SegWit',   icon: '₿' },
-  { id: 'eth', name: 'Ethereum',   tag: 'EVM · 0x',        icon: 'Ξ' },
-  { id: 'trx', name: 'TRON',       tag: 'TRC-20 · Base58', icon: '◆' },
-  { id: 'sol', name: 'Solana',     tag: 'Base58',          icon: '◎' },
-];
-
-function deriveAll(seed, selected, btcFormat) {
-  const master = HDKey.fromMasterSeed(new Uint8Array(seed));
-  const results = {};
-  for (const id of selected) {
-    let entry = null;
-    switch (id) {
-      case 'btc': entry = deriveBTC(master, btcFormat); break;
-      case 'eth': entry = deriveETH(master); break;
-      case 'trx': entry = deriveTRX(master); break;
-      case 'sol': entry = deriveSOL(seed);   break;
-    }
-    if (entry) { entry.id = id; results[id] = entry; }
-  }
-  return results;
-}
-
-/* ── Bitcoin address formats ────────────────────────────────────
-   Each format has its own standard and derivation path.         */
-const BTC_FORMATS = {
-  native: { id: 'native', label: 'Native SegWit', tag: 'bc1q…', purpose: 84, std: 'BIP-84',
-    desc: "Today's standard: low fees and full compatibility.", descFn: 'wpkh' },
-  taproot: { id: 'taproot', label: 'Taproot', tag: 'bc1p…', purpose: 86, std: 'BIP-86',
-    desc: 'The most recent: more privacy and even lower fees.', descFn: 'tr' },
-  p2sh: { id: 'p2sh', label: 'SegWit compatible', tag: '3…', purpose: 49, std: 'BIP-49',
-    desc: 'Accepted everywhere, even by older services.', descFn: 'sh(wpkh' },
-  legacy: { id: 'legacy', label: 'Legacy', tag: '1…', purpose: 44, std: 'BIP-44',
-    desc: 'The original format from 2009. Higher fees.', descFn: 'pkh' },
-};
-
-function taggedHash(tag, msg) {
-  const t = sha256(new TextEncoder().encode(tag));
-  const b = new Uint8Array(t.length * 2 + msg.length);
-  b.set(t, 0); b.set(t, t.length); b.set(msg, t.length * 2);
-  return sha256(b);
-}
-function toHex(u) { return Array.from(u).map(b => b.toString(16).padStart(2, '0')).join(''); }
-
-function base58check(versionByte, payload) {
-  const p = new Uint8Array(1 + payload.length);
-  p[0] = versionByte; p.set(payload, 1);
-  const f = new Uint8Array(p.length + 4);
-  f.set(p); f.set(sha256(sha256(p)).slice(0, 4), p.length);
-  return bs58.encode(f);
-}
-
-/* Bitcoin address from a public key, in the chosen format */
-function btcAddressFromPubkey(pubkey, format) {
-  if (format === 'legacy') {
-    return base58check(0x00, ripemd160(sha256(pubkey)));
-  }
-  if (format === 'p2sh') {
-    const kh = ripemd160(sha256(pubkey));
-    const redeem = new Uint8Array(22);
-    redeem[0] = 0x00; redeem[1] = 0x14; redeem.set(kh, 2);
-    return base58check(0x05, ripemd160(sha256(redeem)));
-  }
-  if (format === 'taproot') {
-    const xonly = pubkey.slice(1);                       // x-only internal key
-    const t = taggedHash('TapTweak', xonly);             // BIP-341, no script tree
-    const Pt = secp256k1.Point.fromHex('02' + toHex(xonly));
-    const Q = Pt.add(secp256k1.Point.BASE.multiply(BigInt('0x' + toHex(t))));
-    const out = (Q.toBytes ? Q.toBytes(true) : Q.toRawBytes(true)).slice(1);
-    const w = bech32m.toWords(out); w.unshift(0x01);     // witness v1 + bech32m
-    return bech32m.encode('bc', w);
-  }
-  // native segwit (default)
-  const w = bech32.toWords(ripemd160(sha256(pubkey)));
-  w.unshift(0x00);
-  return bech32.encode('bc', w);
-}
-
-function btcPath(format, index) {
-  const p = BTC_FORMATS[format].purpose;
-  return `m/${p}'/0'/0'/0/${index}`;
-}
-
-function deriveBTC(master, format, index) {
-  const fmt = BTC_FORMATS[format] ? format : 'native';
-  const idx = index || 0;
-  const path = btcPath(fmt, idx);
-  const child = master.derive(path);
-  const f = BTC_FORMATS[fmt];
-  return {
-    name: `Bitcoin — ${f.label}`, symbol: 'BTC',
-    address: btcAddressFromPubkey(child.publicKey, fmt),
-    path, icon: '₿', btcFormat: fmt,
-  };
-}
-
-/* Several receiving addresses (consecutive indexes) */
-function deriveBTCMany(master, format, from, count) {
-  const out = [];
-  for (let i = from; i < from + count; i++) {
-    const path = btcPath(format, i);
-    const child = master.derive(path);
-    out.push({ index: i, path, address: btcAddressFromPubkey(child.publicKey, format) });
-  }
-  return out;
-}
-
-/* Account xpub + descriptor, for watch-only monitoring */
-function btcAccountInfo(seed, format) {
-  const master = HDKey.fromMasterSeed(new Uint8Array(seed));
-  const f = BTC_FORMATS[format] || BTC_FORMATS.native;
-  const acctPath = `m/${f.purpose}'/0'/0'`;
-  const acct = master.derive(acctPath);
-  const fp = toHex(new Uint8Array(new Uint32Array([master.fingerprint]).buffer).reverse());
-  const origin = `[${fp}/${f.purpose}h/0h/0h]`;
-  const inner = `${origin}${acct.publicExtendedKey}/0/*`;
-  const descriptor = f.descFn === 'sh(wpkh' ? `sh(wpkh(${inner}))` : `${f.descFn}(${inner})`;
-  return { xpub: acct.publicExtendedKey, path: acctPath, fingerprint: fp, descriptor, format: f };
-}
-function deriveETH(master) {
-  const child = master.derive("m/44'/60'/0'/0/0");
-  const raw = ethers.getBytes(ethers.SigningKey.computePublicKey(child.publicKey, false)).slice(1);
-  const address = ethers.getAddress('0x' + ethers.keccak256(raw).slice(-40));
-  return { name: 'Ethereum (EVM compatible)', symbol: 'ETH', address, path: "m/44'/60'/0'/0/0", icon: 'Ξ',
-    evmChains: ['Ethereum', 'BSC', 'Polygon', 'Arbitrum', 'Avalanche', 'Optimism', 'Base'] };
-}
-function deriveTRX(master) {
-  const child = master.derive("m/44'/195'/0'/0/0");
-  const raw = ethers.getBytes(ethers.SigningKey.computePublicKey(child.publicKey, false)).slice(1);
-  const ab = ethers.getBytes('0x' + ethers.keccak256(raw).slice(-40));
-  const p = new Uint8Array(21); p[0] = 0x41; p.set(ab, 1);
-  const f = new Uint8Array(25); f.set(p); f.set(sha256(sha256(p)).slice(0, 4), 21);
-  return { name: 'TRON (TRC-20)', symbol: 'TRX', address: bs58.encode(f), path: "m/44'/195'/0'/0/0", icon: '◆' };
-}
-function deriveSOL(seed) {
-  const path = [44, 501, 0, 0];
-  let k = hmac(sha512, new TextEncoder().encode('ed25519 seed'), new Uint8Array(seed));
-  let il = k.slice(0, 32), ir = k.slice(32);
-  for (const idx of path) {
-    const d = new Uint8Array(37); d[0] = 0; d.set(il, 1);
-    const ib = new Uint8Array(4);
-    new DataView(ib.buffer).setUint32(0, (idx | 0x80000000) >>> 0, false);
-    d.set(ib, 33);
-    const I = hmac(sha512, ir, d); il = I.slice(0, 32); ir = I.slice(32);
-  }
-  return { name: 'Solana', symbol: 'SOL', address: bs58.encode(ed25519GetPublicKey(il)), path: "m/44'/501'/0'/0'", icon: '◎' };
-}
-
-/* ── Bitcoin multisig: BIP-48 xpub (P2WSH) and shared vault ── */
-function deriveMultisigXpub(seed) {
-  const master = HDKey.fromMasterSeed(new Uint8Array(seed));
-  const acct = master.derive("m/48'/0'/0'/2'");
-  const fp = Array.from(new Uint8Array(new Uint32Array([master.fingerprint]).buffer).reverse())
-    .map(b => b.toString(16).padStart(2, '0')).join('');
-  return { xpub: acct.publicExtendedKey, fingerprint: fp, path: "m/48'/0'/0'/2'" };
-}
-
-function bip67Sort(pubkeys) {
-  return [...pubkeys].sort((a, b) => {
-    for (let i = 0; i < Math.min(a.length, b.length); i++) {
-      if (a[i] !== b[i]) return a[i] - b[i];
-    }
-    return a.length - b.length;
-  });
-}
-
-function multisigAddress(xpubs, threshold) {
-  const pubkeys = xpubs.map(x => {
-    const node = HDKey.fromExtendedKey(x.trim());
-    return node.deriveChild(0).deriveChild(0).publicKey;
-  });
-  const sorted = bip67Sort(pubkeys);
-  const n = sorted.length, m = threshold;
-  if (m < 1 || m > n || n > 15) throw new Error('invalid threshold');
-  // script: OP_m <pk>... OP_n OP_CHECKMULTISIG
-  let len = 1 + n * 34 + 1 + 1;
-  const script = new Uint8Array(len);
-  let off = 0;
-  script[off++] = 0x50 + m;
-  for (const pk of sorted) { script[off++] = 0x21; script.set(pk, off); off += 33; }
-  script[off++] = 0x50 + n;
-  script[off++] = 0xae;
-  const prog = sha256(script);
-  const w = bech32.toWords(prog);
-  w.unshift(0x00);
-  const address = bech32.encode('bc', w);
-  const descriptor = `wsh(sortedmulti(${m},${xpubs.map(x => x.trim() + '/0/*').join(',')}))`;
-  return { address, descriptor, n, m };
-}
 
 /* ════════════════════════════════════════════════════════════════
    UI UTILITIES (unchanged since v1)
    ════════════════════════════════════════════════════════════════ */
+const SLIP39_PASS_MSG = 'A SLIP-39 passphrase can only contain ordinary keyboard characters: letters without accents, digits, spaces and the usual symbols. This is a rule of the SLIP-39 standard, shared by Trezor and every other program that reads it.';
+
+/* Plain-language explanation for a rejected multisig key. */
+function keyErrorMessage(err, labels) {
+  const who = (err && Number.isInteger(err.index) && labels && labels[err.index]) ? labels[err.index] : 'One of the keys';
+  switch (err && err.code) {
+    case 'PRIVATE':     return `⛔ ${who} is a <strong>private</strong> key (xprv). Never paste or share it: it gives full control of the funds. Each participant must share only their <strong>xpub</strong>.`;
+    case 'TESTNET':     return `${who} belongs to the Bitcoin <strong>test</strong> network, not to the real one.`;
+    case 'SCRIPT_TYPE': return `${who} is labelled for a different kind of wallet (ypub, zpub or Ypub). For a native-SegWit multisig vault it must be an <strong>xpub</strong> or a <strong>Zpub</strong>, derived at m/48'/0'/0'/2'.`;
+    case 'DUPLICATE':   return `${who} appears twice. Every participant must bring a different key — otherwise the vault needs fewer people than it seems.`;
+    case 'TOO_MANY':    return 'A vault can have at most 15 keys.';
+    case 'TOO_FEW':     return 'At least two keys are needed.';
+    case 'THRESHOLD':   return 'The required signatures cannot exceed the number of keys.';
+    default:            return `${who} is not valid: check that it was pasted in full, without spaces or broken lines.`;
+  }
+}
+
+/* Options 1…n for a "signatures required" menu. */
+function thresholdOptions(n, selected) {
+  const max = Math.max(2, Math.min(15, n));
+  const sel = Math.min(selected, max);
+  return Array.from({ length: max }, (_, i) => i + 1)
+    .map(v => `<option value="${v}" ${v === sel ? 'selected' : ''}>${v}</option>`).join('');
+}
+
 function escapeHtml(str) {
   return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
 }
+/* Short texts (addresses) get the strongest error correction; long ones
+   (xpubs, descriptors) a lighter one, so the modules stay large enough for a
+   phone camera to read. */
 async function generateQR(text, size) {
-  return await QRCode.toDataURL(text, { width: size || 200, margin: 2, color: { dark: '#000000', light: '#ffffff' }, errorCorrectionLevel: 'H' });
+  const level = text.length <= 90 ? 'H' : text.length <= 200 ? 'M' : 'L';
+  return await QRCode.toDataURL(text, { width: size || 200, margin: 2, color: { dark: '#000000', light: '#ffffff' }, errorCorrectionLevel: level });
 }
 async function copyToClipboard(text) {
   try {
@@ -497,10 +95,12 @@ function showToast(msg, type) {
   requestAnimationFrame(() => toast.classList.add('toast-show'));
   setTimeout(() => { toast.classList.remove('toast-show'); setTimeout(() => toast.remove(), 300); }, 2600);
 }
+const printWindows = [];            // closed when the user removes everything from the page
 function printHTML(html) {
   const doc = html.replace(/^\s+/, '');
   const win = window.open('', '_blank');
   if (win) {
+    printWindows.push(win);
     win.document.write(doc); win.document.close(); win.focus();
     setTimeout(() => win.print(), 500);
     return;
@@ -540,6 +140,7 @@ let btcAccount = null;    // xpub + descriptor for watch-only
 let vfSeed = null;        // seed of the Check tab (isolated from the main wallet)
 let vfMnemonic = null;
 let vfResults = null;
+let csResults = null;     // addresses recovered from SLIP-39 sheets (Check tab), kept apart from vf*
 let vfFormat = 'native';
 let vfExtra = null;
 let vfAccount = null;
@@ -561,8 +162,6 @@ let seedUnlocked = false;
 let guideView = 'guide';            // 'guide' | 'faq'
 let shamirMeta = null;               // {n, m, code}
 
-const WORD_OPTIONS = [12, 15, 18, 21, 24];
-const ENT_BYTES = { 12: 16, 15: 20, 18: 24, 21: 28, 24: 32 };
 
 /* ════════════════════════════════════════════════════════════════
    SHELL: header, tabs, router
@@ -582,7 +181,7 @@ function renderApp() {
             </svg>
           </div>
           <div>
-            <h1>SEEDFORGE</h1>
+            <h1>AMNESIC<span class="logo-accent">WALLET</span></h1>
             <p class="subtitle">Your wallet is born here. And stays yours alone.</p>
           </div>
         </div>
@@ -601,7 +200,7 @@ function renderApp() {
       </main>
 
       <footer><p>No connection. Nothing saved. No trace.<br>Everything happens here, on this device, and disappears when you close the page.</p>
-        <p class="hint" style="margin-top:8px">SeedForge — free software under the GNU GPL v3 or later, with absolutely no warranty.</p></footer>
+        <p class="hint" style="margin-top:8px">AmnesicWallet — free software under the GNU GPL v3 or later, with absolutely no warranty.</p></footer>
     </div>
     <div id="overlay-root"></div>
   `;
@@ -773,7 +372,7 @@ function renderConvertShamir() {
         <label class="config-label">The words of your seed
           <span class="hint">12, 15, 18, 21 or 24 words, separated by spaces.</span>
         </label>
-        <textarea id="cv-words" class="inp" rows="3" placeholder="word1 word2 word3 …" autocomplete="off" autocapitalize="off" spellcheck="false"></textarea>
+        <textarea id="cv-words" class="inp" rows="3" placeholder="word1 word2 word3 …" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false"></textarea>
 
         <div class="note-box" style="margin-top:12px">
           <strong>Were you using a passphrase?</strong> There's no need to enter it here: the parts rebuild the <em>words</em>, and the passphrase remains a separate protection. Keep looking after it on its own, otherwise the wallet stays out of reach.
@@ -807,12 +406,11 @@ function wireConvertShamir() {
       return;
     }
     try {
+      resetWalletState();
       currentMnemonic = words;
       currentEntropy = mnemonicToEntropy(words, wordlist);
       currentSeed = mnemonicToSeedSync(words, '');
-      generatedAddresses = {}; btcExtra = null; btcAccount = null;
-      shamirParts = null; shamirMeta = null; seedRevealed = false;
-      watchRevealed = false; watchInPrint = false;
+      pendingConfig = { words: n, passphrase: '' };
       ta.value = '';
       activeTab = 'generate'; genPath = 'classic';
       ctrlPath = null; shamirMode = null;
@@ -863,7 +461,7 @@ function csAddPart() {
   div.className = 'rec-part';
   div.innerHTML = `
     <div class="rec-part-head"><span>Sheet ${i + 1}</span></div>
-    <textarea class="inp cs-words" rows="2" placeholder="The 20 words of this sheet" autocomplete="off" autocapitalize="off" spellcheck="false"></textarea>`;
+    <textarea class="inp cs-words" rows="2" placeholder="The 20 words of this sheet" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false"></textarea>`;
   box.appendChild(div);
 }
 
@@ -871,11 +469,12 @@ function wireCtrlSlip() {
   const box = document.getElementById('cs-parts');
   if (box && !box.children.length) { csAddPart(); csAddPart(); }
   document.getElementById('cs-add')?.addEventListener('click', csAddPart);
-  document.getElementById('cs-back')?.addEventListener('click', () => { ctrlPath = null; renderApp(); });
+  document.getElementById('cs-back')?.addEventListener('click', () => { ctrlPath = null; csResults = null; renderApp(); });
+  renderCsAddresses();
   document.getElementById('cs-go')?.addEventListener('click', () => {
     const out = document.getElementById('cs-result');
     const shares = [...document.querySelectorAll('.cs-words')]
-      .map(t => (t.value || '').trim().toLowerCase().replace(/\s+/g, ' ')).filter(Boolean);
+      .map(t => normalizeWords(t.value)).filter(Boolean);
     if (shares.length < 1) { out.innerHTML = '<div class="note-box">Enter at least one sheet.</div>'; return; }
     for (let i = 0; i < shares.length; i++) {
       const n = shares[i].split(' ').length;
@@ -885,24 +484,32 @@ function wireCtrlSlip() {
       }
     }
     const pass = document.getElementById('cs-pass').value || '';
+    if (!isSlip39Passphrase(pass)) {
+      out.innerHTML = `<div class="warn-box">${SLIP39_PASS_MSG}</div>`;
+      return;
+    }
     let secret;
-    try { secret = slip39lib.recoverSecret(shares, pass); }
+    try { secret = slip39Recover(shares, pass); }
     catch (err) {
       out.innerHTML = `<div class="warn-box"><strong>It was not possible to reassemble.</strong> Usually this means the sheets do not belong to the same backup, that some are missing to reach the threshold, or that there is a transcription error. Check that the first three words are the same on all of them.</div>`;
       return;
     }
-    const bytes = Uint8Array.from(secret);
-    vfSeed = bytes;                    // the master secret IS the BIP-32 seed
-    vfMnemonic = null;
-    vfFormat = btcFormat;
     try {
-      vfResults = deriveAll(bytes, ['btc', 'eth', 'trx', 'sol'], vfFormat);
-      vfExtra = null;
-      vfAccount = btcAccountInfo(bytes, vfFormat);
+      // The master secret IS the BIP-32 seed. Only the public addresses are
+      // kept; the secret itself is not stored anywhere in the page state.
+      // Bitcoin in all four formats: a Trezor account may use any of them,
+      // and the point here is to recognise one's own addresses.
+      const master = HDKey.fromMasterSeed(new Uint8Array(secret));
+      csResults = {};
+      for (const fmt of ['native', 'taproot', 'p2sh', 'legacy']) csResults['btc-' + fmt] = deriveBTC(master, fmt);
+      Object.assign(csResults, deriveAll(secret, ['eth', 'trx', 'sol'], 'native'));
+      secret.fill(0);
     } catch (e) {
       out.innerHTML = `<div class="warn-box">Derivation error: ${escapeHtml(e.message)}</div>`;
       return;
     }
+    document.querySelectorAll('.cs-words').forEach(t => { t.value = ''; });   // the sheets need not stay on screen
+    document.getElementById('cs-pass').value = '';
     out.innerHTML = `<div class="ok-box">✔ <strong>Wallet recovered</strong> from ${shares.length} sheets. The addresses are below: compare them with the ones you expect.</div>`;
     renderCsAddresses();
   });
@@ -910,20 +517,20 @@ function wireCtrlSlip() {
 
 function renderCsAddresses() {
   const box = document.getElementById('cs-addresses');
-  if (!box || !vfResults) return;
-  const entries = Object.values(vfResults);
+  if (!box || !csResults) return;
+  const entries = Object.values(csResults);
   box.innerHTML = `
     <div class="card">
       <div class="card-header"><span class="step-badge">✓</span><h2>Addresses of this backup</h2></div>
       <div class="addresses-list">
         ${entries.map(e => `
           <div class="address-item">
-            <div class="address-header"><span class="addr-icon">${e.icon}</span>
+            <div class="address-header"><span class="addr-icon">${escapeHtml(e.icon)}</span>
               <div class="address-header-text"><strong>${escapeHtml(e.name)}</strong></div></div>
             <div class="address-details">
               <div class="detail-row"><span class="detail-label">Address</span>
                 <div class="addr-copy-row"><code class="detail-value addr-value">${escapeHtml(e.address)}</code>
-                  <button class="btn btn-icon btn-copy-addr" data-addr="${e.address}" title="Copy">📋</button></div>
+                  <button class="btn btn-icon btn-copy-addr" data-addr="${escapeHtml(e.address)}" title="Copy">📋</button></div>
               </div>
               <details class="adv"><summary>Technical details</summary>
                 <div class="detail-row" style="margin-top:8px"><span class="detail-label">Derivation Path</span>
@@ -932,7 +539,7 @@ function renderCsAddresses() {
             </div>
           </div>`).join('')}
       </div>
-      <div class="note-box" style="margin-top:14px">The SLIP-39 master secret becomes the BIP-32 root key directly — it does not go through PBKDF2 as in BIP-39. That is why these addresses match the ones shown by your Trezor or by Sparrow.</div>
+      <div class="note-box" style="margin-top:14px">Bitcoin is shown in all four formats: yours is the one your wallet uses, usually Native SegWit or Taproot. The SLIP-39 master secret becomes the BIP-32 root key directly — it does not go through PBKDF2 as in BIP-39 — so these are the same addresses your Trezor or Sparrow show for the first account.</div>
     </div>`;
   box.querySelectorAll('.btn-copy-addr').forEach(b => b.addEventListener('click', async (ev) => {
     try { await copyToClipboard(ev.currentTarget.dataset.addr); showToast('Address copied.', 'success'); } catch (_) {}
@@ -950,7 +557,7 @@ function renderCtrlMultisig() {
         <textarea id="cm-xpubs" class="inp" rows="4" placeholder="xpub6...&#10;xpub6..." autocomplete="off" spellcheck="false"></textarea>
         <div class="ov-grid2" style="margin-top:12px;max-width:420px">
           <div><label class="config-label">Signatures required</label>
-            <select id="cm-m" class="inp">${[1,2,3,4,5].map(v => `<option value="${v}" ${v===2?'selected':''}>${v}</option>`).join('')}</select></div>
+            <select id="cm-m" class="inp">${thresholdOptions(3, 2)}</select></div>
         </div>
         <button class="btn btn-primary" id="cm-go" style="margin-top:14px">Recalculate the address</button>
         <div id="cm-result" style="margin-top:16px"></div>
@@ -963,8 +570,13 @@ function renderCtrlMultisig() {
 
 function wireCtrlMultisig() {
   document.getElementById('cm-back')?.addEventListener('click', () => { ctrlPath = null; renderApp(); });
+  const readCm = () => (document.getElementById('cm-xpubs')?.value || '').split('\n').map(x => x.trim()).filter(Boolean);
+  document.getElementById('cm-xpubs')?.addEventListener('input', () => {
+    const sel = document.getElementById('cm-m');
+    if (sel) sel.innerHTML = thresholdOptions(Math.max(2, readCm().length), parseInt(sel.value) || 2);
+  });
   document.getElementById('cm-go')?.addEventListener('click', async () => {
-    const xpubs = (document.getElementById('cm-xpubs').value || '').split('\n').map(x => x.trim()).filter(Boolean);
+    const xpubs = readCm();
     const m = parseInt(document.getElementById('cm-m').value);
     const out = document.getElementById('cm-result');
     if (xpubs.length < 2) { out.innerHTML = '<div class="note-box">At least two xpubs are needed, one per line.</div>'; return; }
@@ -972,7 +584,7 @@ function wireCtrlMultisig() {
     let res;
     try { res = multisigAddress(xpubs, m); }
     catch (err) {
-      out.innerHTML = `<div class="note-box">One of the xpubs is not valid: check that you pasted them in full, without spaces or broken lines.</div>`;
+      out.innerHTML = `<div class="warn-box">${keyErrorMessage(err, xpubs.map((_, i) => `The key on line ${i + 1}`))}</div>`;
       return;
     }
     out.innerHTML = `
@@ -1058,7 +670,7 @@ function renderGenerateTab() {
               <div><label class="config-label">Sheets to create</label>
                 <select id="slip-n" class="inp">${[3,4,5,6,7].map(v => `<option value="${v}" ${v===5?'selected':''}>${v}</option>`).join('')}</select></div>
               <div><label class="config-label">How many are needed</label>
-                <select id="slip-m" class="inp">${[2,3,4].map(v => `<option value="${v}" ${v===3?'selected':''}>${v}</option>`).join('')}</select></div>
+                <select id="slip-m" class="inp">${shamirThresholdOptions(5, 3)}</select></div>
             </div>
             <p class="hint" id="slip-summary" style="margin-top:8px"></p>
           </div>
@@ -1102,8 +714,7 @@ function wireGenera() {
     const n = parseInt(document.getElementById('slip-n').value);
     const sel = document.getElementById('slip-m');
     const cur = parseInt(sel.value);
-    sel.innerHTML = Array.from({ length: n - 1 }, (_, i) => i + 2)
-      .map(v => `<option value="${v}" ${v === Math.min(cur, n - 1) ? 'selected' : ''}>${v}</option>`).join('');
+    sel.innerHTML = shamirThresholdOptions(n, cur);
     updSlipSummary();
   });
   document.getElementById('slip-m')?.addEventListener('change', updSlipSummary);
@@ -1164,7 +775,7 @@ function renderVerifyTab() {
         <label class="config-label">Your words
           <span class="hint">12, 15, 18, 21 or 24 words, separated by spaces. Capitals don't matter.</span>
         </label>
-        <textarea id="vf-words" class="inp" rows="3" placeholder="word1 word2 word3 …" autocomplete="off" autocapitalize="off" spellcheck="false"></textarea>
+        <textarea id="vf-words" class="inp" rows="3" placeholder="word1 word2 word3 …" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false"></textarea>
 
         <label class="config-label" style="margin-top:14px">Passphrase, if you used one
           <span class="hint">The "25th word". Leave it empty if you never set one: with or without it, the addresses change completely.</span>
@@ -1198,7 +809,7 @@ function renderVerifyTab() {
 
         <button id="vf-go" class="btn btn-primary btn-large" style="margin-top:16px">Show the addresses</button>
         <p id="vf-err" style="margin-top:10px"></p>
-        ${vfMnemonic ? `<button id="vf-clear" class="btn btn-ghost btn-small" style="margin-top:12px">✕ Erase from memory</button>` : ''}
+        ${vfMnemonic ? `<button id="vf-clear" class="btn btn-ghost btn-small" style="margin-top:12px">✕ Remove from the page</button>` : ''}
         <div class="ov-row" style="margin-top:14px">
           <button class="btn btn-ghost btn-small" id="vf-back">← Back to choices</button>
         </div>
@@ -1227,7 +838,7 @@ function wireVerify() {
   document.getElementById('vf-clear')?.addEventListener('click', () => {
     vfSeed = null; vfMnemonic = null; vfResults = null; vfExtra = null; vfAccount = null;
     renderApp();
-    showToast('Seed erased from memory.', 'info');
+    showToast('Seed removed from the page.', 'info');
   });
   if (vfResults) renderVfResults();
 }
@@ -1279,9 +890,9 @@ function renderVfResults() {
       <div class="addresses-list">
         ${entries.map(e => `
           <div class="address-item">
-            <div class="address-header"><span class="addr-icon">${e.icon}</span>
+            <div class="address-header"><span class="addr-icon">${escapeHtml(e.icon)}</span>
               <div class="address-header-text"><strong>${escapeHtml(e.name)}</strong>
-                ${e.evmChains ? `<div class="evm-tags">${e.evmChains.map(c => `<span class="evm-tag">${c}</span>`).join('')}</div>` : ''}
+                ${e.evmChains ? `<div class="evm-tags">${e.evmChains.map(c => `<span class="evm-tag">${escapeHtml(c)}</span>`).join('')}</div>` : ''}
               </div>
             </div>
             <div class="address-details">
@@ -1290,7 +901,7 @@ function renderVfResults() {
               </details>
               <div class="detail-row"><span class="detail-label">Address</span>
                 <div class="addr-copy-row"><code class="detail-value addr-value">${escapeHtml(e.address)}</code>
-                  <button class="btn btn-icon btn-copy-addr" data-addr="${e.address}" title="Copy">📋</button>
+                  <button class="btn btn-icon btn-copy-addr" data-addr="${escapeHtml(e.address)}" title="Copy">📋</button>
                 </div>
               </div>
             </div>
@@ -1298,13 +909,13 @@ function renderVfResults() {
             ${e.id === 'btc' ? `
               <div class="btc-more">
                 ${vfExtra ? `
-                  <div class="more-head">Other receiving addresses</div>
+                  <div class="more-head">Receiving addresses, in order</div>
                   <div class="more-list">
                     ${vfExtra.map(a => `
                       <div class="more-row">
                         <span class="more-idx">#${a.index}</span>
                         <code class="more-addr">${escapeHtml(a.address)}</code>
-                        <button class="btn btn-icon btn-copy-addr" data-addr="${a.address}" title="Copy">📋</button>
+                        <button class="btn btn-icon btn-copy-addr" data-addr="${escapeHtml(a.address)}" title="Copy">📋</button>
                       </div>`).join('')}
                   </div>
                   <div class="ov-row" style="margin-top:10px">
@@ -1356,32 +967,14 @@ function renderVfResults() {
    (not through PBKDF2 as in BIP-39): verified against the 45
    official vectors of the trezor/python-shamir-mnemonic project.
    ══════════════════════════════════════════════════════════════ */
-function slipMasterToSeed(secretBytes) {
-  return secretBytes;   // the master secret IS the BIP-32 seed
-}
-
 function finishSlip39(entropy) {
   try {
-    const secret = Array.from(entropy.slice(0, 16));           // 128 bit
-    const pass = pendingConfig.passphrase || '';
-    const obj = slip39lib.fromArray(secret, {
-      passphrase: pass,
-      threshold: 1,
-      groups: [[slipConfig.m, slipConfig.n]],
-    });
-    const shares = obj.fromPath('r/0').mnemonics;
-
-    // Immediate check: the parts must reassemble the original secret.
-    // Better to stop now than to find out in ten years.
-    const check = slip39lib.recoverSecret(shares.slice(0, slipConfig.m), pass);
-    const same = Array.from(check).length === secret.length &&
-                 Array.from(check).every((b, i) => b === secret[i]);
-    if (!same) throw new Error('internal check failed: the parts do not reassemble the secret');
-
-    slipSecret = new Uint8Array(secret);
+    const secret = entropy.slice(0, 16);                        // 128 bits
+    const shares = slip39Create(secret, slipConfig.m, slipConfig.n, pendingConfig.passphrase || '');
+    slipSecret = secret;
     slipShares = shares;
     slipRevealed = shares.map(() => false);
-    currentSeed = slipMasterToSeed(slipSecret);
+    currentSeed = slipSecret;          // the master secret IS the BIP-32 seed (SLIP-39)
     currentMnemonic = null;
     currentEntropy = null;
     generatedAddresses = {};
@@ -1391,7 +984,7 @@ function finishSlip39(entropy) {
     showToast(`${slipConfig.n} sheets created. ${slipConfig.m} of them are enough to recover.`, 'success');
   } catch (err) {
     closeOverlay();
-    showToast('Creation error: ' + err.message, 'error');
+    showToast(err.message === 'SLIP39_PASSPHRASE' ? SLIP39_PASS_MSG : 'Creation error: ' + err.message, 'error');
   }
 }
 
@@ -1480,19 +1073,18 @@ function wireSlipView() {
     if (box) box.style.display = document.getElementById('chk-btc')?.checked ? 'block' : 'none';
   };
   document.getElementById('chk-btc')?.addEventListener('change', syncFmt);
-  document.querySelectorAll('.fmt-card').forEach(b => b.addEventListener('click', () => {
-    document.querySelectorAll('.fmt-card').forEach(x => x.classList.remove('fmt-active'));
-    b.classList.add('fmt-active'); btcFormat = b.dataset.fmt;
-  }));
+  document.querySelectorAll('.fmt-card').forEach(b => b.addEventListener('click', () => onFormatCard(b)));
   syncFmt();
   document.getElementById('btn-derive')?.addEventListener('click', handleDerive);
 }
 
 function slipShareHTML(i) {
   const w = slipShares[i].split(' ');
+  const { m, n } = slipConfig;
   return `<div class="card">
-<div class="title">Sheet ${i + 1}</div>
+<div class="title">Sheet ${i + 1} of ${n}</div>
 <div class="grid">${w.map((x, k) => `<div class="w"><i>${k + 1}</i>${escapeHtml(x)}</div>`).join('')}</div>
+<div class="meta">SLIP-39 backup &middot; any ${m} of the ${n} sheets recover the wallet</div>
 </div>`;
 }
 
@@ -1503,7 +1095,8 @@ body{font-family:'Courier New',monospace;background:#fff;color:#000}
 .title{text-align:center;font-size:15px;font-weight:bold;letter-spacing:4px;text-transform:uppercase;padding-bottom:14px;margin-bottom:20px;border-bottom:1px solid #ccc}
 .grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
 .w{border:1px solid #bbb;border-radius:3px;padding:8px 9px;font-size:12px}
-.w i{color:#999;font-style:normal;margin-right:7px;font-size:10px}`;
+.w i{color:#999;font-style:normal;margin-right:7px;font-size:10px}
+.meta{margin-top:18px;padding-top:12px;border-top:1px solid #ccc;font-size:11px;line-height:1.6;color:#333}`;
 
 function printSlipShare(i) {
   printHTML(`<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><title>Sheet ${i + 1}</title>
@@ -1664,7 +1257,7 @@ function showBackupChoice() {
     <div class="ov"><div class="ov-card">
       <div class="ov-badge">Wallet created &middot; ${nw} words</div>
       <h3>🎉 Your wallet is ready. How do you want to keep it?</h3>
-      <p>Where do you keep them?${help('backup')} You can change your mind later.</p>
+      <p>Choose how to keep the words.${help('backup')} You can change your mind later.</p>
 
       <div class="split-choice" id="bk-classic">
         <div class="split-head">📄 A single backup </div>
@@ -1736,7 +1329,8 @@ function showPassphraseInput() {
       <label class="chk-row" style="margin-top:12px">
         <input type="checkbox" id="pp-show"><span>Show what I type</span>
       </label>
-      <div class="note-box" style="margin-top:12px">Keep it somewhere <strong>different</strong> from the ${pendingConfig.words} words: that separation is what makes it useful. If you lose it, the funds are unrecoverable.</div>
+      ${seedStandard === 'slip39' ? `<p class="hint" style="margin-top:10px">${SLIP39_PASS_MSG}</p>` : ''}
+      <div class="note-box" style="margin-top:12px">Keep it somewhere <strong>different</strong> from ${seedStandard === 'slip39' ? 'the sheets' : `the ${pendingConfig.words} words`}: that separation is what makes it useful. If you lose it, the funds are unrecoverable.</div>
       <div class="ov-row" style="margin-top:16px">
         <button class="btn btn-primary" id="pp-confirm">Confirm and continue →</button>
         <button class="btn btn-ghost btn-small" id="pp-back2">← Back</button>
@@ -1755,6 +1349,8 @@ function showPassphraseInput() {
     const err = document.getElementById('pp-err');
     if (!p1) { err.innerHTML = '<span style="color:var(--danger)">The field is empty. Type a passphrase, or go back and continue without one.</span>'; return; }
     if (p1 !== p2) { err.innerHTML = "<span style=\"color:var(--danger)\">The two passphrases don't match. Please check.</span>"; return; }
+    if (p1 !== p1.trim()) { err.innerHTML = '<span style="color:var(--danger)">The passphrase begins or ends with a space. A space is invisible on paper and easy to forget: remove it, or put it between two words.</span>'; return; }
+    if (seedStandard === 'slip39' && !isSlip39Passphrase(p1)) { err.innerHTML = `<span style="color:var(--danger)">${SLIP39_PASS_MSG}</span>`; return; }
     pendingConfig.passphrase = p1;
     afterPassphrase();
   });
@@ -1782,7 +1378,7 @@ function showDiceIntro() {
         <button class="btn btn-outline btn-large" id="dice-1">1 die</button>
         <button class="btn btn-outline btn-large" id="dice-2">2 dice</button>
       </div>
-      <p class="hint" style="margin-top:10px">With two dice thrown together you record two numbers at a time: same security, half the time. Use <strong>real physical dice</strong> — never an app or a website that simulates them.</p>
+      <p class="hint" style="margin-top:10px">With two dice thrown together you record two numbers at a time. Identical dice cannot be told apart, so a few more throws are asked for: about 30 double rolls instead of 50 single ones for 12 words. Use <strong>real physical dice</strong> — never an app or a website that simulates them.</p>
       <div class="ov-row" style="margin-top:10px">
         <button class="btn btn-ghost btn-small" id="dice-back">← Back</button>
         <button class="btn btn-ghost btn-small" id="dice-cancel">Cancel</button>
@@ -1871,7 +1467,7 @@ function showTypingOverlay(diceBytes) {
       <h3>⌨️ Type at random. Really at random.</h3>
       <p>Hit the keys without thinking: letters, numbers, symbols, whatever comes. <strong>You won't have to remember any of it</strong> — only the rhythm counts, not the characters.</p>
       <p class="hint">The real ingredient isn't the characters but the <em>rhythm</em> of your fingers: every keystroke is measured to the millisecond, and those micro-pauses are yours alone.</p>
-      <input type="password" id="type-inp" class="inp" style="margin-top:12px;font-size:16px;letter-spacing:3px" placeholder="Type here, without thinking…" autocomplete="off" autocapitalize="off" spellcheck="false">
+      <input type="password" id="type-inp" class="inp" style="margin-top:12px;font-size:16px;letter-spacing:3px" placeholder="Type here, without thinking…" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false">
       <div class="progress"><div class="progress-fill" id="type-fill" style="width:0%"></div></div>
       <p class="hint" style="text-align:center" id="type-status">0%</p>
       <div class="ov-row" style="margin-top:6px">
@@ -1905,7 +1501,8 @@ function showTypingOverlay(diceBytes) {
       const typeBytes = typingCollector.bytes();
       inp.value = ''; lastValue = ''; // the text is no longer needed: out of memory
       inp.blur();                     // lets the on-screen keyboard close
-      setTimeout(() => showMouseOverlay(diceBytes, typeBytes), 700);
+      // Open the next screen only if the user has not pressed Back meanwhile.
+      setTimeout(() => { if (document.getElementById('type-inp') === inp) showMouseOverlay(diceBytes, typeBytes); }, 700);
     }
   }
 
@@ -2001,16 +1598,17 @@ function showMouseOverlay(diceBytes, typeBytes) {
     if (pct >= 100 && !finished) {
       finished = true;
       status.textContent = 'Done. Creating your wallet…';
-      setTimeout(() => finishGeneration(diceBytes, typeBytes), 500);
+      setTimeout(() => { if (document.getElementById('mouse-area') === area) finishGeneration(diceBytes, typeBytes); }, 500);
     }
   });
 }
 
 function finishGeneration(diceBytes, typeBytes) {
+  let mouseBytes = null;
   try {
     const nBytes = ENT_BYTES[pendingConfig.words];
-    const mouseBytes = mouseCollector.bytes();
-    const entropy = combineEntropy(nBytes, mouseBytes, diceBytes, typeBytes);
+    mouseBytes = mouseCollector.bytes();
+    const entropy = combineEntropy(nBytes, { mouse: mouseBytes, dice: diceBytes, keys: typeBytes });
 
     if (entropyPurpose === 'multisig') {
       closeOverlay();
@@ -2044,6 +1642,11 @@ function finishGeneration(diceBytes, typeBytes) {
     } else {
       showToast('Error: ' + err.message, 'error');
     }
+  } finally {
+    // The source digests and the dice rolls are no longer needed: overwrite
+    // them (best effort — JavaScript cannot guarantee that no copy remains).
+    for (const b of [mouseBytes, diceBytes, typeBytes]) if (b) b.fill(0);
+    if (pendingDice) { pendingDice.rolls.fill(0); pendingDice = null; }
   }
 }
 
@@ -2126,7 +1729,7 @@ function renderPartsCard() {
     return `
       <div class="key-block">
         <div class="key-head">
-          <span class="key-title">${classic ? '✂️' : '🔐'} Part ${p.x}</span>
+          <span class="key-title">${classic ? '✂️' : '🔐'} Part ${p.x} of ${n}</span>
           <span class="key-tag">${classic ? `words ${p.from}–${p.to}` : `${wl.length} words`}</span>
         </div>
         <div class="part-words">${wl.map((w, k) => `<span class="part-word"><em>${off + k + 1}</em>${open ? escapeHtml(w) : '••••••••'}</span>`).join('')}</div>
@@ -2221,9 +1824,12 @@ function renderWalletView() {
           <button id="btn-copy-seed" class="btn btn-outline">📋 Copy</button>
           <button id="btn-print-seed" class="btn btn-outline">🖨️ Print the Seed Card</button>
           <button id="btn-metal" class="btn btn-outline">🔢 Powers-of-2 backup</button>
-          <button id="btn-watch" class="btn btn-outline">👁️ View xpub and descriptor</button>
           <button id="btn-verify-backup" class="btn btn-outline">✅ Check the seed again</button>
           <button id="btn-split-seed" class="btn btn-outline">🧩 Split into several parts</button>
+        </div>
+        <!-- Actions that never expose the seed stay available even while it is locked. -->
+        <div class="seed-actions seed-actions-2">
+          <button id="btn-watch" class="btn btn-outline">👁️ View xpub and descriptor</button>
           <button id="btn-reset" class="btn btn-newwallet">✨ Generate a new wallet</button>
         </div>
         <div id="watch-panel"></div>
@@ -2304,11 +1910,7 @@ function wireWalletView() {
     if (box) box.style.display = document.getElementById('chk-btc')?.checked ? 'block' : 'none';
   };
   document.getElementById('chk-btc')?.addEventListener('change', syncFmtBox);
-  document.querySelectorAll('.fmt-card').forEach(b => b.addEventListener('click', () => {
-    document.querySelectorAll('.fmt-card').forEach(x => x.classList.remove('fmt-active'));
-    b.classList.add('fmt-active');
-    btcFormat = b.dataset.fmt;
-  }));
+  document.querySelectorAll('.fmt-card').forEach(b => b.addEventListener('click', () => onFormatCard(b)));
   syncFmtBox();
 }
 
@@ -2340,8 +1942,8 @@ async function handleCopySeed() {
   }
 }
 
-function handlePrintSeed() {
-  const words = currentMnemonic.split(' ');
+function handlePrintSeed(mnemonic) {
+  const words = (typeof mnemonic === 'string' ? mnemonic : currentMnemonic).split(' ');
   printHTML(`<!DOCTYPE html>
 <html lang="en"><head><meta charset="UTF-8"><title>Document</title><style>
 *{margin:0;padding:0;box-sizing:border-box}@page{size:A4;margin:20mm}
@@ -2358,11 +1960,33 @@ body{font-family:'Courier New',monospace;background:#fff;color:#000}
 </div></body></html>`);
 }
 
+/* Forget every value tied to the wallet on screen, so nothing from one
+   wallet (parts, xpub, extra addresses, passphrase flag) can ever be shown
+   next to another one. */
+function resetWalletState() {
+  currentMnemonic = null; currentSeed = null; currentEntropy = null;
+  generatedAddresses = {}; shamirParts = null; shamirMeta = null; shamirRevealed = [];
+  btcExtra = null; btcAccount = null; seedRevealed = false; seedUnlocked = false;
+  watchRevealed = false; watchInPrint = false;
+  slipShares = null; slipSecret = null; slipConfig = null; slipRevealed = [];
+  pendingConfig = null; pendingDice = null;
+}
+
+/* "Generate a new wallet": nothing secret from this session stays in the
+   page — the wallet, the Check tab, the multisig keys, the print windows. */
+function clearEverything() {
+  resetWalletState();
+  vfSeed = null; vfMnemonic = null; vfResults = null; vfExtra = null; vfAccount = null; csResults = null;
+  msMyXpub = null; msSoloSeeds = null; msSoloVault = null; msSoloRevealed = []; msSoloConfig = null;
+  recParts = [{}, {}, {}];
+  while (printWindows.length) { try { printWindows.pop().close(); } catch (_) {} }
+}
+
 function handleReset() {
   overlayRoot().innerHTML = `
     <div class="ov"><div class="ov-card ov-narrow">
       <h3>Generate a new wallet?</h3>
-      <p>The current wallet will be erased from this page and cannot be recovered in any way. Only proceed if you have already saved the words safely.</p>
+      <p>The current wallet will be removed from this page and cannot be brought back here — together with anything else still open in this session: seeds being checked, multisig keys, print windows. Only proceed if you have already saved the words safely.</p>
       <div class="ov-row" style="margin-top:18px">
         <button class="btn btn-outline" id="rs-no">Cancel</button>
         <button class="btn btn-primary" id="rs-yes">Yes, generate a new wallet</button>
@@ -2370,14 +1994,11 @@ function handleReset() {
     </div></div>`;
   document.getElementById('rs-no').addEventListener('click', closeOverlay);
   document.getElementById('rs-yes').addEventListener('click', () => {
-    currentMnemonic = null; currentSeed = null; currentEntropy = null;
-    generatedAddresses = {}; shamirParts = null; shamirMeta = null;
-    btcExtra = null; btcAccount = null; genPath = null; seedRevealed = false; seedUnlocked = false;
-    watchRevealed = false; watchInPrint = false;
-    slipShares = null; slipSecret = null; slipConfig = null; slipRevealed = [];
+    clearEverything();
+    genPath = null; ctrlPath = null; shamirMode = null; msMode = null;
     closeOverlay();
     renderApp();
-    showToast('Everything erased from memory.', 'info');
+    showToast('Everything removed from the page.', 'info');
   });
 }
 
@@ -2389,6 +2010,18 @@ function handleSelectAll() {
   if (btn) btn.textContent = all ? 'Select all' : 'Deselect all';
   const box = document.getElementById('btc-format-box');
   if (box) box.style.display = document.getElementById('chk-btc')?.checked ? 'block' : 'none';
+}
+
+/* Changing the Bitcoin format recalculates what is on screen: addresses of
+   two formats must never end up in the same list (or the same printout). */
+function onFormatCard(b) {
+  document.querySelectorAll('.fmt-card').forEach(x => x.classList.remove('fmt-active'));
+  b.classList.add('fmt-active');
+  if (btcFormat === b.dataset.fmt) return;
+  btcFormat = b.dataset.fmt;
+  const sum = b.closest('details')?.querySelector('summary');
+  if (sum) sum.textContent = `Bitcoin address format — ${BTC_FORMATS[btcFormat].label} (${BTC_FORMATS[btcFormat].tag})`;
+  if (Object.keys(generatedAddresses).length) handleDerive();
 }
 
 async function handleDerive() {
@@ -2420,18 +2053,18 @@ function renderResults() {
       <div class="addresses-list">
         ${entries.map(e => `
           <div class="address-item">
-            <div class="address-header"><span class="addr-icon">${e.icon}</span>
-              <div class="address-header-text"><strong>${e.name}</strong>
-                ${e.evmChains ? `<div class="evm-tags">${e.evmChains.map(c => `<span class="evm-tag">${c}</span>`).join('')}</div>` : ''}
+            <div class="address-header"><span class="addr-icon">${escapeHtml(e.icon)}</span>
+              <div class="address-header-text"><strong>${escapeHtml(e.name)}</strong>
+                ${e.evmChains ? `<div class="evm-tags">${e.evmChains.map(c => `<span class="evm-tag">${escapeHtml(c)}</span>`).join('')}</div>` : ''}
               </div>
             </div>
             <div class="address-details">
               <details class="adv"><summary>Technical details</summary>
-                <div class="detail-row" style="margin-top:8px"><span class="detail-label">Derivation Path</span><code class="detail-value path-value">${e.path}</code></div>
+                <div class="detail-row" style="margin-top:8px"><span class="detail-label">Derivation Path</span><code class="detail-value path-value">${escapeHtml(e.path)}</code></div>
               </details>
               <div class="detail-row"><span class="detail-label">Address</span>
-                <div class="addr-copy-row"><code class="detail-value addr-value">${e.address}</code>
-                  <button class="btn btn-icon btn-copy-addr" data-addr="${e.address}" title="Copy address">📋</button>
+                <div class="addr-copy-row"><code class="detail-value addr-value">${escapeHtml(e.address)}</code>
+                  <button class="btn btn-icon btn-copy-addr" data-addr="${escapeHtml(e.address)}" title="Copy address">📋</button>
                 </div>
               </div>
             </div>
@@ -2439,14 +2072,14 @@ function renderResults() {
             ${e.id === 'btc' ? `
               <div class="btc-more" id="btc-more">
                 ${btcExtra ? `
-                  <div class="more-head">Other receiving addresses</div>
+                  <div class="more-head">Receiving addresses, in order</div>
                   <p class="hint" style="margin-bottom:10px">They all belong to the same wallet. Using a different one for each payment makes it harder, for anyone watching the blockchain, to link your incoming payments together.</p>
                   <div class="more-list">
                     ${btcExtra.map(a => `
                       <div class="more-row">
                         <span class="more-idx">#${a.index}</span>
                         <code class="more-addr">${escapeHtml(a.address)}</code>
-                        <button class="btn btn-icon btn-copy-addr" data-addr="${a.address}" title="Copy">📋</button>
+                        <button class="btn btn-icon btn-copy-addr" data-addr="${escapeHtml(a.address)}" title="Copy">📋</button>
                       </div>`).join('')}
                   </div>
                   <div class="ov-row" style="margin-top:10px">
@@ -2495,16 +2128,6 @@ function renderResults() {
    this way no row is ever empty (with 0-based numbering "abandon"
    would have no marks, indistinguishable from an unfilled row).
    ══════════════════════════════════════════════════════════════ */
-const METAL_COLS = [2048, 1024, 512, 256, 128, 64, 32, 16, 8, 4, 2, 1];
-
-function metalRows(mnemonic) {
-  return mnemonic.split(' ').map((w, i) => {
-    const n = wordlist.indexOf(w) + 1;      // 1..2048
-    if (n < 1) throw new Error(`Word not found in the dictionary: ${w}`);
-    return { pos: i + 1, word: w, n, marks: METAL_COLS.map(c => (n & c) !== 0) };
-  });
-}
-
 function showMetalIntro() {
   const nw = currentMnemonic.split(' ').length;
   overlayRoot().innerHTML = `
@@ -2612,7 +2235,7 @@ td{border-bottom:1px dotted #bbb;padding:6px 4px;font-size:10.5px;word-break:bre
 td.i{width:38px;color:#888;text-align:right;padding-right:10px}
 .f{margin-top:14px;padding-top:10px;border-top:1px solid #ccc;text-align:center;font-size:8.5px;color:#999}
 </style></head><body>
-<div class="h"><h1>Addresses</h1></div>
+<div class="h"><h1>Addresses</h1><p>Bitcoin &middot; ${escapeHtml(f.label)} &middot; ${escapeHtml(btcPath(btcFormat, 0).replace(/\/0$/, '/i'))}</p></div>
 <table>${btcExtra.map(a => `<tr><td class="i">#${a.index}</td><td>${escapeHtml(a.address)}</td></tr>`).join('')}</table>
 
 </body></html>`);
@@ -2678,7 +2301,7 @@ function showVerifyBackup(targetMnemonic, label) {
     <div class="ov"><div class="ov-card">
       <h3>✅ Check ${label ? escapeHtml(label) : 'the seed'} again</h3>
       <p>Look <strong>only at your own backup</strong>, not at the screen, and write out all ${words.length} words.${help('verify')}</p>
-      <textarea id="vrf-all" class="inp" rows="4" placeholder="word1 word2 word3 …" autocomplete="off" autocapitalize="off" spellcheck="false" style="margin-top:6px"></textarea>
+      <textarea id="vrf-all" class="inp" rows="4" placeholder="word1 word2 word3 …" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" style="margin-top:6px"></textarea>
       <p class="hint" style="margin-top:6px">You can separate them with spaces or new lines: it makes no difference.</p>
       <div class="ov-row" style="margin-top:16px">
         <button class="btn btn-primary" id="vrf-check">Check</button>
@@ -2703,7 +2326,6 @@ function showVerifyBackup(targetMnemonic, label) {
     // position by position: show where it differs, without revealing the right word
     const wrong = [];
     for (let i = 0; i < words.length; i++) if (typed[i] !== words[i]) wrong.push(i + 1);
-    void target;
 
     if (!wrong.length) {
       res.innerHTML = '<div class="ok-box">✔ <strong>Backup confirmed.</strong> All ${n} words are correct and in the right order. This is the moment you can relax.</div>'.replace('${n}', words.length);
@@ -2756,19 +2378,19 @@ function showSplitChooser() {
   document.getElementById('split-cancel').addEventListener('click', closeOverlay);
 }
 
-/* ── Sequential split: consecutive groups of words ── */
-function classicSplit(words, n) {
-  const base = Math.floor(words.length / n);
-  let extra = words.length % n;
-  const out = [];
-  let i = 0;
-  for (let p = 0; p < n; p++) {
-    const size = base + (extra > 0 ? 1 : 0);
-    if (extra > 0) extra--;
-    out.push({ x: p + 1, from: i + 1, to: i + size, words: words.slice(i, i + size) });
-    i += size;
-  }
-  return out;
+/* How much is left to guess for someone holding every part but one.
+   Each missing word is 11 bits; the BIP-39 checksum (words/3 bits) lets an
+   attacker discard wrong candidates, so it is subtracted. Every candidate
+   then costs a PBKDF2 derivation (2048 rounds of HMAC-SHA512). */
+function seqSplitExposure(nWords, parts) {
+  const missing = Math.min(...parts.map(p => p.to - p.from + 1));
+  const bits = 11 * missing - nWords / 3;
+  const verdict = bits <= 45
+    ? '<strong>a single computer can find them in days, sometimes hours</strong>. With this split, each part is nearly as sensitive as the whole seed.'
+    : bits <= 70
+      ? 'guessing them takes an enormous amount of computing power: out of reach of an ordinary thief, not necessarily of a large organisation.'
+      : 'guessing them is out of reach of any computer today.';
+  return `Whoever gets hold of every part but one is missing only <strong>${missing} words</strong>: ${verdict}`;
 }
 
 function showClassicSplitSetup() {
@@ -2791,7 +2413,8 @@ function showClassicSplitSetup() {
     const n = parseInt(document.querySelector('#cs-n .seg-active').dataset.n);
     const parts = classicSplit(words, n);
     document.getElementById('cs-preview').innerHTML =
-      parts.map(p => `Part ${p.x}: words ${p.from}-${p.to}`).join(' &middot; ');
+      parts.map(p => `Part ${p.x}: words ${p.from}-${p.to}`).join(' &middot; ') +
+      '<br><br>' + seqSplitExposure(words.length, parts);
   };
   document.querySelectorAll('#cs-n .seg-btn').forEach(b => b.addEventListener('click', () => {
     document.querySelectorAll('#cs-n .seg-btn').forEach(x => x.classList.remove('seg-active'));
@@ -2803,7 +2426,9 @@ function showClassicSplitSetup() {
   document.getElementById('cs-go').addEventListener('click', () => {
     const n = parseInt(document.querySelector('#cs-n .seg-active').dataset.n);
     shamirParts = classicSplit(words, n).map(p => ({ ...p, classic: true }));
-    shamirMeta = { n, m: n, code: verificationCode(currentEntropy), classic: true, total: words.length };
+    // No verification code here: the words are numbered and carry the BIP-39
+    // checksum, and a code would only help someone guessing a missing part.
+    shamirMeta = { n, m: n, code: null, classic: true, total: words.length };
     shamirRevealed = shamirParts.map(() => false);
     seedUnlocked = false;
     closeOverlay();
@@ -2812,6 +2437,14 @@ function showClassicSplitSetup() {
   });
 }
 
+
+/* Threshold menu for Shamir: from 2 (one part alone must never be enough)
+   up to the number of parts. */
+function shamirThresholdOptions(n, selected) {
+  const sel = Math.min(Math.max(selected, 2), n);
+  return Array.from({ length: n - 1 }, (_, i) => i + 2)
+    .map(v => `<option value="${v}" ${v === sel ? 'selected' : ''}>${v}</option>`).join('');
+}
 
 function showShamirIntro() {
   overlayRoot().innerHTML = `
@@ -2835,7 +2468,7 @@ function showShamirIntro() {
         <div><label class="config-label">Parts to create</label>
           <select id="sh-n" class="inp">${[3,4,5,6,7].map(v => `<option value="${v}" ${v===5?'selected':''}>${v}</option>`).join('')}</select></div>
         <div><label class="config-label">Threshold to recover</label>
-          <select id="sh-m" class="inp">${[2,3,4].map(v => `<option value="${v}" ${v===3?'selected':''}>${v}</option>`).join('')}</select></div>
+          <select id="sh-m" class="inp">${shamirThresholdOptions(5, 3)}</select></div>
       </div>
       <p class="hint" id="sh-summary" style="margin-top:8px"></p>
       <div class="ov-row" style="margin-top:14px">
@@ -2846,9 +2479,15 @@ function showShamirIntro() {
   const upd = () => {
     const n = parseInt(document.getElementById('sh-n').value);
     const m = parseInt(document.getElementById('sh-m').value);
-    document.getElementById('sh-summary').textContent = `${n} parts in total: any ${m} of them will be enough to get the seed back, and you can lose up to ${n - m}.`;
+    document.getElementById('sh-summary').textContent = m === n
+      ? `${n} parts in total, and all ${n} will be needed: losing one means losing the seed.`
+      : `${n} parts in total: any ${m} of them will be enough to get the seed back, and you can lose up to ${n - m}.`;
   };
-  document.getElementById('sh-n').addEventListener('change', upd);
+  document.getElementById('sh-n').addEventListener('change', () => {
+    const sel = document.getElementById('sh-m');
+    sel.innerHTML = shamirThresholdOptions(parseInt(document.getElementById('sh-n').value), parseInt(sel.value) || 3);
+    upd();
+  });
   document.getElementById('sh-m').addEventListener('change', upd);
   upd();
   document.getElementById('sh-cancel').addEventListener('click', showSplitChooser);
@@ -2869,39 +2508,35 @@ function showShamirIntro() {
   });
 }
 
-function printAllShamirParts(n, m, code, classic) {
-  const pages = shamirParts.map(p => {
-    const wl = classic ? p.words : p.words.split(' ');
-    const off = classic ? p.from - 1 : 0;
-    return `<div class="card">
-<div class="title">Part ${p.x}</div>
+/* One printed sheet per part. Besides the words, it carries what is needed
+   to use it years from now: the part number (Shamir needs it to recombine),
+   how many parts exist, the threshold and the verification code. */
+function partSheetHTML(p, n, m, code, classic) {
+  const wl = classic ? p.words : p.words.split(' ');
+  const off = classic ? p.from - 1 : 0;
+  const info = classic
+    ? `Sequential split &middot; words ${p.from}&ndash;${p.to} &middot; all ${n} parts are needed, in order`
+    : `Threshold backup (Shamir) &middot; any ${m} of the ${n} parts recover the seed`;
+  return `<div class="card">
+<div class="title">Part ${p.x} of ${n}</div>
 <div class="grid">${wl.map((w, i) => `<div class="w"><i>${off + i + 1}</i>${escapeHtml(w)}</div>`).join('')}</div>
+<div class="meta">${info}${code ? `<br>Verification code: <b>${escapeHtml(code)}</b>` : ''}${classic ? '' : '<br>This is not a wallet: it is reassembled with AmnesicWallet, Check wallet &rarr; Shamir backup.'}</div>
 </div>`;
-  }).join('<div class="brk"></div>');
+}
+
+function printAllShamirParts(n, m, code, classic) {
+  const pages = shamirParts.map(p => partSheetHTML(p, n, m, code, classic)).join('<div class="brk"></div>');
   printHTML(`<!DOCTYPE html>
 <html lang="en"><head><meta charset="UTF-8"><title>Parts</title><style>
 ${SLIP_PRINT_CSS}
 </style></head><body>${pages}</body></html>`);
 }
 
-
 function printShamirPart(p, n, m, code, classic) {
-  const wl = classic ? p.words : p.words.split(' ');
-  const off = classic ? p.from - 1 : 0;
   printHTML(`<!DOCTYPE html>
-<html lang="en"><head><meta charset="UTF-8"><title>Part ${p.x}</title><style>
-*{margin:0;padding:0;box-sizing:border-box}@page{size:A4;margin:20mm}
-body{font-family:'Courier New',monospace;background:#fff;color:#000}
-.card{border:2px solid #000;border-radius:5px;padding:26px 30px}
-.brk{page-break-after:always}
-.title{text-align:center;font-size:15px;font-weight:bold;letter-spacing:4px;text-transform:uppercase;padding-bottom:14px;margin-bottom:20px;border-bottom:1px solid #ccc}
-.grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
-.w{border:1px solid #bbb;border-radius:3px;padding:8px 9px;font-size:12px}
-.w i{color:#999;font-style:normal;margin-right:7px;font-size:10px}
-</style></head><body><div class="card">
-<div class="title">Part ${p.x}</div>
-<div class="grid">${wl.map((w, i) => `<div class="w"><i>${off + i + 1}</i>${escapeHtml(w)}</div>`).join('')}</div>
-</div></body></html>`);
+<html lang="en"><head><meta charset="UTF-8"><title>Part ${p.x} of ${n}</title><style>
+${SLIP_PRINT_CSS}
+</style></head><body>${partSheetHTML(p, n, m, code, classic)}</body></html>`);
 }
 
 /* ════════════════════════════════════════════════════════════════
@@ -2915,12 +2550,13 @@ function renderRecoverTab() {
       <div class="card">
         <div class="card-header"><span class="step-badge">🔐</span><h2>Reassemble a threshold backup</h2></div>
         <p style="margin-bottom:12px">This section reassembles backups created with <strong>threshold splitting (Shamir)</strong>. You don't need all the parts: just reach the threshold shown on the sheets, for example 3 of 5.</p>
+        <p class="hint" style="margin-bottom:12px">It also reassembles parts made by earlier versions of this program, published under the name SeedForge.</p>
 
         <div class="ok-box" style="margin-bottom:14px">
           <strong>How to recognise the right parts.</strong> Shamir parts have these three characteristics:<br><br>
           &bull; Each one is <strong>as long as the whole seed</strong> (12 or 24 words, not a small group)<br>
-          &bull; Each one has a <strong>part number</strong> printed on it: "Part 2 of 5"<br>
-          &bull; Each one carries a 4-character <strong>verification code</strong>, the same on all of them<br><br>
+          &bull; Each one has a <strong>part number</strong>: "Part 2 of 5" (on sheets printed by older versions, just "Part 2")<br>
+          &bull; Each one carries a 4-character <strong>verification code</strong>, the same on all of them (older versions asked you to copy it by hand)<br><br>
           If your sheets do not match this description, they are not Shamir parts and this section is not the right one for you.
         </div>
         <div class="note-box" style="margin-bottom:16px">🛡️ <strong>Before you start:</strong> reassembling the seed makes it fully readable again. Do it with the device <strong>disconnected from the internet</strong>, ideally booted from Tails or in a clean virtual machine — the same care you took when you created it.</div>
@@ -2953,7 +2589,7 @@ function recPartRow(i) {
         <select class="inp rec-x" style="width:70px">${Array.from({length:16},(_,k)=>`<option value="${k+1}">${k+1}</option>`).join('')}</select>
         <span class="hint">as printed on the sheet: "Part <strong>2</strong> of 5"</span>
       </div>
-      <textarea class="inp rec-words" rows="2" placeholder="The words of this part, separated by spaces" autocomplete="off" autocapitalize="off" spellcheck="false"></textarea>
+      <textarea class="inp rec-words" rows="2" placeholder="The words of this part, separated by spaces" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false"></textarea>
     </div>`;
 }
 
@@ -2993,22 +2629,29 @@ function wireRecover() {
     }
     try {
       const secret = shamirCombine(parts);
-      const code = (document.getElementById('rec-code').value || '').trim().toUpperCase();
+      const code = (document.getElementById('rec-code').value || '').replace(/\s+/g, '').toUpperCase();
+      if (code && !/^[0-9A-F]{4}$/.test(code)) {
+        showRecResult('<div class="warn-box">✗ The verification code is made of 4 characters: digits 0–9 and letters A–F. Check what you typed.</div>');
+        return;
+      }
       const expect = verificationCode(secret);
       if (code && code !== expect) {
         showRecResult('<div class="warn-box">✗ The verification code does not match. In all likelihood the parts do not reach the threshold, or one word is wrong. <strong>The seed obtained is not the right one: do not use it.</strong></div>');
         return;
       }
       const mnemonic = entropyToMnemonic(secret, wordlist);
+      resetWalletState();
       currentEntropy = secret;
       currentMnemonic = mnemonic;
       currentSeed = mnemonicToSeedSync(mnemonic, '');
       pendingConfig = { words: mnemonic.split(' ').length, passphrase: '' };
-      generatedAddresses = {};
+      rows.forEach(r => { r.querySelector('.rec-words').value = ''; });   // the parts need not stay on screen
       showRecResult(`
-        <div class="ok-box">✔ Seed reassembled${code ? ', verification code confirmed' : ''}.
-        ${!code ? '<br><span class="hint">With the verification code you would also have mathematical certainty that it is the right one.</span>' : ''}
-        <br><br>You will now find it under <strong>Generate wallet</strong>: from there you can review the addresses, reprint the Seed Card, or take the words into any compatible wallet such as Sparrow or Electrum.</div>
+        ${code
+          ? '<div class="ok-box">✔ Seed reassembled and verification code confirmed: these are the original words (a wrong result would pass this check only once in 65,536 times).'
+          : '<div class="note-box">Seed reassembled, but <strong>without the verification code it cannot be confirmed</strong>. If the parts entered are fewer than the threshold, or one comes from another backup, the result is a valid-looking but different wallet. Before using it, compare its addresses with ones you know.'}
+        <br><br>You will now find it under <strong>Generate wallet</strong>: from there you can review the addresses, reprint the Seed Card, or take the words into any compatible wallet such as Sparrow or Electrum.
+        <br><br><span class="hint">The parts contain only the words. If the wallet also had a passphrase, the addresses shown here are those <em>without</em> it: the passphrase is added in the wallet where you use the words.</span></div>
         <div style="margin-top:12px"><button class="btn btn-primary" id="rec-open">Open the wallet →</button></div>`);
       document.getElementById('rec-open')?.addEventListener('click', () => { activeTab = 'generate'; genPath = 'classic'; renderApp(); });
       if (!code) showToast('Seed reassembled. Compare the addresses before using it.', 'info');
@@ -3088,9 +2731,9 @@ function renderMsSolo() {
 
         <div id="msolo-have-box" style="display:none;margin-top:16px">
           <label class="config-label">Your seeds, one per line
-            <span class="hint">They will only be used to calculate the xpubs and then immediately erased from memory.</span>
+            <span class="hint">They are used only to calculate the xpubs, then removed from the page.</span>
           </label>
-          <textarea id="msolo-seeds" class="inp" rows="4" autocomplete="off" autocapitalize="off" spellcheck="false"></textarea>
+          <textarea id="msolo-seeds" class="inp" rows="4" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false"></textarea>
           <button class="btn btn-primary" id="msolo-have-go" style="margin-top:10px">Calculate the vault</button>
         </div>
 
@@ -3135,9 +2778,9 @@ function renderMsSoloResult() {
         </div>
         <div class="ov-row" style="margin-top:16px">
           <button class="btn btn-primary" id="msolo-print-all">🖨️ Print all keys</button>
-          <button class="btn btn-ghost btn-small" id="msolo-forget">✕ Erase the keys from memory</button>
+          <button class="btn btn-ghost btn-small" id="msolo-forget">✕ Remove the keys from the page</button>
         </div>
-        <div class="note-box" style="margin-top:12px">Once they are all saved, erase them from this page: from then on they exist only where you put them.</div>
+        <div class="note-box" style="margin-top:12px">Once they are all saved, remove them from this page: from then on they exist only where you put them.</div>
       </div>` : ''}
 
       <div class="card">
@@ -3161,7 +2804,7 @@ function renderMsSoloResult() {
 
       <div class="card">
         <div class="card-header"><span class="step-badge">${hasKeys ? '3' : 'ℹ️'}</span><h2>And now, how do I use it?</h2></div>
-        <p style="margin-bottom:14px">SeedForge created the vault, but it does not sign transactions. To receive and spend you need a program that handles multisig: <strong>Sparrow Wallet</strong> is the reference, free and available for Windows, macOS and Linux.</p>
+        <p style="margin-bottom:14px">AmnesicWallet created the vault, but it does not sign transactions. To receive and spend you need a program that handles multisig: <strong>Sparrow Wallet</strong> is the reference, free and available for Windows, macOS and Linux.</p>
 
         <div class="steps-box">
           <div class="step-line"><span class="sl-n">1</span><span class="sl-t"><strong>Install Sparrow</strong> from sparrowwallet.com on a connected computer. You will never give it the keys, only the descriptor.</span></div>
@@ -3214,7 +2857,7 @@ function renderMsGroup() {
         </div>
         <div id="ms-reuse-box" style="display:none;margin-top:14px">
           <label class="config-label">Your words (12 to 24)</label>
-          <textarea id="ms-seed-inp" class="inp" rows="2" autocomplete="off" autocapitalize="off" spellcheck="false"></textarea>
+          <textarea id="ms-seed-inp" class="inp" rows="2" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false"></textarea>
           <label class="config-label" style="margin-top:8px">Passphrase, if you used one</label>
           <input type="password" id="ms-pass-inp" class="inp" autocomplete="off">
           <button class="btn btn-primary" id="ms-reuse-go" style="margin-top:10px">Calculate my xpub</button>
@@ -3229,7 +2872,7 @@ function renderMsGroup() {
         <textarea id="ms-xpubs" class="inp" rows="4" placeholder="xpub6...&#10;xpub6..." autocomplete="off" spellcheck="false"></textarea>
         <div class="ov-grid2" style="margin-top:12px;max-width:420px">
           <div><label class="config-label">Signatures required</label>
-            <select id="ms-m" class="inp">${[1,2,3,4,5].map(v => `<option value="${v}" ${v===2?'selected':''}>${v===1?'1 person':v+' people'}</option>`).join('')}</select></div>
+            <select id="ms-m" class="inp">${thresholdOptions(3, 2)}</select></div>
           <div style="display:flex;align-items:flex-end"><span class="hint" id="ms-summary" style="padding-bottom:10px"></span></div>
         </div>
         <button class="btn btn-primary" id="ms-build" style="margin-top:14px">Calculate the address</button>
@@ -3258,9 +2901,8 @@ function wireMultisig() {
     const box = document.getElementById('msolo-m');
     if (!box) return;
     const n = soloN();
-    const opts = Array.from({ length: n - 1 }, (_, i) => i + 1).concat(n === 2 ? [] : []);
-    const list = Array.from({ length: n }, (_, i) => i + 1).filter(v => v >= 1);
-    const def = Math.min(2, n);
+    const list = Array.from({ length: n }, (_, i) => i + 1);
+    const def = Math.min(box.querySelector('.seg-active') ? soloM() : 2, n);
     box.innerHTML = list.map(v => `<button class="seg-btn ${v === def ? 'seg-active' : ''}" data-m="${v}">${v}</button>`).join('');
     box.querySelectorAll('.seg-btn').forEach(b => b.addEventListener('click', () => {
       box.querySelectorAll('.seg-btn').forEach(x => x.classList.remove('seg-active'));
@@ -3273,9 +2915,11 @@ function wireMultisig() {
     const n = soloN(), m = soloM();
     const lost = n - m;
     el.innerHTML = `You will create <strong>${n} keys</strong> and <strong>${m}</strong> of them will be enough to spend.` +
-      (lost > 0
-        ? ` You can lose up to <strong>${lost}</strong> without losing the funds, and anyone stealing ${m - 1} would get nothing.`
-        : ` Careful: since all ${n} are needed, losing one means losing the funds.`);
+      (m === 1
+        ? ` Careful: with a single signature <strong>each key alone can spend</strong>. It protects against losing keys, not against theft.`
+        : lost > 0
+          ? ` You can lose up to <strong>${lost}</strong> without losing the funds, and anyone stealing ${m - 1} would get nothing.`
+          : ` Careful: since all ${n} are needed, losing one means losing the funds.`);
   };
   document.querySelectorAll('#msolo-n .seg-btn').forEach(b => b.addEventListener('click', () => {
     document.querySelectorAll('#msolo-n .seg-btn').forEach(x => x.classList.remove('seg-active'));
@@ -3297,20 +2941,22 @@ function wireMultisig() {
     const ta = document.getElementById('msolo-seeds');
     const lines = (ta.value || '').split('\n').map(x => x.trim().toLowerCase().replace(/\s+/g, ' ')).filter(Boolean);
     if (lines.length < 2) { showToast('At least two seeds are needed, one per line.', 'error'); return; }
-    const xpubs = [];
+    const keys = [];
     for (let i = 0; i < lines.length; i++) {
       if (!validateMnemonic(lines[i], wordlist)) { showToast(`The seed on line ${i + 1} is not valid. Check the words again.`, 'error'); return; }
-      xpubs.push(deriveMultisigXpub(mnemonicToSeedSync(lines[i], '')).xpub);
+      keys.push(deriveMultisigXpub(mnemonicToSeedSync(lines[i], '')));
     }
     ta.value = ''; lines.length = 0;   // out of memory before any output
-    const m = Math.min(soloM(), xpubs.length);
+    const m = Math.min(soloM(), keys.length);
     try {
-      msSoloConfig = { n: xpubs.length, m };
-      msSoloVault = multisigAddress(xpubs, m);
+      msSoloConfig = { n: keys.length, m };
+      msSoloVault = multisigAddress(keys, m);
       msSoloSeeds = [];
       renderApp();
-      showToast('Vault computed. The seeds have already been erased from memory.', 'success');
-    } catch (err) { showToast('Error: ' + err.message, 'error'); }
+      showToast('Vault computed. The words you typed have been discarded.', 'success');
+    } catch (err) {
+      showToast(err instanceof KeyError ? keyErrorMessage(err, keys.map((_, i) => `The seed on line ${i + 1}`)).replace(/<[^>]+>/g, '') : 'Error: ' + err.message, 'error');
+    }
   });
 
   // — SOLO result —
@@ -3329,7 +2975,7 @@ function wireMultisig() {
   document.getElementById('msolo-forget')?.addEventListener('click', () => {
     msSoloSeeds = []; msSoloRevealed = [];
     renderApp();
-    showToast('Keys erased. They now exist only where you saved them.', 'info');
+    showToast('Keys removed from the page. They now exist only where you saved them.', 'info');
   });
   document.querySelectorAll('.k-reveal').forEach(b => b.addEventListener('click', () => {
     const i = +b.dataset.i;
@@ -3382,15 +3028,17 @@ function wireMultisig() {
 /* ── Guided generation of the N keys (solo mode) ── */
 function finishMultiSoloKeys(entropy, mouseBytes, typeBytes, diceBytes) {
   const n = msSoloConfig.n;
-  msSoloSeeds = [];
-  // every key starts from a fresh CSPRNG call: independent keys
-  for (let i = 0; i < n; i++) {
-    const e = combineEntropy(16, mouseBytes, diceBytes, typeBytes);
+  // The first key uses the entropy already combined; every further key
+  // gets its own fresh CSPRNG draw (combineEntropy reads the CSPRNG anew
+  // on each call), so the keys are independent of one another.
+  msSoloSeeds = [entropyToMnemonic(entropy, wordlist)];
+  for (let i = 1; i < n; i++) {
+    const e = combineEntropy(16, { mouse: mouseBytes, dice: diceBytes, keys: typeBytes });
     msSoloSeeds.push(entropyToMnemonic(e, wordlist));
   }
   try {
-    const xpubs = msSoloSeeds.map(x => deriveMultisigXpub(mnemonicToSeedSync(x, '')).xpub);
-    msSoloVault = multisigAddress(xpubs, msSoloConfig.m);
+    const keys = msSoloSeeds.map(x => deriveMultisigXpub(mnemonicToSeedSync(x, '')));
+    msSoloVault = multisigAddress(keys, msSoloConfig.m);
     msSoloRevealed = msSoloSeeds.map(() => false);
     closeOverlay();
     renderApp();
@@ -3480,9 +3128,12 @@ async function showMsKey(info, silent) {
   el.innerHTML = `
     ${info.mnemonic ? `
       <div class="ok-box" style="margin-bottom:12px">🔒 <strong>Before anything else: save the seed of this key.</strong> Without it, your share of the vault is lost. It stays covered, as always.
+        <div class="part-words" id="msk-words" style="margin-top:10px">${info.mnemonic.split(' ').map((w, k) => `<span class="part-word"><em>${k + 1}</em>••••••••</span>`).join('')}</div>
         <div class="ov-row" style="margin-top:10px">
+          <button class="btn btn-outline btn-small" id="msk-reveal">👁️ Reveal</button>
           <button class="btn btn-outline btn-small" id="msk-copy">📋 Copy the seed</button>
           <button class="btn btn-outline btn-small" id="msk-print">🖨️ Print the Seed Card</button>
+          <button class="btn btn-outline btn-small" id="msk-check">✅ Check again</button>
         </div>
       </div>` : ''}
     <div class="share-box">
@@ -3503,11 +3154,14 @@ async function showMsKey(info, silent) {
     document.getElementById('msk-copy')?.addEventListener('click', async () => {
       try { await copyToClipboard(info.mnemonic); showToast('Seed copied to the clipboard.', 'success'); } catch (_) { showToast('Copy failed', 'error'); }
     });
-    document.getElementById('msk-print')?.addEventListener('click', () => {
-      const saved = currentMnemonic;
-      currentMnemonic = info.mnemonic;
-      handlePrintSeed();
-      currentMnemonic = saved;
+    document.getElementById('msk-print')?.addEventListener('click', () => handlePrintSeed(info.mnemonic));
+    document.getElementById('msk-check')?.addEventListener('click', () => showVerifyBackup(info.mnemonic, 'the seed of this key'));
+    let shown = false;
+    document.getElementById('msk-reveal')?.addEventListener('click', (ev) => {
+      shown = !shown;
+      document.getElementById('msk-words').innerHTML = info.mnemonic.split(' ')
+        .map((w, k) => `<span class="part-word"><em>${k + 1}</em>${shown ? escapeHtml(w) : '••••••••'}</span>`).join('');
+      ev.currentTarget.innerHTML = shown ? '🙈 Hide' : '👁️ Reveal';
     });
   }
   try { document.getElementById('msk-qr').innerHTML = `<img src="${await generateQR(info.xpub, 180)}" style="border-radius:8px;border:4px solid #fff">`; } catch (_) {}
@@ -3525,7 +3179,9 @@ function updMsSummary() {
   const el = document.getElementById('ms-summary');
   if (!el) return;
   const n = collectXpubs().length;
-  const m = parseInt(document.getElementById('ms-m')?.value || '2');
+  const sel = document.getElementById('ms-m');
+  if (sel) sel.innerHTML = thresholdOptions(Math.max(2, n), parseInt(sel.value) || 2);
+  const m = parseInt(sel?.value || '2');
   el.textContent = n >= 2 ? `out of ${n} participants: ${m} signature${m===1?'':'s'} out of ${n} will be needed to spend.` : 'At least two xpub codes are needed.';
 }
 
@@ -3535,10 +3191,13 @@ async function buildVault() {
   const out = document.getElementById('ms-vault');
   if (xpubs.length < 2) { showToast('At least two xpub codes are needed, including yours.', 'error'); return; }
   if (m > xpubs.length) { showToast('The required signatures cannot exceed the number of participants.', 'error'); return; }
+  const keys = xpubs.map(x => (msMyXpub && x === msMyXpub.xpub) ? { xpub: x, fingerprint: msMyXpub.fingerprint } : x);
+  const own = msMyXpub ? 1 : 0;
+  const labels = xpubs.map((_, i) => (own && i === 0) ? 'Your own key' : `The xpub on line ${i + 1 - own}`);
   let res;
-  try { res = multisigAddress(xpubs, m); }
+  try { res = multisigAddress(keys, m); }
   catch (err) {
-    out.innerHTML = `<div class="note-box">One of the xpubs is not valid. Check that you pasted them in full, with no spaces or broken lines. <span class="hint">(${escapeHtml(err.message)})</span></div>`;
+    out.innerHTML = `<div class="warn-box">${keyErrorMessage(err, labels)}</div>`;
     return;
   }
   const names = ['Your key', ...Array.from({ length: xpubs.length - 1 }, (_, i) => `Key ${i + 2}`)];
@@ -3568,7 +3227,7 @@ async function buildVault() {
   });
   try {
     document.getElementById('ms-addr-qr').innerHTML = `<img src="${await generateQR(res.address, 180)}" style="border-radius:8px;border:4px solid #fff">`;
-    document.getElementById('ms-desc-qr').innerHTML = `<img src="${await generateQR(res.descriptor, 220)}" style="border-radius:8px;border:4px solid #fff">`;
+    document.getElementById('ms-desc-qr').innerHTML = `<img src="${await generateQR(res.descriptor, 300)}" style="border-radius:8px;border:4px solid #fff">`;
   } catch (_) {}
 }
 
@@ -3602,12 +3261,12 @@ function renderGuideSteps() {
         <div class="step-line"><span class="sl-n">2</span><span class="sl-t"><strong>Generate wallet → A personal wallet.</strong></span></div>
         <div class="step-line"><span class="sl-n">3</span><span class="sl-t"><strong>Choose where the randomness comes from:</strong> three sources (browser, keyboard, mouse) or four, adding real physical dice.</span></div>
         <div class="step-line"><span class="sl-n">4</span><span class="sl-t"><strong>Choose the type of backup:</strong> BIP-39 (a single phrase) or SLIP-39 (several sheets with a threshold). If you're undecided, BIP-39 with 12 words is fine in almost every case.</span></div>
-        <div class="step-line"><span class="sl-n">5</span><span class="sl-t"><strong>Decide about the passphrase.</strong> The program asks you explicitly. Using one is recommended, because it adds a further layer of protection beyond the seed alone. If you don't know what it is, you can carry on without and add one later.</span></div>
+        <div class="step-line"><span class="sl-n">5</span><span class="sl-t"><strong>Decide about the passphrase.</strong> The program asks you explicitly. It protects you if someone finds the words, but it must be kept as carefully as they are: forget it and the funds are lost. If you are unsure, carry on without. Keep in mind that it cannot be added to this wallet later: the same words with a passphrase open a different wallet, to which you would have to move the funds.</span></div>
         <div class="step-line"><span class="sl-n">6</span><span class="sl-t"><strong>Fill the entropy bars:</strong> type any keys freely and at random, then move the mouse — or, on a phone, drag your finger inside the box. If you chose the dice, enter the rolls first.</span></div>
         <div class="step-line"><span class="sl-n">7</span><span class="sl-t"><strong>Choose how to keep the seed:</strong> a single sheet, split sequentially, or with a Shamir threshold.</span></div>
-        <div class="step-line"><span class="sl-n">8</span><span class="sl-t"><strong>Save the backup</strong>, then use <em>Check the seed again</em> to confirm you transcribed it correctly. You can write the words in plain text, exactly as they appear on screen. Or, for greater privacy, you can save them in a format that shows no words at all: click <em>Powers-of-2 backup</em> and you get a grid of dots. Anyone finding it sees only marked boxes, without being able to read the seed.<br><br>To read the grid back you need the numbered BIP-39 dictionary. You can download it from SeedForge or find it elsewhere: what matters is that the numbering starts at <strong>1</strong> and not at 0, otherwise every word is shifted by one position and the conversion comes out wrong.</span></div>
+        <div class="step-line"><span class="sl-n">8</span><span class="sl-t"><strong>Save the backup</strong>, then use <em>Check the seed again</em> to confirm you transcribed it correctly. You can write the words in plain text, exactly as they appear on screen. Or, for greater privacy, you can save them in a format that shows no words at all: click <em>Powers-of-2 backup</em> and you get a grid of dots. Anyone finding it sees only marked boxes, without being able to read the seed.<br><br>To read the grid back you need the numbered BIP-39 dictionary. You can download it from AmnesicWallet or find it elsewhere: what matters is that the numbering starts at <strong>1</strong> and not at 0, otherwise every word is shifted by one position and the conversion comes out wrong.</span></div>
         <div class="step-line"><span class="sl-n">9</span><span class="sl-t"><strong>Select the networks</strong> and calculate the addresses. Those are public: you can share them without risk in order to receive.</span></div>
-        <div class="step-line"><span class="sl-n">10</span><span class="sl-t"><strong>Verify in a second program.</strong> Import the same seed into Sparrow or MetaMask and check that the address matches. It's the check worth more than any promise.</span></div>
+        <div class="step-line"><span class="sl-n">10</span><span class="sl-t"><strong>Verify in a second program, still offline.</strong> On the same disconnected device, restore the words in another program — Sparrow or Electrum, for example — check that the first address matches, then delete that wallet from the program. Two independent tools that agree are worth more than any promise; typing the words into a program on a connected device would undo the care taken so far.</span></div>
       </div>
     </div>
 
@@ -3645,14 +3304,14 @@ function renderGuideSteps() {
 
     <div class="card">
       <div class="card-header"><span class="step-badge">5</span><h2>Spending the funds</h2></div>
-      <p style="margin-bottom:12px">SeedForge does not sign transactions by design: signing requires a connection, and the offline guarantee is what makes it trustworthy. To spend, you import the seed into a compatible wallet.</p>
+      <p style="margin-bottom:12px">AmnesicWallet does not sign transactions, by design: it stays a small generator that can be read and checked, with no reason ever to go online. To spend, you use the words in a wallet that signs.</p>
       <div class="steps-box">
         <div class="step-line"><span class="sl-n">₿</span><span class="sl-t"><strong>Bitcoin → Sparrow or Electrum.</strong></span></div>
         <div class="step-line"><span class="sl-n">◈</span><span class="sl-t"><strong>Ethereum and EVM networks → MetaMask or Rabby.</strong></span></div>
         <div class="step-line"><span class="sl-n">◎</span><span class="sl-t"><strong>Solana → Phantom</strong>, <strong>TRON → TronLink</strong>.</span></div>
         <div class="step-line"><span class="sl-n">🛡</span><span class="sl-t"><strong>For significant amounts: hardware wallet.</strong> Enter the seed into a Ledger or Trezor using the physical buttons. The key never touches the computer and transactions are signed inside the device.</span></div>
       </div>
-      <div class="note-box" style="margin-top:14px">MetaMask has become multichain: besides Ethereum and the EVM networks it natively handles <strong>Solana</strong>, <strong>Bitcoin</strong> (since December 2025) and <strong>TRON</strong> (since January 2026). By importing the seed there you can therefore follow <strong>all four networks</strong> of SeedForge from a single wallet. One useful clarification: for Bitcoin MetaMask uses only the <strong>Native SegWit</strong> format (bc1q…), so it will not show any Taproot or Legacy addresses. For Bitcoin, in any case, Sparrow remains the most specific and complete tool.</div>
+      <div class="note-box" style="margin-top:14px">MetaMask has become multichain: besides Ethereum and the EVM networks it natively handles <strong>Solana</strong>, <strong>Bitcoin</strong> (since December 2025) and <strong>TRON</strong> (since January 2026). By importing the seed there you can therefore follow <strong>all four networks</strong> of AmnesicWallet from a single wallet. One useful clarification: for Bitcoin MetaMask uses only the <strong>Native SegWit</strong> format (bc1q…), so it will not show any Taproot or Legacy addresses. For Bitcoin, in any case, Sparrow remains the most specific and complete tool.</div>
     </div>`;
 }
 
@@ -3663,7 +3322,7 @@ function renderGuideFaq() {
 
         <details class="faq" id="g-entropy" open><summary>⭐ Why this way of creating the seed is different</summary><div class="faq-body">
           <p>Everything in a wallet depends on a single number: the starting one. If that number is predictable, it doesn't matter how robust the cryptography downstream is — the wallet is already lost. That is exactly how real funds have vanished, when a faulty generator produced numbers far less random than they seemed.</p>
-          <p><strong>SeedForge's choice is not to depend on a single source.</strong> We mix three (or four, if you use the dice), of completely different natures:</p>
+          <p><strong>AmnesicWallet's choice is not to depend on a single source.</strong> We mix three (or four, if you use the dice), of completely different natures:</p>
           <p><strong>1 · The browser's cryptographic generator.</strong> The browser has a built-in cryptographic generator, called a CSPRNG. It is fed directly by the operating system and is made exactly for this purpose.</p>
           <p><strong>2 · The rhythm of your fingers.</strong> As you type on the keyboard we record <em>when</em> you press each key, to the millisecond. Not the characters — humans choose those badly — but the micro-pauses between one key and the next: irregularities born of your physiology that not even you could reproduce.</p>
           <p><strong>3 · The path of your hand.</strong> Hundreds of coordinates and times as you move the mouse: where you accelerate, where you hesitate, where you change direction. A human movement never repeats itself identically.</p>
@@ -3693,7 +3352,7 @@ function renderGuideFaq() {
           <p>Right after creating the wallet, the program asks you <strong>how you want to keep it</strong>: a single backup, split sequentially, or with a Shamir threshold. You can change your mind at any time using the <em>Split into several parts</em> button.</p>
           <p><strong>📄 A single backup.</strong> The words on one sheet only. It's the right choice to start with and for small amounts: immediate, recoverable anywhere. The limit is obvious: if that sheet disappears, everything disappears.</p>
           <p><strong>✂️ Sequential splitting.</strong> The words are cut into consecutive groups: with 12 words and 3 parts you get 1-4, 5-8, 9-12. To reassemble you simply put them back in order without any software. In exchange <strong>all</strong> the parts are needed, and anyone finding two out of three would have few words left to guess.</p>
-          <p><strong>🔐 Shamir backup.</strong> Named after the cryptographer Adi Shamir. It doesn't cut the seed, it <em>transforms</em> it into parts that are worth something only together. You choose the threshold — 3 parts, 2 are enough — so you can lose some without consequence. And below the threshold the parts reveal <strong>nothing</strong>: not "almost nothing", zero, by theorem.</p>
+          <p><strong>🔐 Shamir backup.</strong> Named after the cryptographer Adi Shamir. It doesn't cut the seed, it <em>transforms</em> it into parts that are worth something only together. You choose the threshold — 3 parts, 2 are enough — so you can lose some without consequence. And below the threshold the parts reveal <strong>nothing</strong> about the seed: not "almost nothing", zero, by theorem. (The short verification code printed on them is only a fingerprint for checking the result.)</p>
           <p><strong>How to choose:</strong> Shamir if you fear theft or loss; sequential if you fear depending on software many years from now.</p>
         </div></details>
 
@@ -3701,7 +3360,7 @@ function renderGuideFaq() {
           <p>When you create a wallet you can choose between two backup standards. <strong>BIP-39</strong> gives you a single phrase of 12 or 24 words. <strong>SLIP-39</strong> gives you instead several sheets of 20 words each, and some of them — for example 3 of 5 — are enough to reopen the wallet.</p>
           <p><strong>The difference that matters.</strong> With BIP-39 the complete phrase exists: you see it, you write it, and from that moment it is your weak point. With SLIP-39 <strong>the whole phrase never exists at any moment</strong>, not even on screen while you create it. Only the sheets exist, and each one alone reveals nothing.</p>
           <p><strong>How to recognise the sheets.</strong> They have 20 words (or 33 for 256-bit backups) and the <strong>first three words are identical</strong> on every sheet of the same backup: they exist precisely to let you see at a glance whether you are mixing sheets from different sets. The words come from a dedicated dictionary of 1024 entries, different from the BIP-39 one.</p>
-          <p><strong>Where it is used.</strong> It is the standard that <strong>Trezor</strong> adopts as the default backup on recent models. It is also read by <strong>Sparrow</strong> (from version 2.0), <strong>Electrum</strong>, <strong>Rabby</strong>, <strong>BlueWallet</strong>, <strong>Wasabi</strong> and <strong>Keystone</strong>. So you are not tied to SeedForge: unlike the Shamir backup, this is a public standard.</p>
+          <p><strong>Where it is used.</strong> It is the standard that <strong>Trezor</strong> adopts as the default backup on recent models. It is also read by <strong>Sparrow</strong> (from version 2.0), <strong>Electrum</strong>, <strong>Rabby</strong>, <strong>BlueWallet</strong>, <strong>Wasabi</strong> and <strong>Keystone</strong>. So you are not tied to AmnesicWallet: unlike the Shamir backup, this is a public standard.</p>
         </div></details>
 
         <details class="faq"><summary>🔐 Shamir backup explained properly: what it does and what it doesn't</summary><div class="faq-body">
@@ -3710,9 +3369,9 @@ function renderGuideFaq() {
           <p><strong>1. While creating a new wallet.</strong> Right after generation, when the program asks how to keep the seed, choose <em>Shamir backup</em>. The complete phrase is never written out: you start with the backup already split.</p>
           <p><strong>2. On a seed you already own</strong>, even one created years ago with another program. Go to <em>🔍 Check wallet → Shamir backup → I have a seed, I want to split it</em>, enter your words and choose the threshold and number of parts. The wallet does not change: same addresses, funds in place. Only the way you keep it changes. From that moment you can destroy the sheet with the whole phrase and keep only the parts.</p>
           <p>Here is the advantage over a classic seed: with the traditional phrase, whoever finds that sheet has everything. With this system, whoever finds one part has nothing. Several fragments are needed together, someone has to realise they belong together, know this backup exists and have the right program. The difference is this: a normal seed is a single weak point. With Shamir, your funds stay safe even if some piece ends up where it shouldn't.</p>
-          <p><strong>A useful way to see it:</strong> the parts are a form of encryption of the backup, where the key is "holding enough parts". With one advantage over a password: there is nothing to remember. And below the threshold no attempt will do — it isn't hard to guess, it's mathematically impossible.</p>
+          <p><strong>A useful way to see it:</strong> the parts are a form of encryption of the backup, where the key is "holding enough parts". With one advantage over a password: there is nothing to remember. And below the threshold no attempt will do — it isn't hard to guess, it's mathematically impossible. The 4-character verification code printed on the sheets is only a short fingerprint used to confirm the result: it leaves an attacker with at least 2¹¹² possibilities, far beyond any computer.</p>
           <p><strong>The parts are not wallets.</strong> Each one is made of words and looks every bit like a seed, but it is a fragment. Don't send funds to it and don't import it into a wallet expecting to find something there. On its own, below the threshold, it is worth nothing — and that is exactly what makes it safe.</p>
-          <p><strong>You need this program to reassemble them.</strong> It is the price of the method and it must be said clearly: <strong>keep a copy of the file <em>seedforge.html</em> together with the parts</strong>. If that dependency bothers you, consider <strong>SLIP-39</strong>, which does the same thing with a public standard read by Trezor, Sparrow and Electrum — but it must be chosen when creating a new wallet, it does not apply to an existing BIP-39 seed.</p>
+          <p><strong>You need this program to reassemble them.</strong> It is the price of the method and it must be said clearly: <strong>keep a copy of the file <em>amnesicwallet.html</em> together with the parts</strong>. If that dependency bothers you, consider <strong>SLIP-39</strong>, which does the same thing with a public standard read by Trezor, Sparrow and Electrum — but it must be chosen when creating a new wallet, it does not apply to an existing BIP-39 seed.</p>
           <p><strong>Careful not to confuse it with Trezor's Shamir.</strong> Trezor offers a feature called <em>Shamir Backup</em>, but it uses the SLIP-39 standard. Parts created here <strong>do not work</strong> in Trezor's Shamir recovery, and vice versa. They are two separate systems that share a name.</p>
         </div></details>
 
@@ -3759,7 +3418,7 @@ function renderGuideFaq() {
         </div></details>
 
         <details class="faq" id="g-watch"><summary>👁️ Seeing the balance without risking anything (watch-only)</summary><div class="faq-body">
-          <p>After generating the Bitcoin addresses, under <em>Advanced feature</em> you find a <strong>descriptor</strong>: a line of text that describes your wallet <em>without containing the keys to spend</em>. For a normal wallet it is entirely optional — your words are all you need to recover. In <strong>multisig</strong>, however, <strong>it is essential</strong>: without it, rebuilding the vault is much harder.</p>
+          <p>After generating the Bitcoin addresses, the <em>View xpub and descriptor</em> button shows a <strong>descriptor</strong>: a line of text that describes your wallet <em>without containing the keys to spend</em>. For a normal wallet it is entirely optional — your words are all you need to recover. In <strong>multisig</strong>, however, <strong>it is essential</strong>: without it, rebuilding the vault is much harder.</p>
           <p>By pasting it into <strong>Sparrow</strong> (<em>File → Import Wallet → Output Descriptor</em>) or into Electrum, you get a read-only wallet: you see balance and movements in real time, but nobody — not even you, from there — can move the funds. The seed stays safe where it is, without ever touching a connected device.</p>
           <p>It's the best way to keep an eye on a cold wallet from your phone or your everyday computer.</p>
           <p><strong>A privacy warning:</strong> whoever holds the descriptor sees all your Bitcoin movements, present and future. They cannot spend, but it is like handing over a bank statement: share it only with someone you'd trust to see your accounts.</p>
@@ -3773,19 +3432,20 @@ function renderGuideFaq() {
 
         <details class="faq" id="g-multisig"><summary>🔐 Multisig: when one key isn't enough</summary><div class="faq-body">
           <p>A <em>multisig</em> address requires several keys to move the funds — for example 2 signatures out of 3. It is used in two very different ways:</p>
-          <p><strong>👤 All the keys yours.</strong> It's the most common use, and perhaps the best security upgrade for anyone self-custodying. You create three keys and distribute them across three different places. From then on a thief who ransacks your home gets nothing, and you can lose one backup without losing a euro. The moment the keys are born together is the only one in which they coexist.</p>
+          <p><strong>👤 All the keys yours.</strong> It's the most common use, and perhaps the best security upgrade for anyone self-custodying. You create three keys and distribute them across three different places. From then on a thief who ransacks your home gets nothing, and you can lose one backup without losing a cent. The moment the keys are born together is the only one in which they coexist.</p>
           <p><strong>👥 With other people.</strong> For family, company or group funds. Everyone creates their key on their own device and shares only the <strong>xpub</strong>, a public code that reveals nothing secret. Nobody can spend alone.</p>
           <p><strong>To be kept with the backups:</strong> the <em>descriptor</em>, the formula describing how the keys combine. With the seeds alone, but without the descriptor, rebuilding the vault is far more laborious.</p>
         </div></details>
 
         <details class="faq"><summary>📴 Does it really connect to nothing?</summary><div class="faq-body">
           <p>Really. No network request, at any moment: no servers, no statistics, no silent updates. All the cryptographic libraries are embedded in the file, and nothing is downloaded while you use it.</p>
-          <p>Nothing is saved either: the seed lives only in the page's memory and vanishes when you close it.</p>
+          <p>It is not only a promise in the code. The file carries a rule for the browser, called <em>Content-Security-Policy</em>, that forbids any connection and any script other than its own: even a bug, or a modified copy of a library, would be stopped by the browser itself.</p>
+          <p>Nothing is saved either: no cookies, no local storage, no files written. The seed lives only in the page's memory, and the browser releases it when you close the tab.</p>
           <p><strong>And you can verify it yourself.</strong> Open the file on a computer disconnected from the internet: it works exactly the same way. That is in fact how we recommend using it.</p>
         </div></details>
 
         <details class="faq"><summary>💸 Can I spend from here?</summary><div class="faq-body">
-          <p>No, and it's a deliberate choice. Signing transactions requires a connection: adding one would mean giving up precisely the guarantee that makes this tool trustworthy. SeedForge does one thing — create wallets in a clean environment — and does it well.</p>
+          <p>No, and it's a deliberate choice. Spending means building transactions and sending them to the network: a whole wallet, with far more code and a reason to go online. AmnesicWallet does one thing — create wallets in a clean environment — and keeps it small enough to be checked.</p>
           <p>To receive, the address is enough. To spend, import your words into a compatible wallet: <strong>Electrum</strong> or <strong>Sparrow</strong> for Bitcoin, <strong>MetaMask</strong> or <strong>Rabby</strong> for Ethereum, <strong>TronLink</strong> and <strong>Phantom</strong> for the other networks.</p>
           <p>For significant amounts, the best choice is to import the seed into a <strong>hardware wallet</strong> such as a Ledger or Trezor: it signs transactions internally, without ever exposing the key to the computer.</p>
         </div></details>
@@ -3793,8 +3453,8 @@ function renderGuideFaq() {
         <details class="faq"><summary>🛡️ The five rules that matter</summary><div class="faq-body">
           <p><strong>1 · Generate offline.</strong> Disconnect the device from the network, or use a clean bootable USB stick. It's how this tool gives its best.</p>
           <p><strong>2 · Save the backup before using the wallet.</strong> The words are the only key: whoever holds them holds the funds, whoever loses them loses access. Choose the way of keeping them that you consider safest, and do it before you send any funds.</p>
-          <p><strong>3 · Split and distribute.</strong> A single hiding place is a single point of failure: use the Shamir backup or SLIP-39 for amounts you'd hate to lose.</p>
-          <p><strong>4 · Verify before trusting.</strong> Import the same words into Sparrow or MetaMask and check that the address matches. Two independent tools that agree are worth more than any guarantee.</p>
+          <p><strong>3 · Know your single points of failure.</strong> One sheet in one place can be lost or found. Splitting it (Shamir, SLIP-39) or a multisig vault remove that single point, at the price of more pieces to look after: weigh which risk worries you more.</p>
+          <p><strong>4 · Verify before trusting.</strong> On the same offline device, restore the words in a second program such as Sparrow or Electrum and check that the address matches. Two independent tools that agree are worth more than any guarantee.</p>
           <p><strong>5 · Do a test run.</strong> Send a token amount, then try recovering it from the backup alone. <strong>An unverified backup is not a backup: it's a hope.</strong></p>
         </div></details>
 

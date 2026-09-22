@@ -1,0 +1,17 @@
+# Security headers applied by Netlify.
+
+# Presentation page: no scripts at all, restrictive policy.
+/*
+  X-Frame-Options: DENY
+  X-Content-Type-Options: nosniff
+  Referrer-Policy: no-referrer
+  Permissions-Policy: geolocation=(), microphone=(), camera=(), payment=(), usb=(), bluetooth=()
+  Strict-Transport-Security: max-age=31536000
+  Content-Security-Policy: default-src 'none'; style-src 'unsafe-inline'; img-src 'self' data:; form-action 'none'; frame-ancestors 'none'; base-uri 'none'
+
+# The application is meant to be downloaded, not run from here.
+# Content-Disposition forces the download even if someone opens the direct
+# URL, so nobody generates a wallet on a page served over the network.
+/amnesicwallet.html
+  Content-Disposition: attachment; filename="amnesicwallet.html"
+  Cache-Control: no-cache

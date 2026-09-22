@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <!--
-  SeedForge — offline BIP-39 wallet generator
+  AmnesicWallet — offline BIP-39 wallet generator
   Copyright (C) 2026 MrAmnesic
   Free software under the GNU General Public License v3 or later.
   This program comes with ABSOLUTELY NO WARRANTY. See the LICENSE file.
@@ -8,11 +8,11 @@
 <html lang="en" data-theme="light">
 <head>
   <meta charset="UTF-8" />
+  <!-- CSP -->
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>SeedForge — BIP-39 Wallet Generator</title>
-  <!-- Offline: system fallback fonts -->
+  <title>AmnesicWallet — Offline Wallet Generator</title>
   <style>
-    /* Offline: system fallback fonts */
+    /* Offline by design: system fonts only, nothing is downloaded. */
 
     /* ── Seed standard choice ── */
     .std-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 10px; }
@@ -164,6 +164,8 @@
       font-weight: 700;
       letter-spacing: 4px;
     }
+    header h1 .logo-accent { color: var(--accent); }
+    @media (max-width: 420px) { header h1 { font-size: 18px; letter-spacing: 2.5px; } }
 
     .subtitle {
       font-size: 12px;
@@ -869,11 +871,24 @@
     .faq-body strong { color: var(--accent); font-weight: 600; }
     .faq-body em { font-style: italic; }
 
+    /* ── Narrow phones (320–420 px): word grids in two columns, lighter overlays.
+       Grid tracks use minmax(0, 1fr) so that no word can widen the page. ── */
+    .seed-masked > *, .part-words > * { min-width: 0; overflow-wrap: anywhere; }
+    img { max-width: 100%; height: auto; }
+    @media (max-width: 420px) {
+      .seed-masked, .part-words { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .ov { padding: 10px; }
+      .ov-card { padding: 22px 18px; max-height: 94vh; }
+      .ov-grid2 { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 10px; }
+      .dice-grid { gap: 5px; }
+    }
+
     /* ── Print hide (main app) ── */
     @media print { body { display: none !important; } }
   </style>
 </head>
 <body>
+  <noscript><p style="max-width:560px;margin:60px auto;padding:0 20px;font-family:system-ui,sans-serif;line-height:1.6">AmnesicWallet needs JavaScript to run. Everything happens inside this page: it makes no connection and saves nothing.</p></noscript>
   <div id="app"></div>
   <script src="./bundle.js"></script>
 </body>

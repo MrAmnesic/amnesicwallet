@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 /**
- * Prints and writes the SHA-256 of the built artifact to SHA256SUMS.
+ * Writes the SHA-256 of the built file to SHA256SUMS and to the
+ * presentation page (site/index.html), so the three always agree.
  * Run after `npm run build`.
  */
 'use strict';
@@ -10,18 +11,22 @@ const path = require('path');
 const crypto = require('crypto');
 
 const ROOT = path.resolve(__dirname, '..');
-const FILE = path.join(ROOT, 'dist', 'seedforge.html');
-const OUT = path.join(ROOT, 'SHA256SUMS');
+const FILE = path.join(ROOT, 'dist', 'amnesicwallet.html');
+const SUMS = path.join(ROOT, 'SHA256SUMS');
+const PAGE = path.join(ROOT, 'site', 'index.html');
 
 if (!fs.existsSync(FILE)) {
-  console.error('dist/seedforge.html not found. Run `npm run build` first.');
+  console.error('dist/amnesicwallet.html not found. Run `npm run build` first.');
   process.exit(1);
 }
 
-const buf = fs.readFileSync(FILE);
-const hash = crypto.createHash('sha256').update(buf).digest('hex');
-const line = `${hash}  seedforge.html\n`;
+const hash = crypto.createHash('sha256').update(fs.readFileSync(FILE)).digest('hex');
+fs.writeFileSync(SUMS, `${hash}  amnesicwallet.html\n`);
 
-fs.writeFileSync(OUT, line);
-console.log(line.trim());
-console.log('Written to SHA256SUMS');
+const page = fs.readFileSync(PAGE, 'utf8');
+const re = /(<code class="hash" id="sha256">)[0-9a-f]{64}(<\/code>)/;
+if (!re.test(page)) { console.error('site/index.html: hash element not found'); process.exit(1); }
+fs.writeFileSync(PAGE, page.replace(re, `$1${hash}$2`));
+
+console.log(`${hash}  amnesicwallet.html`);
+console.log('Written to SHA256SUMS and site/index.html');

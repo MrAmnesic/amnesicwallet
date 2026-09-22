@@ -1,82 +1,101 @@
 # Verification Guide
 
-This guide explains how to independently verify that SeedForge is safe and
-correct. You do not have to trust anyone — you can check everything yourself.
+How to check, by yourself, that the AmnesicWallet file you hold is the
+published one and that it does what it says. You do not have to trust anyone.
 
 ---
 
-## 1. Verify file integrity
+## 1. Verify the file's fingerprint
 
-Every release publishes the SHA-256 of `seedforge.html`.
+Every release publishes the SHA-256 of `amnesicwallet.html`.
 
 ```bash
 # Linux / macOS
-sha256sum seedforge.html
+sha256sum amnesicwallet.html
 
 # Windows (PowerShell)
-Get-FileHash seedforge.html -Algorithm SHA256
+Get-FileHash amnesicwallet.html -Algorithm SHA256
 ```
 
-Compare with the value in [`SHA256SUMS`](../SHA256SUMS) or the release page.
+The value must be identical in three independent places:
+
+- [`SHA256SUMS`](../SHA256SUMS) in this repository;
+- the release page, where `amnesicwallet.html.sha256` is attached;
+- the website, [amnesicwallet.netlify.app](https://amnesicwallet.netlify.app).
+
 If they differ, **do not use the file**.
 
 ---
 
-## 2. Reproduce the build
-
-Rebuild the file from source and confirm you get the same hash.
+## 2. Rebuild it from source
 
 ```bash
-git clone https://github.com/MrAmnesic/seedforge.git
-cd REPO
+git clone https://github.com/MrAmnesic/amnesicwallet.git
+cd amnesicwallet
 npm ci                 # exact, locked versions
-npm run build          # produces dist/seedforge.html
-node scripts/hash.js   # prints the SHA-256
+npm run build          # produces dist/amnesicwallet.html
+sha256sum dist/amnesicwallet.html
 ```
 
-The printed hash should match the released one (bit-for-bit reproducibility
-depends on identical dependency versions, which `npm ci` enforces).
+The hash must match the published one, byte for byte. This is also done
+automatically on every change: continuous integration rebuilds the file and
+compares it with the committed one, the release stops if they differ, and the
+website refuses to deploy a file whose hash differs from `SHA256SUMS` or from
+the hash it displays.
+
+To check an older release, check out its tag first (`git checkout v1.1.0`).
 
 ---
 
-## 3. Run the test vectors
+## 3. Run the tests
 
 ```bash
 npm test
 ```
 
-This derives addresses from the canonical BIP-39 mnemonic
-(`abandon abandon … about`) and compares them to known-correct values for
-Bitcoin, Ethereum and Solana, plus a structural check for TRON.
+About 1,400 checks run against the real application core (`src/core.js`),
+bundled exactly as in the published file: official BIP-39, SLIP-10 and SLIP-39
+vectors; values computed independently with the Python libraries bip_utils and
+embit; Shamir parts made by the previous release; and every refusal the
+program must make. [TECHNICAL.md, section 8.3](./TECHNICAL.md#83-test-suite)
+lists them.
 
 ---
 
 ## 4. Confirm it is offline
 
-1. Start a network traffic analyzer (e.g. **Wireshark**), or fully disconnect
-   the machine from the network.
-2. Open `seedforge.html`.
-3. Generate a seed and derive addresses.
-4. Confirm **no outbound network packets** are produced by the page.
+1. Open the browser's developer tools (Network tab), start a traffic analyser
+   such as Wireshark, or simply disconnect the machine.
+2. Open `amnesicwallet.html`, generate a seed and derive addresses.
+3. No request should appear.
+
+The file also contains a Content-Security-Policy (`default-src 'none'`), which
+you can read at the top of its source: even if code tried to connect, the
+browser would refuse and log a "Content Security Policy" violation.
 
 ---
 
 ## 5. Cross-check an address
 
 For real value, verify at least one generated address with a **second,
-independent tool** — a hardware wallet, an official chain library, or a
-well-established offline tool such as `iancoleman.io/bip39` (used offline).
-Import the same mnemonic and confirm the addresses match.
+independent tool, still offline** — Sparrow or Electrum on the same
+disconnected computer, or a hardware wallet. Restore the same words, compare
+the first address, then delete that wallet from the other program. Never type
+the words into a program on a connected device.
 
 ---
 
 ## 6. Read the code
 
-The entire application logic is in [`src/app.js`](../src/app.js). It is short
-enough to read in full. Look specifically for:
+All the cryptography is in [`src/core.js`](../src/core.js), about 650 lines
+with no interface code. Look in particular at:
 
-- **Entropy**: only `crypto.getRandomValues` is used (never `Math.random()`).
-- **No network**: there are no `fetch`, `XMLHttpRequest`, or `WebSocket` calls.
-- **No persistence**: no `localStorage`, `sessionStorage`, or disk writes of
-  sensitive data.
-- **Derivation**: each chain uses its documented derivation path.
+- **Entropy** — `combineEntropy`: the CSPRNG (`crypto.getRandomValues`) is
+  always drawn; the other sources are added through SHA-256.
+- **Shamir** — `GF`, `shamirSplit`, `shamirCombine`, `verificationCode`.
+- **Derivation** — every network's path is written in plain text.
+- **No network, no storage, no `Math.random`** — also enforced on the final
+  bundle by [`scripts/build.js`](../scripts/build.js), which refuses to build
+  otherwise.
+
+The interface is in [`src/app.js`](../src/app.js).

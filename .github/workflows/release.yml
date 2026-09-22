@@ -13,41 +13,55 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
-          node-version: 20
+          node-version: 24
           cache: npm
 
-      - name: Install exact dependencies
-        run: npm ci
+      - name: The tag must match the version in package.json
+        run: |
+          v="v$(node -p "require('./package.json').version")"
+          [ "$v" = "$GITHUB_REF_NAME" ] || { echo "::error::tag $GITHUB_REF_NAME but package.json says $v"; exit 1; }
+
+      - name: Install exact dependencies (no install scripts)
+        run: npm ci --ignore-scripts
 
       - name: Test, build, hash
         run: npm run release
 
-      - name: Generate provenance checksums
+      - name: The released file must be exactly the committed one
+        run: |
+          git diff --exit-code -- dist/amnesicwallet.html SHA256SUMS site/index.html \
+            || { echo "::error::The tagged commit does not contain the rebuilt file. If you edited on github.com, wait for the automatic 'Rebuild' commit and tag that one."; exit 1; }
+
+      - name: Checksum file
         run: |
           cd dist
-          sha256sum seedforge.html > seedforge.html.sha256
-          cat seedforge.html.sha256
+          sha256sum amnesicwallet.html > amnesicwallet.html.sha256
+          cat amnesicwallet.html.sha256
 
       - name: Create GitHub Release
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@efb35369e0ad2afab669f228072c1b0d510eae64 # v3.0.3
         with:
           files: |
-            dist/seedforge.html
-            dist/seedforge.html.sha256
+            dist/amnesicwallet.html
+            dist/amnesicwallet.html.sha256
           generate_release_notes: true
           body: |
-            ## SeedForge ${{ github.ref_name }}
+            ## AmnesicWallet ${{ github.ref_name }}
 
-            Offline single-file BIP-39 wallet generator.
+            Offline, single-file wallet generator: BIP-39 and SLIP-39 seeds, Shamir backups, multisig vaults — Bitcoin, Ethereum/EVM, TRON, Solana.
 
-            ### Verify integrity
+            What changed: see [CHANGELOG.md](https://github.com/${{ github.repository }}/blob/${{ github.ref_name }}/CHANGELOG.md).
+
+            ### Verify the file before opening it
             ```bash
-            sha256sum seedforge.html
+            sha256sum amnesicwallet.html          # Linux / macOS
+            Get-FileHash amnesicwallet.html       # Windows PowerShell
             ```
-            Compare against `seedforge.html.sha256` attached to this release,
-            or reproduce the build locally with `npm ci && npm run build`.
+            The value must match `amnesicwallet.html.sha256` attached here, `SHA256SUMS` in the repository and the one on the website. You can also rebuild it yourself: `npm ci && npm run build` produces the same bytes.

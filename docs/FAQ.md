@@ -1,10 +1,10 @@
-# SeedForge — Frequently asked questions
+# AmnesicWallet — Frequently asked questions
 
 ## ⭐ Why this way of creating the seed is different
 
 Everything in a wallet depends on a single number: the starting one. If that number is predictable, it doesn't matter how robust the cryptography downstream is — the wallet is already lost. That is exactly how real funds have vanished, when a faulty generator produced numbers far less random than they seemed.
 
-**SeedForge's choice is not to depend on a single source.** We mix three (or four, if you use the dice), of completely different natures:
+**AmnesicWallet's choice is not to depend on a single source.** We mix three (or four, if you use the dice), of completely different natures:
 
 **1 · The browser's cryptographic generator.** The browser has a built-in cryptographic generator, called a CSPRNG. It is fed directly by the operating system and is made exactly for this purpose.
 
@@ -56,7 +56,7 @@ Right after creating the wallet, the program asks you **how you want to keep it*
 
 **✂️ Sequential splitting.** The words are cut into consecutive groups: with 12 words and 3 parts you get 1-4, 5-8, 9-12. To reassemble you simply put them back in order without any software. In exchange **all** the parts are needed, and anyone finding two out of three would have few words left to guess.
 
-**🔐 Shamir backup.** Named after the cryptographer Adi Shamir. It doesn't cut the seed, it *transforms* it into parts that are worth something only together. You choose the threshold — 3 parts, 2 are enough — so you can lose some without consequence. And below the threshold the parts reveal **nothing**: not "almost nothing", zero, by theorem.
+**🔐 Shamir backup.** Named after the cryptographer Adi Shamir. It doesn't cut the seed, it *transforms* it into parts that are worth something only together. You choose the threshold — 3 parts, 2 are enough — so you can lose some without consequence. And below the threshold the parts reveal **nothing** about the seed: not "almost nothing", zero, by theorem. (The short verification code printed on them is only a fingerprint for checking the result.)
 
 **How to choose:** Shamir if you fear theft or loss; sequential if you fear depending on software many years from now.
 
@@ -70,7 +70,7 @@ When you create a wallet you can choose between two backup standards. **BIP-39**
 
 **How to recognise the sheets.** They have 20 words (or 33 for 256-bit backups) and the **first three words are identical** on every sheet of the same backup: they exist precisely to let you see at a glance whether you are mixing sheets from different sets. The words come from a dedicated dictionary of 1024 entries, different from the BIP-39 one.
 
-**Where it is used.** It is the standard that **Trezor** adopts as the default backup on recent models. It is also read by **Sparrow** (from version 2.0), **Electrum**, **Rabby**, **BlueWallet**, **Wasabi** and **Keystone**. So you are not tied to SeedForge: unlike the Shamir backup, this is a public standard.
+**Where it is used.** It is the standard that **Trezor** adopts as the default backup on recent models. It is also read by **Sparrow** (from version 2.0), **Electrum**, **Rabby**, **BlueWallet**, **Wasabi** and **Keystone**. So you are not tied to AmnesicWallet: unlike the Shamir backup, this is a public standard.
 
 ---
 
@@ -86,11 +86,11 @@ When you create a wallet you can choose between two backup standards. **BIP-39**
 
 Here is the advantage over a classic seed: with the traditional phrase, whoever finds that sheet has everything. With this system, whoever finds one part has nothing. Several fragments are needed together, someone has to realise they belong together, know this backup exists and have the right program. The difference is this: a normal seed is a single weak point. With Shamir, your funds stay safe even if some piece ends up where it shouldn't.
 
-**A useful way to see it:** the parts are a form of encryption of the backup, where the key is "holding enough parts". With one advantage over a password: there is nothing to remember. And below the threshold no attempt will do — it isn't hard to guess, it's mathematically impossible.
+**A useful way to see it:** the parts are a form of encryption of the backup, where the key is "holding enough parts". With one advantage over a password: there is nothing to remember. And below the threshold no attempt will do — it isn't hard to guess, it's mathematically impossible. The 4-character verification code printed on the sheets is only a short fingerprint used to confirm the result: it leaves an attacker with at least 2¹¹² possibilities, far beyond any computer.
 
 **The parts are not wallets.** Each one is made of words and looks every bit like a seed, but it is a fragment. Don't send funds to it and don't import it into a wallet expecting to find something there. On its own, below the threshold, it is worth nothing — and that is exactly what makes it safe.
 
-**You need this program to reassemble them.** It is the price of the method and it must be said clearly: **keep a copy of the file *seedforge.html* together with the parts**. If that dependency bothers you, consider **SLIP-39**, which does the same thing with a public standard read by Trezor, Sparrow and Electrum — but it must be chosen when creating a new wallet, it does not apply to an existing BIP-39 seed.
+**You need this program to reassemble them.** It is the price of the method and it must be said clearly: **keep a copy of the file *amnesicwallet.html* together with the parts**. If that dependency bothers you, consider **SLIP-39**, which does the same thing with a public standard read by Trezor, Sparrow and Electrum — but it must be chosen when creating a new wallet, it does not apply to an existing BIP-39 seed.
 
 **Careful not to confuse it with Trezor's Shamir.** Trezor offers a feature called *Shamir Backup*, but it uses the SLIP-39 standard. Parts created here **do not work** in Trezor's Shamir recovery, and vice versa. They are two separate systems that share a name.
 
@@ -152,7 +152,7 @@ On **Ethereum, TRON and Solana** it works differently: you always use the same a
 
 ## 👁️ Seeing the balance without risking anything (watch-only)
 
-After generating the Bitcoin addresses, under *Advanced feature* you find a **descriptor**: a line of text that describes your wallet *without containing the keys to spend*. For a normal wallet it is entirely optional — your words are all you need to recover. In **multisig**, however, **it is essential**: without it, rebuilding the vault is much harder.
+After generating the Bitcoin addresses, the *View xpub and descriptor* button shows a **descriptor**: a line of text that describes your wallet *without containing the keys to spend*. For a normal wallet it is entirely optional — your words are all you need to recover. In **multisig**, however, **it is essential**: without it, rebuilding the vault is much harder.
 
 By pasting it into **Sparrow** (*File → Import Wallet → Output Descriptor*) or into Electrum, you get a read-only wallet: you see balance and movements in real time, but nobody — not even you, from there — can move the funds. The seed stays safe where it is, without ever touching a connected device.
 
@@ -176,7 +176,7 @@ If the addresses match those you remember or see in a blockchain explorer, the b
 
 A *multisig* address requires several keys to move the funds — for example 2 signatures out of 3. It is used in two very different ways:
 
-**👤 All the keys yours.** It's the most common use, and perhaps the best security upgrade for anyone self-custodying. You create three keys and distribute them across three different places. From then on a thief who ransacks your home gets nothing, and you can lose one backup without losing a euro. The moment the keys are born together is the only one in which they coexist.
+**👤 All the keys yours.** It's the most common use, and perhaps the best security upgrade for anyone self-custodying. You create three keys and distribute them across three different places. From then on a thief who ransacks your home gets nothing, and you can lose one backup without losing a cent. The moment the keys are born together is the only one in which they coexist.
 
 **👥 With other people.** For family, company or group funds. Everyone creates their key on their own device and shares only the **xpub**, a public code that reveals nothing secret. Nobody can spend alone.
 
@@ -188,7 +188,9 @@ A *multisig* address requires several keys to move the funds — for example 2 s
 
 Really. No network request, at any moment: no servers, no statistics, no silent updates. All the cryptographic libraries are embedded in the file, and nothing is downloaded while you use it.
 
-Nothing is saved either: the seed lives only in the page's memory and vanishes when you close it.
+It is not only a promise in the code. The file carries a rule for the browser, called *Content-Security-Policy*, that forbids any connection and any script other than its own: even a bug, or a modified copy of a library, would be stopped by the browser itself.
+
+Nothing is saved either: no cookies, no local storage, no files written. The seed lives only in the page's memory, and the browser releases it when you close the tab.
 
 **And you can verify it yourself.** Open the file on a computer disconnected from the internet: it works exactly the same way. That is in fact how we recommend using it.
 
@@ -196,7 +198,7 @@ Nothing is saved either: the seed lives only in the page's memory and vanishes w
 
 ## 💸 Can I spend from here?
 
-No, and it's a deliberate choice. Signing transactions requires a connection: adding one would mean giving up precisely the guarantee that makes this tool trustworthy. SeedForge does one thing — create wallets in a clean environment — and does it well.
+No, and it's a deliberate choice. Spending means building transactions and sending them to the network: a whole wallet, with far more code and a reason to go online. AmnesicWallet does one thing — create wallets in a clean environment — and keeps it small enough to be checked.
 
 To receive, the address is enough. To spend, import your words into a compatible wallet: **Electrum** or **Sparrow** for Bitcoin, **MetaMask** or **Rabby** for Ethereum, **TronLink** and **Phantom** for the other networks.
 
@@ -210,9 +212,9 @@ For significant amounts, the best choice is to import the seed into a **hardware
 
 **2 · Save the backup before using the wallet.** The words are the only key: whoever holds them holds the funds, whoever loses them loses access. Choose the way of keeping them that you consider safest, and do it before you send any funds.
 
-**3 · Split and distribute.** A single hiding place is a single point of failure: use the Shamir backup or SLIP-39 for amounts you'd hate to lose.
+**3 · Know your single points of failure.** One sheet in one place can be lost or found. Splitting it (Shamir, SLIP-39) or a multisig vault remove that single point, at the price of more pieces to look after: weigh which risk worries you more.
 
-**4 · Verify before trusting.** Import the same words into Sparrow or MetaMask and check that the address matches. Two independent tools that agree are worth more than any guarantee.
+**4 · Verify before trusting.** On the same offline device, restore the words in a second program such as Sparrow or Electrum and check that the address matches. Two independent tools that agree are worth more than any guarantee.
 
 **5 · Do a test run.** Send a token amount, then try recovering it from the backup alone. **An unverified backup is not a backup: it's a hope.**
 

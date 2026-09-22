@@ -1,13 +1,16 @@
 {
-  "name": "seedforge",
-  "version": "1.0.1",
-  "description": "Offline, single-file BIP-39 deterministic wallet generator (Bitcoin, Ethereum/EVM, TRON, Solana).",
+  "name": "amnesicwallet",
+  "version": "1.1.0",
+  "description": "Offline, single-file wallet generator: BIP-39 and SLIP-39 seeds, Shamir backups, multisig vaults (Bitcoin, Ethereum/EVM, TRON, Solana).",
   "license": "GPL-3.0-or-later",
   "private": false,
   "type": "commonjs",
   "keywords": [
     "bip39",
+    "slip39",
+    "shamir",
     "bip32",
+    "multisig",
     "wallet",
     "offline",
     "cold-wallet",
@@ -21,23 +24,22 @@
   ],
   "scripts": {
     "build": "node scripts/build.js",
-    "test": "node tests/derivation.test.js",
+    "test": "node scripts/test.js",
     "hash": "node scripts/hash.js",
-    "release": "npm run build && npm test && npm run hash"
+    "docs": "node scripts/extract-docs.js",
+    "release": "npm test && npm run build && npm run hash"
   },
   "dependencies": {
-    "@noble/ed25519": "3.1.0",
-    "@noble/hashes": "2.2.0",
-    "@scure/bip32": "2.2.0",
-    "@scure/bip39": "2.2.0",
-    "bech32": "2.0.0",
-    "bs58": "6.0.0",
-    "ethers": "6.17.0",
+    "@noble/curves": "2.4.0",
+    "@noble/hashes": "2.4.0",
+    "@scure/base": "2.4.0",
+    "@scure/bip32": "2.4.0",
+    "@scure/bip39": "2.4.0",
     "qrcode": "1.5.4",
-    "slip39": "^0.1.9"
+    "slip39": "0.1.9"
   },
   "devDependencies": {
-    "esbuild": "0.28.1"
+    "esbuild": "0.28.2"
   },
   "engines": {
     "node": ">=20"

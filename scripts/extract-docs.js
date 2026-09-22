@@ -68,7 +68,7 @@ function inline(t) {
    the real sequence instead of grouping by type. */
 function buildGuide() {
   const html = stripPlaceholders(fnBody('renderGuideSteps'));
-  const out = ['# SeedForge — Step-by-step guide', ''];
+  const out = ['# AmnesicWallet — Step-by-step guide', ''];
 
   const BLOCKS = new RegExp([
     '<h2>(?<h2>.*?)<\\/h2>',
@@ -103,7 +103,7 @@ function buildGuide() {
 /* ── FAQ ── */
 function buildFaq() {
   const html = stripPlaceholders(fnBody('renderGuideFaq'));
-  const out = ['# SeedForge — Frequently asked questions', ''];
+  const out = ['# AmnesicWallet — Frequently asked questions', ''];
 
   for (const d of html.matchAll(/<summary>(.*?)<\/summary><div class="faq-body">(.*?)<\/div><\/details>/gs)) {
     out.push(`## ${inline(d[1])}`, '');

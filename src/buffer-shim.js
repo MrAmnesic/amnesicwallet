@@ -9,19 +9,25 @@
    everything slip39 requires.
    ══════════════════════════════════════════════════════════════════ */
 export const Buffer = {
+  // Like Node's Buffer.from: always a new copy, and loud on bad input
+  // instead of silently producing zeros.
   from(input, encoding) {
-    if (input instanceof Uint8Array) return input;
-    if (Array.isArray(input)) return Uint8Array.from(input);
+    if (input instanceof Uint8Array) return new Uint8Array(input);
     if (typeof input === 'string') {
       if (encoding === 'hex') {
+        if (input.length % 2 || /[^0-9a-fA-F]/.test(input)) throw new Error('invalid hex string');
         const out = new Uint8Array(input.length / 2);
         for (let i = 0; i < out.length; i++) out[i] = parseInt(input.substr(i * 2, 2), 16);
         return out;
       }
+      if (encoding && encoding !== 'utf8' && encoding !== 'utf-8') throw new Error('unsupported encoding: ' + encoding);
       return new TextEncoder().encode(input);
     }
-    if (input && typeof input.length === 'number') return Uint8Array.from(input);
-    return new Uint8Array(0);
+    if (Array.isArray(input) || (input && typeof input.length === 'number')) {
+      if (!Array.prototype.every.call(input, (b) => Number.isInteger(b) && b >= 0 && b <= 255)) throw new Error('not a byte array');
+      return Uint8Array.from(input);
+    }
+    throw new Error('unsupported input');
   },
   isBuffer(x) { return x instanceof Uint8Array; },
   alloc(n) { return new Uint8Array(n); },
