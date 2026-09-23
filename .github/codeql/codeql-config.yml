@@ -1,0 +1,7 @@
+# dist/amnesicwallet.html is generated: it is src/ plus the bundled
+# third-party libraries from node_modules, minified. The sources in src/
+# and scripts/ are analysed directly; scanning the generated copy would
+# only report library internals a second time.
+name: AmnesicWallet CodeQL config
+paths-ignore:
+  - dist

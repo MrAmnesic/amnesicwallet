@@ -39,13 +39,17 @@ const SECURE_RANDOM_OK = isSecureRandomAvailable();
    ════════════════════════════════════════════════════════════════ */
 const SLIP39_PASS_MSG = 'A SLIP-39 passphrase can only contain ordinary keyboard characters: letters without accents, digits, spaces and the usual symbols. This is a rule of the SLIP-39 standard, shared by Trezor and every other program that reads it.';
 
-/* Plain-language explanation for a rejected multisig key. */
-function keyErrorMessage(err, labels) {
+/* Plain-language explanation for a rejected multisig key. With `plain`
+   the same sentence comes back without markup, for places that show
+   text only (the toast): no tag is ever stripped with a regular
+   expression, it is simply never added. */
+function keyErrorMessage(err, labels, plain = false) {
+  const b = (t) => (plain ? t : `<strong>${t}</strong>`);
   const who = (err && Number.isInteger(err.index) && labels && labels[err.index]) ? labels[err.index] : 'One of the keys';
   switch (err && err.code) {
-    case 'PRIVATE':     return `⛔ ${who} is a <strong>private</strong> key (xprv). Never paste or share it: it gives full control of the funds. Each participant must share only their <strong>xpub</strong>.`;
-    case 'TESTNET':     return `${who} belongs to the Bitcoin <strong>test</strong> network, not to the real one.`;
-    case 'SCRIPT_TYPE': return `${who} is labelled for a different kind of wallet (ypub, zpub or Ypub). For a native-SegWit multisig vault it must be an <strong>xpub</strong> or a <strong>Zpub</strong>, derived at m/48'/0'/0'/2'.`;
+    case 'PRIVATE':     return `⛔ ${who} is a ${b('private')} key (xprv). Never paste or share it: it gives full control of the funds. Each participant must share only their ${b('xpub')}.`;
+    case 'TESTNET':     return `${who} belongs to the Bitcoin ${b('test')} network, not to the real one.`;
+    case 'SCRIPT_TYPE': return `${who} is labelled for a different kind of wallet (ypub, zpub or Ypub). For a native-SegWit multisig vault it must be an ${b('xpub')} or a ${b('Zpub')}, derived at m/48'/0'/0'/2'.`;
     case 'DUPLICATE':   return `${who} appears twice. Every participant must bring a different key — otherwise the vault needs fewer people than it seems.`;
     case 'TOO_MANY':    return 'A vault can have at most 15 keys.';
     case 'TOO_FEW':     return 'At least two keys are needed.';
@@ -2955,7 +2959,7 @@ function wireMultisig() {
       renderApp();
       showToast('Vault computed. The words you typed have been discarded.', 'success');
     } catch (err) {
-      showToast(err instanceof KeyError ? keyErrorMessage(err, keys.map((_, i) => `The seed on line ${i + 1}`)).replace(/<[^>]+>/g, '') : 'Error: ' + err.message, 'error');
+      showToast(err instanceof KeyError ? keyErrorMessage(err, keys.map((_, i) => `The seed on line ${i + 1}`), true) : 'Error: ' + err.message, 'error');
     }
   });
 

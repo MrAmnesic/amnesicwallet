@@ -50,17 +50,25 @@ function decode(t) {
   return t.replace(/&[a-z]+;/g, (e) => ENT[e] !== undefined ? ENT[e] : e);
 }
 
+/* Removes every remaining tag. The removal is repeated until nothing
+   changes, so that no tag can be reassembled from the pieces of another
+   (e.g. "<<b>i>"), and any stray angle bracket left over is dropped. */
+function stripTags(t) {
+  let prev;
+  do { prev = t; t = t.replace(/<[^<>]*>/g, ''); } while (t !== prev);
+  return t.replace(/[<>]/g, '');
+}
+
 /* Converts an inline HTML fragment to Markdown */
 function inline(t) {
-  return decode(
+  return decode(stripTags(
     t.replace(/<strong>(.*?)<\/strong>/gs, '**$1**')
      .replace(/<b>(.*?)<\/b>/gs, '**$1**')
      .replace(/<em>(.*?)<\/em>/gs, '*$1*')
      .replace(/<i>(.*?)<\/i>/gs, '*$1*')
      .replace(/<code>(.*?)<\/code>/gs, '`$1`')
      .replace(/<br\s*\/?>/g, '\n')
-     .replace(/<[^>]+>/g, '')
-  ).replace(/[ \t]+/g, ' ').trim();
+  )).replace(/[ \t]+/g, ' ').trim();
 }
 
 /* ── Step-by-step guide ──

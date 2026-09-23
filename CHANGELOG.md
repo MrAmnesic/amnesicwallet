@@ -5,6 +5,23 @@ Notable changes are recorded here, one entry per published version.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.1] — 2026-09
+
+### Changed
+- **Official website: [amnesicwallet.com](https://amnesicwallet.com).** The
+  documentation, the package metadata and the presentation page point to it;
+  `amnesicwallet.netlify.app` redirects there.
+
+### Fixed
+- **Code-scanning findings (CodeQL), none exploitable.** An error message for
+  a rejected multisig key was turned into plain text by stripping tags with a
+  regular expression; it is now written without markup in the first place
+  (the toast displays text only, so nothing could have been injected). The
+  script that extracts the guide and the FAQ from the app now removes tags
+  until none is left. The generated `dist/amnesicwallet.html` is no longer
+  analysed a second time: its sources in `src/` are, and the rest is
+  bundled library code.
+
 ## [1.1.0] — 2026-09
 
 ### Changed
