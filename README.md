@@ -11,7 +11,7 @@
 
 Bitcoin · Ethereum/EVM · TRON · Solana
 
-**[amnesicwallet.netlify.app](https://amnesicwallet.netlify.app)** · [Releases](https://github.com/MrAmnesic/amnesicwallet/releases) · [Technical documentation](./docs/TECHNICAL.md)
+**[amnesicwallet.com](https://amnesicwallet.com)** · [Releases](https://github.com/MrAmnesic/amnesicwallet/releases) · [Technical documentation](./docs/TECHNICAL.md)
 
 </div>
 
@@ -52,7 +52,7 @@ It generates a **BIP-39** phrase (12–24 words) or a set of **SLIP-39** sheets,
 
 ## How to use
 
-1. **Download** `amnesicwallet.html` from the [website](https://amnesicwallet.netlify.app) or the [releases](https://github.com/MrAmnesic/amnesicwallet/releases).
+1. **Download** `amnesicwallet.html` from [amnesicwallet.com](https://amnesicwallet.com) or the [releases](https://github.com/MrAmnesic/amnesicwallet/releases).
 2. **Verify** its SHA-256 (below).
 3. **Disconnect** the device from the internet — or, better, boot [Tails](https://tails.net) from a USB stick.
 4. **Open** the file in an up-to-date browser and follow the guided steps.
@@ -96,7 +96,7 @@ sha256sum amnesicwallet.html
 Get-FileHash amnesicwallet.html -Algorithm SHA256
 ```
 
-The value must match [`SHA256SUMS`](./SHA256SUMS), the release page and the website. See [docs/VERIFICATION.md](./docs/VERIFICATION.md).
+The value must match [`SHA256SUMS`](./SHA256SUMS), the release page and [amnesicwallet.com](https://amnesicwallet.com). See [docs/VERIFICATION.md](./docs/VERIFICATION.md).
 
 ## 🛠️ Reproducible build
 

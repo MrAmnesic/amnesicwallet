@@ -38,7 +38,7 @@ Out of scope:
 ## Verifying you run authentic code
 
 - Download from the official **Releases** page or from
-  [amnesicwallet.netlify.app](https://amnesicwallet.netlify.app).
+  [amnesicwallet.com](https://amnesicwallet.com), the official website.
 - **Verify the SHA-256** against [`SHA256SUMS`](./SHA256SUMS): the release
   page, the repository and the website must all show the same value.
 - Prefer the **reproducible build**: rebuild from source and compare hashes

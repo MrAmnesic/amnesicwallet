@@ -4,7 +4,7 @@
 
 Document version: 1.2 — describes AmnesicWallet 1.1.0
 
-Reference: `amnesicwallet.html` — SHA-256 hash published with every release, in `SHA256SUMS` and on the website
+Reference: `amnesicwallet.html` — SHA-256 hash published with every release, in `SHA256SUMS` and on the official website, [amnesicwallet.com](https://amnesicwallet.com)
 
 ---
 
@@ -359,7 +359,7 @@ sha256sum amnesicwallet.html                       # Linux, macOS
 Get-FileHash amnesicwallet.html -Algorithm SHA256  # Windows
 ```
 
-The value must match `SHA256SUMS`, the release notes and the website. See `docs/VERIFICATION.md`.
+The value must match `SHA256SUMS`, the release notes and the official website, `amnesicwallet.com`. See `docs/VERIFICATION.md`.
 
 ### 8.2 Build reproducibility
 

@@ -21,7 +21,7 @@ The value must be identical in three independent places:
 
 - [`SHA256SUMS`](../SHA256SUMS) in this repository;
 - the release page, where `amnesicwallet.html.sha256` is attached;
-- the website, [amnesicwallet.netlify.app](https://amnesicwallet.netlify.app).
+- the official website, [amnesicwallet.com](https://amnesicwallet.com).
 
 If they differ, **do not use the file**.
 
