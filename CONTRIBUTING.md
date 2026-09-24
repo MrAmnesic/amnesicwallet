@@ -18,6 +18,7 @@ transparency, and security** above all.
 npm ci                # install exact, locked versions
 npm test              # run the test suite against src/core.js
 npm run build         # produce dist/amnesicwallet.html
+npm run test:ui       # use the built page in a browser, computer and phone sizes
 npm run hash          # write its SHA-256 to SHA256SUMS and site/index.html
 npm run docs          # regenerate docs/STEP-BY-STEP.md and docs/FAQ.md from the app
 ```
@@ -31,7 +32,8 @@ commit the rebuilt `dist/amnesicwallet.html`, `SHA256SUMS` and
 
 1. Fork and create a feature branch.
 2. Make focused, minimal changes with clear commit messages.
-3. **Ensure the tests still pass** (`npm test`).
+3. **Ensure the tests still pass** (`npm test`, and `npm run test:ui` after
+   `npm run build` if you touched the interface).
 4. If you touch anything in `src/core.js`, add tests in `tests/core.test.js`,
    with expected values that come from outside the project (official vectors,
    or an independent library).

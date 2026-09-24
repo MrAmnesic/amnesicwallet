@@ -35,7 +35,8 @@
     "test": "node scripts/test.js",
     "hash": "node scripts/hash.js",
     "docs": "node scripts/extract-docs.js",
-    "release": "npm test && npm run build && npm run hash"
+    "release": "npm test && npm run build && npm run hash",
+    "test:ui": "node tests/ui.test.mjs"
   },
   "dependencies": {
     "@noble/curves": "2.4.0",
@@ -47,7 +48,8 @@
     "slip39": "0.1.9"
   },
   "devDependencies": {
-    "esbuild": "0.28.2"
+    "esbuild": "0.28.2",
+    "playwright": "1.63.0"
   },
   "engines": {
     "node": ">=20"
