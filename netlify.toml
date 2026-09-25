@@ -6,5 +6,5 @@
   publish = "site"
   command = "node scripts/prepare-site.js"
 
-# Headers and redirects live in site/_headers and site/_redirects, so they
-# also apply when the site/ folder is deployed by hand.
+# Headers live in site/_headers, so they also apply when the site/ folder
+# is deployed by hand.

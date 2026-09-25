@@ -21,8 +21,6 @@ AmnesicWallet creates cryptocurrency wallets **entirely on your device and entir
 
 It generates a **BIP-39** phrase (12–24 words) or a set of **SLIP-39** sheets, and derives the public addresses for four networks. It can also split a seed into threshold parts, build Bitcoin multisig vaults, and check backups you already own.
 
-> Formerly published as **SeedForge** (and, before that, Crypto Vault). Backups made with those versions — including Shamir parts — keep working: the test suite checks it on every change.
-
 ## Features
 
 - **No network, enforced by the browser** — the file carries a Content-Security-Policy that forbids every connection and every script other than its own. It works on a computer that has never been online.

@@ -5,6 +5,19 @@ Notable changes are recorded here, one entry per published version.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.2] — 2026-09
+
+### Added
+- **The interface is tested in the three browser engines.** On every change,
+  the built file is used as a person would — a wallet created from start to
+  finish, known seeds checked — in Chromium, Firefox (the engine of Tor
+  Browser) and WebKit (the engine of Safari), on a computer and on two phone
+  sizes.
+
+### Changed
+- The reassembly screen for Shamir parts no longer carries a note about
+  earlier versions. Parts made by every earlier version still reassemble.
+
 ## [1.1.1] — 2026-09
 
 ### Changed
@@ -25,10 +38,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [1.1.0] — 2026-09
 
 ### Changed
-- **New name: AmnesicWallet** (previously SeedForge). The file is now
-  `amnesicwallet.html` and the repository `MrAmnesic/amnesicwallet`. Every
-  backup format is unchanged: seeds, SLIP-39 sheets and Shamir parts made with
-  SeedForge keep working, and the test suite now checks it.
+- **Every backup format is unchanged**: seeds, SLIP-39 sheets and Shamir parts
+  made with version 1.0.x keep working, and the test suite now checks it.
 - **All cryptography moved into `src/core.js`**, a module with no interface
   code, so the test suite runs the exact code that ships.
 - **Fewer libraries.** `ethers`, `bech32`, `bs58` and `@noble/ed25519` were

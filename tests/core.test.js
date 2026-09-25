@@ -10,7 +10,7 @@
  *   slip39.json         official SLIP-39 vectors (trezor/python-shamir-mnemonic)
  *   addresses.json      addresses, xpubs and vaults computed with bip_utils and
  *                       embit (Python), independently of this code
- *   shamir-compat.json  parts made by SeedForge 1.0.1, which must keep working
+ *   shamir-compat.json  parts made by version 1.0.1, which must keep working
  *
  * plus the published examples of BIP-84/86/49/44, EIP-55 and BIP-380.
  * Run with `npm test`.
@@ -318,7 +318,7 @@ group('Shamir — parts made by earlier versions still reassemble');
   let n = 0;
   for (const c of COMPAT.cases) {
     const parts = c.shares.map((s) => ({ x: s.x, y: hex(s.y) }));
-    for (const sub of combos(parts, COMPAT.threshold)) { eq(toHex(shamirCombine(sub)), c.secret, `SeedForge 1.0.1 parts, ${c.secret.length / 2} bytes`); n++; }
+    for (const sub of combos(parts, COMPAT.threshold)) { eq(toHex(shamirCombine(sub)), c.secret, `version 1.0.1 parts, ${c.secret.length / 2} bytes`); n++; }
     eq(verificationCode(hex(c.secret)), c.code, 'verification code unchanged');
   }
   eq(verificationCode(new Uint8Array(16)), toHex(sha256(new Uint8Array(16)).slice(0, 2)).toUpperCase(), 'code = first 2 bytes of SHA-256');

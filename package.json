@@ -1,6 +1,6 @@
 {
   "name": "amnesicwallet",
-  "version": "1.1.1",
+  "version": "1.1.2",
   "description": "Offline, single-file wallet generator: BIP-39 and SLIP-39 seeds, Shamir backups, multisig vaults (Bitcoin, Ethereum/EVM, TRON, Solana).",
   "homepage": "https://amnesicwallet.com",
   "repository": {
