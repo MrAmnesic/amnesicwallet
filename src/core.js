@@ -379,8 +379,9 @@ export function btcAddressFromPubkey(pubkey, format) {
   return bech32.encode('bc', [0x00, ...bech32.toWords(hash160(pubkey))]);
 }
 
-export function btcPath(format, index, change = 0) {
-  return `m/${BTC_FORMATS[format].purpose}'/0'/0'/${change}/${index}`;
+/* Account numbers start from 0 here; the interface shows them as 1, 2, 3… */
+export function btcPath(format, index, change = 0, account = 0) {
+  return `m/${BTC_FORMATS[format].purpose}'/0'/${account}'/${change}/${index}`;
 }
 
 function fingerprintHex(node) {
@@ -389,9 +390,9 @@ function fingerprintHex(node) {
   return toHex(b);
 }
 
-export function deriveBTC(master, format, index = 0) {
+export function deriveBTC(master, format, index = 0, account = 0) {
   const fmt = BTC_FORMATS[format] ? format : 'native';
-  const path = btcPath(fmt, index);
+  const path = btcPath(fmt, index, 0, account);
   const f = BTC_FORMATS[fmt];
   return {
     name: `Bitcoin — ${f.label}`, symbol: 'BTC',
@@ -400,10 +401,12 @@ export function deriveBTC(master, format, index = 0) {
   };
 }
 
-export function deriveBTCMany(master, format, from, count) {
+/* change = 1 gives the change addresses, where wallets send what is left
+   of a payment. */
+export function deriveBTCMany(master, format, from, count, change = 0, account = 0) {
   const out = [];
   for (let i = from; i < from + count; i++) {
-    const path = btcPath(format, i);
+    const path = btcPath(format, i, change, account);
     out.push({ index: i, path, address: btcAddressFromPubkey(master.derive(path).publicKey, format) });
   }
   return out;
@@ -444,13 +447,13 @@ export function descriptorChecksum(desc) {
 export const withChecksum = (desc) => `${desc}#${descriptorChecksum(desc)}`;
 
 /* Account xpub and descriptor, for watch-only monitoring. */
-export function btcAccountInfo(seed, format) {
+export function btcAccountInfo(seed, format, account = 0) {
   const master = HDKey.fromMasterSeed(new Uint8Array(seed));
   const f = BTC_FORMATS[format] || BTC_FORMATS.native;
-  const acctPath = `m/${f.purpose}'/0'/0'`;
+  const acctPath = `m/${f.purpose}'/0'/${account}'`;
   const acct = master.derive(acctPath);
   const fp = fingerprintHex(master);
-  const key = `[${fp}/${f.purpose}h/0h/0h]${acct.publicExtendedKey}/0/*`;
+  const key = `[${fp}/${f.purpose}h/0h/${account}h]${acct.publicExtendedKey}/0/*`;
   const body = { native: `wpkh(${key})`, taproot: `tr(${key})`, p2sh: `sh(wpkh(${key}))`, legacy: `pkh(${key})` }[f.id];
   return { xpub: acct.publicExtendedKey, path: acctPath, fingerprint: fp, descriptor: withChecksum(body), format: f };
 }
@@ -471,15 +474,17 @@ function evmAddressBytes(compressedPubkey) {
   return keccak_256(full.slice(1)).slice(-20);
 }
 
-export function deriveETH(master) {
-  const path = "m/44'/60'/0'/0/0";
+/* For Ethereum and TRON, "Account 2" in MetaMask, Trust Wallet, TronLink
+   and most wallets is the second address of the same branch. */
+export function deriveETH(master, account = 0) {
+  const path = `m/44'/60'/0'/0/${account}`;
   const address = toChecksumAddress(toHex(evmAddressBytes(master.derive(path).publicKey)));
   return { name: 'Ethereum (EVM compatible)', symbol: 'ETH', address, path, icon: 'Ξ',
     evmChains: ['Ethereum', 'BSC', 'Polygon', 'Arbitrum', 'Avalanche', 'Optimism', 'Base'] };
 }
 
-export function deriveTRX(master) {
-  const path = "m/44'/195'/0'/0/0";
+export function deriveTRX(master, account = 0) {
+  const path = `m/44'/195'/0'/0/${account}`;
   return { name: 'TRON (TRC-20)', symbol: 'TRX', address: b58check(0x41, evmAddressBytes(master.derive(path).publicKey)), path, icon: '◆' };
 }
 
@@ -498,25 +503,254 @@ export function slip10Ed25519(seed, path) {
   return { key, chainCode: chain };
 }
 
-export function deriveSOL(seed) {
-  const { key } = slip10Ed25519(seed, [44, 501, 0, 0]);
+/* Phantom, Solflare and Backpack: "Account 2" is m/44'/501'/1'/0'. */
+export function deriveSOL(seed, account = 0) {
+  const { key } = slip10Ed25519(seed, [44, 501, account, 0]);
   const address = base58.encode(ed25519.getPublicKey(key));
   key.fill(0);
-  return { name: 'Solana', symbol: 'SOL', address, path: "m/44'/501'/0'/0'", icon: '◎' };
+  return { name: 'Solana', symbol: 'SOL', address, path: `m/44'/501'/${account}'/0'`, icon: '◎' };
 }
 
-export function deriveAll(seed, selected, btcFormat) {
+export function deriveAll(seed, selected, btcFormat, account = 0) {
+  if (!Number.isInteger(account) || account < 0 || account >= 0x80000000) throw new Error('invalid account');
   const master = HDKey.fromMasterSeed(new Uint8Array(seed));
   const results = {};
   for (const id of selected) {
     let entry = null;
-    if (id === 'btc') entry = deriveBTC(master, btcFormat);
-    else if (id === 'eth') entry = deriveETH(master);
-    else if (id === 'trx') entry = deriveTRX(master);
-    else if (id === 'sol') entry = deriveSOL(seed);
+    if (id === 'btc') entry = deriveBTC(master, btcFormat, 0, account);
+    else if (id === 'eth') entry = deriveETH(master, account);
+    else if (id === 'trx') entry = deriveTRX(master, account);
+    else if (id === 'sol') entry = deriveSOL(seed, account);
     if (entry) { entry.id = id; results[id] = entry; }
   }
   return results;
+}
+
+/* ════════════════════════════════════════════════════════════════
+   DERIVATION PATHS — any path, on any network
+   The same words give different addresses depending on the path a
+   wallet follows. These functions compute the address at any path, so
+   the check can show every known path, including unusual ones.
+   ════════════════════════════════════════════════════════════════ */
+
+/* "m/44'/60'/0'/0/0" (or with h / H for hardened) → [{ index, hardened }].
+   Returns null when the text is not a valid path. */
+export function parsePath(text) {
+  const s = String(text || '').trim().replace(/\s+/g, '');
+  if (!/^m(\/\d+['hH]?)*$/.test(s)) return null;
+  const parts = [];
+  for (const piece of s.split('/').slice(1)) {
+    const hardened = /['hH]$/.test(piece);
+    const digits = hardened ? piece.slice(0, -1) : piece;
+    if (digits.length > 10) return null;
+    const index = Number(digits);
+    if (!Number.isSafeInteger(index) || index >= 0x80000000) return null;
+    parts.push({ index, hardened });
+  }
+  return parts;
+}
+
+export const pathToString = (parts) => 'm' + parts.map(p => `/${p.index}${p.hardened ? "'" : ''}`).join('');
+
+/* chain: 'btc' (with a format), 'eth', 'trx' or 'sol'.
+   For Solana, path null means the key made directly from the first 32
+   bytes of the seed, with no derivation (solana-keygen's default). */
+export function addressAtPath(seed, chain, path, btcFormat = 'native') {
+  if (chain === 'sol') {
+    let key;
+    if (path === null) key = new Uint8Array(seed).slice(0, 32);
+    else {
+      const parts = parsePath(path);
+      if (!parts) throw new Error('INVALID_PATH');
+      if (parts.some(p => !p.hardened)) throw new Error('SOL_HARDENED_ONLY');
+      key = slip10Ed25519(seed, parts.map(p => p.index)).key;
+    }
+    const address = base58.encode(ed25519.getPublicKey(key));
+    key.fill(0);
+    return address;
+  }
+  if (!['btc', 'eth', 'trx'].includes(chain)) throw new Error('INVALID_CHAIN');
+  return secpAddress(secpPubkey(HDKey.fromMasterSeed(new Uint8Array(seed)), path), chain, btcFormat);
+}
+
+function secpPubkey(master, path) {
+  const parts = parsePath(path);
+  if (!parts) throw new Error('INVALID_PATH');
+  return master.derive(pathToString(parts)).publicKey;
+}
+
+function secpAddress(pubkey, chain, btcFormat) {
+  if (chain === 'btc') return btcAddressFromPubkey(pubkey, BTC_FORMATS[btcFormat] ? btcFormat : 'native');
+  if (chain === 'eth') return toChecksumAddress(toHex(evmAddressBytes(pubkey)));
+  if (chain === 'trx') return b58check(0x41, evmAddressBytes(pubkey));
+  throw new Error('INVALID_CHAIN');
+}
+
+/* Known paths per network. {n} is the account chosen on screen (0 for
+   "Account 1"). 'std' marks the path the check uses by default; 'odd'
+   marks paths that belong to another network or standard, where funds
+   can end up through a wallet that mixes them. For Bitcoin, 'fmt' is
+   the address format that normally goes with the path. */
+export const PATH_SCHEMES = {
+  btc: [
+    { path: "m/84'/0'/{n}'/0/0",  fmt: 'native',  used: 'BIP-84 — Native SegWit (most wallets today)', std: true },
+    { path: "m/86'/0'/{n}'/0/0",  fmt: 'taproot', used: 'BIP-86 — Taproot', std: true },
+    { path: "m/49'/0'/{n}'/0/0",  fmt: 'p2sh',    used: 'BIP-49 — SegWit compatible', std: true },
+    { path: "m/44'/0'/{n}'/0/0",  fmt: 'legacy',  used: 'BIP-44 — Legacy', std: true },
+    { path: "m/84'/0'/{n}'/1/0",  fmt: 'native',  used: 'BIP-84, first change address' },
+    { path: "m/0'/0/{n}",         fmt: 'legacy',  used: 'BRD (breadwallet), MultiBit HD — no accounts: the account number picks the address' },
+    { path: "m/0'/0'/{n}'",       fmt: 'p2sh',    used: 'Bitcoin Core HD wallets before version 0.21 — the account number picks the address' },
+    { path: "m/84'/0'/2147483646'/0/{n}", fmt: 'native', used: 'Samourai / Ashigaru, Whirlpool post-mix — the account number picks the address' },
+    { path: "m/84'/0'/2147483645'/0/{n}", fmt: 'native', used: 'Samourai / Ashigaru, Whirlpool pre-mix — the account number picks the address' },
+    { path: "m/44'/145'/{n}'/0/0", fmt: 'legacy', used: "Bitcoin Cash's path", odd: true },
+    { path: "m/44'/60'/0'/0/{n}", fmt: 'legacy',  used: "Ethereum's path", odd: true },
+    { path: "m/44'/195'/0'/0/{n}", fmt: 'legacy', used: "TRON's path", odd: true },
+  ],
+  eth: [
+    { path: "m/44'/60'/0'/0/{n}", used: 'MetaMask, Trezor, Trust Wallet, Rabby, Exodus — "Account N" is the N-th address', std: true },
+    { path: "m/44'/60'/{n}'/0/0", used: 'Ledger Live — each account is its own branch' },
+    { path: "m/44'/60'/0'/{n}",   used: 'Ledger legacy path (MyEtherWallet, MyCrypto)' },
+    { path: "m/44'/0'/0'/0/{n}",  used: "Bitcoin's path", odd: true },
+    { path: "m/44'/195'/0'/0/{n}", used: "TRON's path", odd: true },
+  ],
+  trx: [
+    { path: "m/44'/195'/0'/0/{n}", used: 'Trust Wallet and most wallets — "Account N" is the N-th address', std: true },
+    { path: "m/44'/195'/{n}'/0/0", used: 'Ledger Live — each account is its own branch' },
+    { path: "m/44'/60'/0'/0/{n}",  used: "Ethereum's path (same key as the Ethereum address)", odd: true },
+    { path: "m/44'/0'/0'/0/{n}",   used: "Bitcoin's path", odd: true },
+  ],
+  sol: [
+    { path: "m/44'/501'/{n}'/0'", used: 'Phantom, Solflare, Backpack — "Account N"', std: true },
+    { path: "m/44'/501'/{n}'",    used: 'Ledger, Trust Wallet, Solflare with a Ledger path' },
+    { path: "m/44'/501'",         used: "solana-keygen with the path m/44'/501' (a single address)" },
+    { path: null,                 used: 'solana-keygen default: no path, the first 32 bytes of the seed (a single address)' },
+  ],
+};
+
+export const fillPath = (tpl, account) => (tpl === null ? null : tpl.replace(/\{n\}/g, String(account)));
+
+/* Every known path of one network for one account, with its address.
+   For Bitcoin each path is given in all four address formats. */
+export function allPaths(seed, chain, account = 0) {
+  if (!Number.isInteger(account) || account < 0 || account >= 0x80000000) throw new Error('invalid account');
+  const master = chain === 'sol' ? null : HDKey.fromMasterSeed(new Uint8Array(seed));
+  const out = [];
+  for (const s of PATH_SCHEMES[chain] || []) {
+    const path = fillPath(s.path, account);
+    // A path with no account number gives a single address: shown with Account 1 only.
+    if (account > 0 && (s.path === null || !s.path.includes('{n}'))) continue;
+    const row = { path, used: s.used, std: !!s.std, odd: !!s.odd };
+    if (chain === 'btc') {
+      const pk = secpPubkey(master, path);
+      row.fmt = s.fmt;
+      row.addresses = Object.keys(BTC_FORMATS).map(f => ({ format: f, address: btcAddressFromPubkey(pk, f) }));
+    } else if (chain === 'sol') row.address = addressAtPath(seed, 'sol', path);
+    else row.address = secpAddress(secpPubkey(master, path), chain);
+    out.push(row);
+  }
+  return out;
+}
+
+/* ════════════════════════════════════════════════════════════════
+   SEED DIAGNOSIS — which word is wrong, and what it might have been
+   ════════════════════════════════════════════════════════════════ */
+
+/* Edit distance counting an exchange of two neighbouring letters as one
+   mistake (the commonest slip when copying by hand). */
+function editDistance(a, b) {
+  const d = Array.from({ length: a.length + 1 }, (_, i) => [i, ...Array(b.length).fill(0)]);
+  for (let j = 1; j <= b.length; j++) d[0][j] = j;
+  for (let i = 1; i <= a.length; i++) {
+    for (let j = 1; j <= b.length; j++) {
+      const cost = a[i - 1] === b[j - 1] ? 0 : 1;
+      d[i][j] = Math.min(d[i - 1][j] + 1, d[i][j - 1] + 1, d[i - 1][j - 1] + cost);
+      if (i > 1 && j > 1 && a[i - 1] === b[j - 2] && a[i - 2] === b[j - 1]) d[i][j] = Math.min(d[i][j], d[i - 2][j - 2] + 1);
+    }
+  }
+  return d[a.length][b.length];
+}
+
+/* Up to three list words close to a word that is not in the list: first
+   those sharing its first four letters (BIP-39 words are unique by
+   them), then those within two mistakes. */
+export function suggestWords(word, max = 3) {
+  const w = String(word || '').toLowerCase();
+  if (!w) return [];
+  const scored = [];
+  for (const cand of wordlist) {
+    const prefix = w.length >= 4 && cand.slice(0, 4) === w.slice(0, 4);
+    const dist = editDistance(w, cand);
+    if (prefix || dist <= 2) scored.push({ cand, score: prefix ? Math.min(dist, 1) - 1 : dist });
+  }
+  scored.sort((x, y) => x.score - y.score || x.cand.localeCompare(y.cand));
+  return scored.slice(0, max).map(x => x.cand);
+}
+
+/* What is wrong with a typed seed, in terms a person can act on:
+   the number of words, each word not in the list (with its position and
+   suggestions), or — when every word exists — the checksum. */
+export function diagnoseMnemonic(text) {
+  const norm = normalizeWords(text);
+  const words = norm ? norm.split(' ') : [];
+  const unknown = [];
+  words.forEach((w, i) => { if (!wordlist.includes(w)) unknown.push({ position: i + 1, word: w, suggestions: suggestWords(w) }); });
+  const countOk = WORD_OPTIONS.includes(words.length);
+  const checksumOk = countOk && unknown.length === 0 && validateMnemonic(norm, wordlist);
+  return { words, count: words.length, countOk, unknown, checksumOk, valid: checksumOk };
+}
+
+/* ════════════════════════════════════════════════════════════════
+   WATCH-ONLY CHECK — addresses from a public key alone
+   ════════════════════════════════════════════════════════════════ */
+
+/* Reads a single-signature account key as shared by wallets: xpub,
+   ypub (SegWit compatible) or zpub (Native SegWit). The result is the
+   key re-labelled as a plain xpub, with the format its label suggests.
+   An xpub does not say which format it was used with (Legacy and
+   Taproot both use it): the format is then left for the person to pick. */
+export function readPublicKey(input) {
+  const s = String(input || '').replace(/\s+/g, '');
+  let raw;
+  try { raw = base58check.decode(s); } catch (_) { throw new KeyError('INVALID'); }
+  if (raw.length !== 78) throw new KeyError('INVALID');
+  const version = new DataView(raw.buffer, raw.byteOffset).getUint32(0, false);
+  const kind = VERSIONS[version];
+  if (kind === 'private') throw new KeyError('PRIVATE');
+  if (kind === 'testnet') throw new KeyError('TESTNET');
+  if (kind === 'Ypub' || kind === 'Zpub') throw new KeyError('MULTISIG_KEY');
+  if (kind !== 'xpub' && kind !== 'ypub' && kind !== 'zpub') throw new KeyError('INVALID');
+  if (raw[45] !== 0x02 && raw[45] !== 0x03) throw new KeyError('INVALID');
+  const out = raw.slice();
+  new DataView(out.buffer).setUint32(0, XPUB, false);
+  const xpub = base58check.encode(out);
+  let node;
+  try { node = HDKey.fromExtendedKey(xpub); } catch (_) { throw new KeyError('INVALID'); }
+  const format = kind === 'ypub' ? 'p2sh' : kind === 'zpub' ? 'native' : null;
+  return { xpub, kind, format, depth: node.depth };
+}
+
+/* Addresses <key>/change/i. 'as' is a Bitcoin format, 'eth' or 'trx'. */
+export function addressesFromXpub(xpub, as, change = 0, from = 0, count = 10) {
+  const node = HDKey.fromExtendedKey(xpub).deriveChild(change);
+  const out = [];
+  for (let i = from; i < from + count; i++) {
+    const pk = node.deriveChild(i).publicKey;
+    let address;
+    if (as === 'eth') address = toChecksumAddress(toHex(evmAddressBytes(pk)));
+    else if (as === 'trx') address = b58check(0x41, evmAddressBytes(pk));
+    else address = btcAddressFromPubkey(pk, BTC_FORMATS[as] ? as : 'native');
+    out.push({ index: i, path: `…/${change}/${i}`, address });
+  }
+  return out;
+}
+
+/* Watch-only descriptor for a key read above (no key origin: the xpub
+   alone does not say which seed or path it came from). */
+export function xpubDescriptor(xpub, format) {
+  const key = `${xpub}/0/*`;
+  const body = { native: `wpkh(${key})`, taproot: `tr(${key})`, p2sh: `sh(wpkh(${key}))`, legacy: `pkh(${key})` }[format];
+  if (!body) throw new Error('invalid format');
+  return withChecksum(body);
 }
 
 /* ════════════════════════════════════════════════════════════════

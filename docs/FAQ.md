@@ -138,6 +138,10 @@ Here is a derivation path explained:
 
 **Why it concerns you.** If you import the seed elsewhere and the addresses don't match (particularly with Bitcoin, which has several formats), it is almost always the path that differs — not the seed. It's the reason why a Legacy wallet and a Native SegWit one, though born from the same words, show completely different addresses: they simply sit on different branches of the same tree.
 
+**Not every wallet counts accounts the same way.** “Account 2” in MetaMask is the second address of the first branch (`m/44'/60'/0'/0/1`); in Ledger Live it is a branch of its own (`m/44'/60'/1'/0/0`). Same words, different addresses.
+
+**How to find a missing address.** In *Check wallet* you can change the account with the + button, see the change addresses of Bitcoin, and open *All derivation paths*: it lists, for every network, the paths of the best-known wallets and some unusual ones — for example Bitcoin addresses on Ethereum's path — and lets you type any path yourself. If you only have the account's public key (xpub, ypub or zpub), *A public key only* shows its addresses without typing any secret word.
+
 ---
 
 ## 📬 Why does Bitcoin have many addresses and the other networks only one?

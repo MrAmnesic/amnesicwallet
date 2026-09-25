@@ -10,6 +10,9 @@
  *   slip39.json         official SLIP-39 vectors (trezor/python-shamir-mnemonic)
  *   addresses.json      addresses, xpubs and vaults computed with bip_utils and
  *                       embit (Python), independently of this code
+ *   paths.json          addresses at many derivation paths, accounts and change
+ *                       branches, and from account xpubs / ypubs / zpubs,
+ *                       computed with bip_utils and embit (Python)
  *   shamir-compat.json  parts made by version 1.0.1, which must keep working
  *
  * plus the published examples of BIP-84/86/49/44, EIP-55 and BIP-380.
@@ -23,6 +26,8 @@ import {
   toChecksumAddress, deriveAll, slip10Ed25519, deriveMultisigXpub, normalizeXpub,
   multisigAddress, isSlip39Passphrase, slip39Create, slip39Recover, metalRows,
   entropyToMnemonic, mnemonicToEntropy, mnemonicToSeedSync, validateMnemonic, wordlist, HDKey,
+  parsePath, addressAtPath, allPaths, PATH_SCHEMES, fillPath, suggestWords, diagnoseMnemonic,
+  readPublicKey, addressesFromXpub, xpubDescriptor, KeyError,
 } from '../src/core.js';
 import { sha256 } from '@noble/hashes/sha2.js';
 import { base58, createBase58check } from '@scure/base';
@@ -32,6 +37,7 @@ import SLIP10 from './vectors/slip10-ed25519.json';
 import SLIP39 from './vectors/slip39.json';
 import ADDR from './vectors/addresses.json';
 import COMPAT from './vectors/shamir-compat.json';
+import PATHS from './vectors/paths.json';
 
 /* ── tiny harness ─────────────────────────────────────────────── */
 let passed = 0, failed = 0, section = '', failedAtStart = 0;
@@ -449,6 +455,185 @@ group('Encoding helpers');
   check(btcAddressFromPubkey(pub, 'legacy').startsWith('1'), 'legacy starts with 1');
   eq(base58.decode(ADDR.seeds[0].trx)[0], 0x41, 'TRON version byte 0x41');
   done('prefixes');
+}
+
+/* ════════════════════════════════════════════════════════════════ */
+group('Derivation paths — every known path, account and network (bip_utils / embit)');
+{
+  let n = 0;
+  for (const v of PATHS.seeds) {
+    const seed = mnemonicToSeedSync(v.mnemonic, v.passphrase);
+    for (const row of v.paths) {
+      if (row.chain === 'btc') {
+        for (const [fmt, addr] of Object.entries(row.addresses)) { eq(addressAtPath(seed, 'btc', row.path, fmt), addr, `BTC ${fmt} at ${row.path}`); n++; }
+      } else { eq(addressAtPath(seed, row.chain, row.path), row.address, `${row.chain} at ${row.path}`); n++; }
+    }
+    eq(addressAtPath(seed, 'sol', null), v.solSeedBytes, 'Solana with no path (first 32 bytes of the seed)'); n++;
+
+    // allPaths(): every known path of every network, for accounts 1, 2 and 5
+    for (const account of [0, 1, 4]) {
+      for (const chain of ['btc', 'eth', 'trx', 'sol']) {
+        const want = v.paths.filter(r => r.chain === chain && r.account === account);
+        const got = allPaths(seed, chain, account).filter(r => r.path !== null);
+        eq(got.length, want.length, `${chain}, account ${account + 1}: number of paths`);
+        got.forEach((r, i) => {
+          const w = want.find(x => x.path === r.path);
+          check(!!w, `${chain} path ${r.path} has an independent value`);
+          if (!w) return;
+          if (chain === 'btc') r.addresses.forEach(a => { eq(a.address, w.addresses[a.format], `allPaths BTC ${a.format} ${r.path}`); n++; });
+          else { eq(r.address, w.address, `allPaths ${chain} ${r.path}`); n++; }
+        });
+      }
+    }
+    const solNone = allPaths(seed, 'sol', 0).find(r => r.path === null);
+    eq(solNone && solNone.address, v.solSeedBytes, 'allPaths lists the no-path Solana address with Account 1');
+    check(!allPaths(seed, 'sol', 1).some(r => r.path === null || r.path === "m/44'/501'"), 'single-address paths only with Account 1');
+
+    // The account shown by default on each network
+    for (const account of [0, 1, 4]) {
+      const at = (chain, tpl) => v.paths.find(r => r.chain === chain && r.account === account && r.template === tpl);
+      for (const fmt of ['native', 'taproot', 'p2sh', 'legacy']) {
+        const tpl = { native: "m/84'/0'/{n}'/0/0", taproot: "m/86'/0'/{n}'/0/0", p2sh: "m/49'/0'/{n}'/0/0", legacy: "m/44'/0'/{n}'/0/0" }[fmt];
+        const all = deriveAll(seed, ['btc'], fmt, account);
+        eq(all.btc.address, at('btc', tpl).addresses[fmt], `deriveAll BTC ${fmt}, account ${account + 1}`);
+        eq(all.btc.path, at('btc', tpl).path, `deriveAll BTC path ${fmt}, account ${account + 1}`);
+      }
+      const all = deriveAll(seed, ['eth', 'trx', 'sol'], 'native', account);
+      eq(all.eth.address, at('eth', "m/44'/60'/0'/0/{n}").address, `deriveAll ETH, account ${account + 1} (MetaMask)`);
+      eq(all.trx.address, at('trx', "m/44'/195'/0'/0/{n}").address, `deriveAll TRX, account ${account + 1}`);
+      eq(all.sol.address, at('sol', "m/44'/501'/{n}'/0'").address, `deriveAll SOL, account ${account + 1} (Phantom)`);
+      eq(all.sol.path, `m/44'/501'/${account}'/0'`, `deriveAll SOL path, account ${account + 1}`);
+      n += 9;
+    }
+
+    // Receiving and change branches
+    const master = HDKey.fromMasterSeed(seed);
+    for (const [key, addrs] of Object.entries(v.change)) {
+      const [fmt, account, change] = key.split('/');
+      const many = deriveBTCMany(master, fmt, 0, addrs.length, +change, +account);
+      addrs.forEach((a, i) => { eq(many[i].address, a, `BTC ${fmt} account ${+account + 1} ${+change ? 'change' : 'receive'} #${i}`); n++; });
+      eq(many[0].path, `m/${{ native: 84, taproot: 86, p2sh: 49, legacy: 44 }[fmt]}'/0'/${account}'/${change}/0`, `path of ${key}`);
+    }
+    // Account xpubs of the other accounts
+    const acct2 = btcAccountInfo(seed, 'native', 1);
+    eq(acct2.path, "m/84'/0'/1'", 'account 2 xpub path');
+    check(acct2.descriptor.includes("/84h/0h/1h]"), 'account 2 descriptor carries its origin');
+    eq(addressesFromXpub(acct2.xpub, 'native', 0, 0, 1)[0].address, v.change['native/1/0'][0], 'account 2 xpub gives account 2 addresses');
+  }
+  // The default account 1 is exactly what earlier versions showed
+  for (const v of ADDR.seeds) {
+    const seed = mnemonicToSeedSync(v.mnemonic, v.passphrase);
+    const a = deriveAll(seed, ['btc', 'eth', 'trx', 'sol'], 'native');
+    const b = deriveAll(seed, ['btc', 'eth', 'trx', 'sol'], 'native', 0);
+    check(a.btc.address === v.btc.native[0] && a.eth.address === v.eth && a.trx.address === v.trx && a.sol.address === v.sol, 'account 1 unchanged');
+    check(JSON.stringify(a) === JSON.stringify(b), 'account 1 is the default');
+  }
+  done(`${PATHS.seeds.length} seeds, ${n} addresses`);
+}
+
+group('Derivation paths — reading and refusing');
+{
+  eq(pathToStringSafe("m/44'/60'/0'/0/0"), "m/44'/60'/0'/0/0", 'apostrophes');
+  eq(pathToStringSafe('m/44h/60H/0h/0/0'), "m/44'/60'/0'/0/0", 'h and H mean hardened');
+  eq(pathToStringSafe(' m / 84\' / 0\' '), "m/84'/0'", 'spaces ignored');
+  eq(pathToStringSafe('m'), 'm', 'the master key alone');
+  for (const bad of ['', '44/0', "m/44''", 'm/-1', 'm/2147483648', "m/2147483648'", 'm//0', 'm/0/', 'm/a', 'M/0', 'm/99999999999'])
+    check(parsePath(bad) === null, `refused: "${bad}"`);
+  eq(parsePath("m/2147483647'")[0].index, 2147483647, 'largest index');
+  const seed = mnemonicToSeedSync(PATHS.seeds[0].mnemonic, '');
+  throws(() => addressAtPath(seed, 'sol', "m/44'/501'/0'/0"), 'Solana refuses a non-hardened step', e => e.message === 'SOL_HARDENED_ONLY');
+  throws(() => addressAtPath(seed, 'eth', 'm/x'), 'an invalid path is refused', e => e.message === 'INVALID_PATH');
+  throws(() => addressAtPath(seed, 'doge', "m/44'"), 'an unknown network is refused', e => e.message === 'INVALID_CHAIN');
+  throws(() => deriveAll(seed, ['btc'], 'native', -1), 'a negative account is refused');
+  throws(() => deriveAll(seed, ['btc'], 'native', 2 ** 31), 'an account beyond the hardened range is refused');
+  throws(() => deriveAll(seed, ['btc'], 'native', 1.5), 'a fractional account is refused');
+  for (const chain of Object.keys(PATH_SCHEMES)) {
+    check(PATH_SCHEMES[chain].filter(s => s.std).length >= 1, `${chain} has a standard path`);
+    PATH_SCHEMES[chain].forEach(s => check(s.path === null || parsePath(fillPath(s.path, 3)) !== null, `${chain} scheme ${s.path} is a valid path`));
+  }
+  done('paths');
+}
+function pathToStringSafe(t) { const p = parsePath(t); return p && ('m' + p.map(x => `/${x.index}${x.hardened ? "'" : ''}`).join('')); }
+
+group('Seed diagnosis — which word is wrong');
+{
+  const ok = 'abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about';
+  let d = diagnoseMnemonic(ok);
+  check(d.valid && d.countOk && d.checksumOk && d.unknown.length === 0 && d.count === 12, 'a valid seed');
+  d = diagnoseMnemonic('  Abandon ' + ok.split(' ').slice(1).join('\n ').toUpperCase());
+  check(d.valid, 'capitals, spaces and new lines do not matter');
+
+  d = diagnoseMnemonic(ok.replace('about', 'abuot'));
+  eq(d.unknown.length, 1, 'one unknown word');
+  eq(d.unknown[0].position, 12, 'its position');
+  eq(d.unknown[0].word, 'abuot', 'the word as typed');
+  eq(d.unknown[0].suggestions[0], 'about', 'swapped letters: the right word first');
+  check(!d.valid && !d.checksumOk, 'not valid');
+
+  d = diagnoseMnemonic(ok.replace('abandon', 'abandn'));
+  eq(d.unknown[0].position, 1, 'first word');
+  eq(d.unknown[0].suggestions[0], 'abandon', 'a missing letter');
+  eq(diagnoseMnemonic(ok.replace('about', 'abouts')).unknown[0].suggestions[0], 'about', 'an extra letter');
+  eq(suggestWords('envel')[0], 'envelope', 'a truncated word: the four-letter prefix finds it');
+  check(suggestWords('qqqqqqqq').length === 0, 'nothing close: no suggestion');
+  eq(suggestWords('abse')[0], 'absent', 'four letters: the word they begin');
+  check(suggestWords('xylophone').length <= 3, 'at most three suggestions');
+  check(suggestWords('abuot').every(w => wordlist.includes(w)), 'suggestions are list words');
+
+  d = diagnoseMnemonic(ok.split(' ').slice(0, 11).join(' '));
+  check(!d.countOk && d.count === 11 && d.unknown.length === 0 && !d.valid, 'eleven words: the count is wrong');
+  d = diagnoseMnemonic(ok.replace('about', 'abandon'));
+  check(d.countOk && d.unknown.length === 0 && !d.checksumOk, 'every word exists, the checksum fails');
+  d = diagnoseMnemonic('');
+  check(d.count === 0 && !d.valid, 'empty');
+  d = diagnoseMnemonic('abandon abandonn zooo about');
+  eq(d.unknown.map(u => u.position).join(','), '2,3', 'several unknown words, each with its position');
+
+  // Every official vector is diagnosed as valid; one changed word never is
+  for (const v of BIP39) {
+    check(diagnoseMnemonic(v[1]).valid, 'official vector valid');
+    const w = v[1].split(' ');
+    w[3] = w[3] === 'zoo' ? 'zone' : 'zoo';
+    const d2 = diagnoseMnemonic(w.join(' '));
+    check(d2.valid === validateMnemonic(w.join(' '), wordlist), 'diagnosis agrees with the BIP-39 check');
+  }
+  done('diagnosis');
+}
+
+group('Watch-only — addresses from an account xpub, ypub or zpub (embit / bip_utils)');
+{
+  let n = 0;
+  for (const v of PATHS.xpubs) {
+    const k = readPublicKey(v.key);
+    eq(k.xpub, v.xpub, `${v.path}: read as a plain xpub`);
+    eq(k.depth, v.depth, `${v.path}: depth`);
+    const label = v.key.slice(0, 4);
+    eq(k.kind, label, `${v.path}: kind`);
+    eq(k.format, { xpub: null, ypub: 'p2sh', zpub: 'native' }[label], `${v.path}: suggested format`);
+    for (const fmt of ['native', 'taproot', 'p2sh', 'legacy']) {
+      addressesFromXpub(k.xpub, fmt, 0, 0, 3).forEach((a, i) => { eq(a.address, v.receive[fmt][i], `${v.path} ${fmt} receive #${i}`); n++; });
+      addressesFromXpub(k.xpub, fmt, 1, 0, 2).forEach((a, i) => { eq(a.address, v.change[fmt][i], `${v.path} ${fmt} change #${i}`); n++; });
+      eq(xpubDescriptor(k.xpub, fmt), v.descriptor[fmt], `${v.path} ${fmt} descriptor`); n++;
+    }
+    eq(addressesFromXpub(k.xpub, 'native', 0, 2, 1)[0].address, v.receive.native[2], 'starting from an index');
+    addressesFromXpub(k.xpub, 'eth', 0, 0, 3).forEach((a, i) => { eq(a.address, v.eth[i], `${v.path} Ethereum #${i}`); n++; });
+    addressesFromXpub(k.xpub, 'trx', 0, 0, 3).forEach((a, i) => { eq(a.address, v.trx[i], `${v.path} TRON #${i}`); n++; });
+  }
+  // What must be refused, with the reason
+  const acct = HDKey.fromMasterSeed(mnemonicToSeedSync(PATHS.seeds[0].mnemonic, '')).derive("m/84'/0'/0'");
+  const relabel = (b58, version) => { const r = b58c.decode(b58).slice(); new DataView(r.buffer).setUint32(0, version, false); return b58c.encode(r); };
+  const code = (c) => (e) => e instanceof KeyError && e.code === c;
+  throws(() => readPublicKey(acct.privateExtendedKey), 'xprv refused as private', code('PRIVATE'));
+  throws(() => readPublicKey(relabel(acct.privateExtendedKey, 0x04b2430c)), 'zprv refused as private', code('PRIVATE'));
+  throws(() => readPublicKey(relabel(acct.publicExtendedKey, 0x043587cf)), 'tpub refused as testnet', code('TESTNET'));
+  throws(() => readPublicKey(relabel(acct.publicExtendedKey, 0x04b24746).slice(0, -1)), 'truncated key refused', code('INVALID'));
+  throws(() => readPublicKey(relabel(acct.publicExtendedKey, 0x02aa7ed3)), 'Zpub (multisig) sent to the multisig check', code('MULTISIG_KEY'));
+  throws(() => readPublicKey(relabel(acct.publicExtendedKey, 0x0295b43f)), 'Ypub (multisig) sent to the multisig check', code('MULTISIG_KEY'));
+  throws(() => readPublicKey('hello'), 'text refused', code('INVALID'));
+  throws(() => readPublicKey(''), 'empty refused', code('INVALID'));
+  eq(readPublicKey('  ' + PATHS.xpubs[0].key.slice(0, 50) + '\n' + PATHS.xpubs[0].key.slice(50) + ' ').xpub, PATHS.xpubs[0].xpub, 'spaces and line breaks ignored');
+  throws(() => xpubDescriptor(PATHS.xpubs[0].xpub, 'nope'), 'unknown format refused');
+  done(`${PATHS.xpubs.length} keys, ${n} addresses and descriptors`);
 }
 
 /* ════════════════════════════════════════════════════════════════ */

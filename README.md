@@ -32,7 +32,8 @@ It generates a **BIP-39** phrase (12–24 words) or a set of **SLIP-39** sheets,
 - **Bitcoin multisig** — P2WSH `sortedmulti` vaults, with a checksummed descriptor carrying key origins, ready for Sparrow.
 - **Watch-only** — account xpub and descriptor (with BIP-380 checksum) to follow a wallet without exposing it.
 - **Powers-of-2 backup** — a grid of dots that records the seed with no readable word.
-- **Checks** — verify a seed, reassemble Shamir parts, recover SLIP-39 sheets, recalculate a multisig vault.
+- **Checks** — verify a seed, reassemble Shamir parts, recover SLIP-39 sheets, recalculate a multisig vault, or see an account's addresses from its public key alone (xpub, ypub, zpub).
+- **Finding a wallet** — a mistyped word is named with its position and the list words close to it; any account (Account 1, 2, 3…), Bitcoin change addresses, and every known derivation path of every network — those of the best-known wallets and unusual ones — plus any path typed by hand. Paths are always shown.
 - **Printing** — Seed Card, sheets, parts, address lists and grids, with neutral titles.
 
 ## Supported chains
@@ -78,11 +79,11 @@ What the program protects against, and what it cannot, is described in [docs/TEC
 `npm test` runs the real application core (`src/core.js`, bundled with the same options as the published file) against:
 
 - the official **BIP-39**, **SLIP-10** and **SLIP-39** test vectors, and the published examples of BIP-44/49/84/86, EIP-55 and BIP-380;
-- addresses, xpubs, descriptors and multisig vaults computed independently with the Python libraries **bip_utils** and **embit**, for several seeds and passphrases;
+- addresses, xpubs, descriptors and multisig vaults computed independently with the Python libraries **bip_utils** and **embit**, for several seeds and passphrases — including every derivation path the check lists, other accounts, change addresses, and addresses and descriptors from account xpubs, ypubs and zpubs;
 - Shamir parts produced by the previous release, which must always reassemble;
 - entropy mixing, dice, collectors, and every refusal (private keys, testnet keys, duplicates, wrong thresholds, non-ASCII SLIP-39 passphrases…).
 
-`npm run test:ui` opens the built file in the three browser engines, on a computer screen and on two phone sizes: Chromium (Chrome, Edge, Brave), Firefox (also the engine of Tor Browser, which Tails uses) and WebKit (Safari and the browsers on an iPhone). In each, it uses the page as a person would: it creates a wallet from start to finish — typing, drawing with a finger or the mouse, the words, the backup check, the addresses on all four networks — and checks that the words are a valid seed and the addresses are the ones that seed gives; it checks known seeds in **Check wallet** against the independent values above; and it fails on any page error, any network request, or any screen wider than the display.
+`npm run test:ui` opens the built file in the three browser engines, on a computer screen and on two phone sizes: Chromium (Chrome, Edge, Brave), Firefox (also the engine of Tor Browser, which Tails uses) and WebKit (Safari and the browsers on an iPhone). In each, it uses the page as a person would: it creates a wallet from start to finish — typing, drawing with a finger or the mouse, the words, the backup check, the addresses on all four networks — and checks that the words are a valid seed and the addresses are the ones that seed gives; it checks known seeds in **Check wallet** against the independent values above, together with a mistyped word, account 2, change addresses, all derivation paths, a path typed by hand and the check with a public key only; and it fails on any page error, any network request, or any screen wider than the display.
 
 CI also rebuilds the file from source on every change and compares it, byte for byte, with the committed one: a pull request that does not match fails, and a change made directly on `main` gets the rebuilt file committed by CI.
 
