@@ -44,13 +44,14 @@ jobs:
       - name: Build the single-file artifact
         run: npm run build
 
-      # The page itself, in a real browser, on a computer and on two phone
-      # sizes: create a wallet from start to finish, check known seeds, no
-      # error, no network request, nothing wider than the screen.
-      - name: Install the test browser
-        run: npx playwright install --with-deps chromium
+      # The page itself, in the three browser engines (Chromium, Firefox,
+      # WebKit), on a computer and on two phone sizes: create a wallet from
+      # start to finish, check known seeds, no error, no network request,
+      # nothing wider than the screen.
+      - name: Install the test browsers
+        run: npx playwright install --with-deps chromium firefox webkit
 
-      - name: Use the built page on a computer and on phones
+      - name: Use the built page in Chromium, Firefox and WebKit, on a computer and on phones
         run: npm run test:ui
 
       - name: Write the hash to SHA256SUMS and the presentation page
