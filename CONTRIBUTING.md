@@ -18,7 +18,9 @@ transparency, and security** above all.
 npm ci                # install exact, locked versions
 npm test              # run the test suite against src/core.js
 npm run build         # produce dist/amnesicwallet.html
-npm run test:ui       # use the built page in a browser, computer and phone sizes
+npm run test:ui       # use the built page in Chromium, Firefox and WebKit,
+                      # computer and phone sizes (browsers, once:
+                      # npx playwright install chromium firefox webkit)
 npm run hash          # write its SHA-256 to SHA256SUMS and site/index.html
 npm run docs          # regenerate docs/STEP-BY-STEP.md and docs/FAQ.md from the app
 ```

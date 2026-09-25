@@ -1,10 +1,15 @@
 #!/usr/bin/env node
 /**
- * Interface test: opens the published file, dist/amnesicwallet.html, in a
- * real browser and uses it the way a person would, on a computer and on
+ * Interface test: opens the published file, dist/amnesicwallet.html, in
+ * real browsers and uses it the way a person would, on a computer and on
  * phones.
  *
- * For each screen size it checks that:
+ * It runs in the three browser engines:
+ *   - Chromium: Chrome, Edge, Brave, most Android browsers;
+ *   - Firefox:  Firefox, and Tor Browser (the browser of Tails);
+ *   - WebKit:   Safari, and the browsers on an iPhone.
+ *
+ * For each browser and screen size it checks that:
  *   - the page loads with no error and asks the network for nothing;
  *   - a wallet can be created from start to finish: passphrase choice,
  *     random typing, drawing, backup choice, the words, the backup check,
@@ -16,16 +21,20 @@
  *     independently with bip_utils / embit (tests/vectors/addresses.json);
  *   - no screen is wider than the display (nothing to scroll sideways).
  *
- * On a phone the test types as an on-screen keyboard does (text arrives
- * without key codes) and draws with a finger (touch events).
+ * On a phone the test taps, and types as an on-screen keyboard does (text
+ * arrives without key codes). Chromium also draws with a finger (touch
+ * events); Playwright cannot move a finger in WebKit, so there the drawing
+ * is done with the pointer. Playwright cannot emulate a phone in Firefox:
+ * there the phone sizes are narrow windows, used with mouse and keyboard.
  *
- * Browser: Chromium from Playwright (`npx playwright install chromium`).
- * Another Chromium can be named with CHROMIUM_PATH.
+ * Browsers: Playwright's (`npx playwright install chromium firefox webkit`).
+ * BROWSERS=chromium,firefox limits the run to some of them; another
+ * Chromium can be named with CHROMIUM_PATH.
  */
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
-import { chromium } from 'playwright';
+import { chromium, firefox, webkit } from 'playwright';
 import { validateMnemonic, mnemonicToSeedSync } from '@scure/bip39';
 import { wordlist } from '@scure/bip39/wordlists/english.js';
 import { HDKey } from '@scure/bip32';
@@ -39,6 +48,12 @@ const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const FILE = path.join(ROOT, 'dist', 'amnesicwallet.html');
 const URL = pathToFileURL(FILE).href;
 const VECTORS = JSON.parse(fs.readFileSync(path.join(ROOT, 'tests', 'vectors', 'addresses.json'), 'utf8'));
+
+const BROWSERS = {
+  chromium: { name: 'Chromium', type: chromium, phone: 'finger' },
+  firefox: { name: 'Firefox', type: firefox, phone: 'window' },
+  webkit: { name: 'WebKit', type: webkit, phone: 'tap' },
+};
 
 const DEVICES = [
   { name: 'Computer (1366 × 768)', viewport: { width: 1366, height: 768 }, touch: false },
@@ -69,8 +84,8 @@ function check(cond, label) {
 }
 
 /* ── Actions that behave like the device ── */
-function actions(page, device) {
-  const press = (locator) => (device.touch ? locator.tap() : locator.click());
+function actions(page, input) {
+  const press = (locator) => (input.touch ? locator.tap() : locator.click());
   return {
     press,
     async pressText(text) { await press(page.getByText(text, { exact: false }).first()); },
@@ -84,7 +99,7 @@ function actions(page, device) {
       for (let i = 0; i < 200 && (await field.count()); i++) {
         const k = keys[(i * 7) % keys.length];
         // A phone's on-screen keyboard delivers text without key codes.
-        if (device.touch) await page.keyboard.insertText(k);
+        if (input.touch) await page.keyboard.insertText(k);
         else await page.keyboard.press(k);
         await page.waitForTimeout(300);
       }
@@ -96,7 +111,7 @@ function actions(page, device) {
       const area = page.locator('#mouse-area');
       await area.waitFor();
       const box = await area.boundingBox();
-      const cdp = device.touch ? await page.context().newCDPSession(page) : null;
+      const cdp = input.finger ? await page.context().newCDPSession(page) : null;
       const point = (i) => ({
         x: Math.round(box.x + box.width * (0.5 + 0.4 * Math.sin(i / 3))),
         y: Math.round(box.y + box.height * (0.5 + 0.4 * Math.sin(i / 5))),
@@ -119,13 +134,16 @@ async function noSidewaysScroll(page) {
 }
 
 /* ── One full run on one device ── */
-async function run(browser, device) {
-  console.log(`\n${device.name}`);
+async function run(browser, engine, device) {
+  const input = {
+    touch: device.touch && engine.phone !== 'window',
+    finger: device.touch && engine.phone === 'finger',
+  };
+  console.log(`\n${engine.name} — ${device.name}` + (device.touch && !input.touch ? ', window only' : ''));
   const context = await browser.newContext({
     viewport: device.viewport,
     deviceScaleFactor: device.scale || 1,
-    isMobile: device.touch,
-    hasTouch: device.touch,
+    ...(input.touch ? { isMobile: true, hasTouch: true } : {}),
   });
   const page = await context.newPage();
   const errors = [];
@@ -133,7 +151,7 @@ async function run(browser, device) {
   page.on('pageerror', (e) => errors.push(e.message));
   page.on('console', (m) => { if (m.type() === 'error') errors.push(m.text()); });
   page.on('request', (r) => { if (!/^(file|data|blob):/.test(r.url())) requests.push(r.url()); });
-  const { press, pressText, typeRandomly, draw } = actions(page, device);
+  const { press, pressText, typeRandomly, draw } = actions(page, input);
   const layout = [];
   const noteLayout = async (screen) => { if (!(await noSidewaysScroll(page))) layout.push(screen); };
 
@@ -226,14 +244,32 @@ async function run(browser, device) {
   await context.close();
 }
 
-const browser = await chromium.launch(process.env.CHROMIUM_PATH ? { executablePath: process.env.CHROMIUM_PATH } : {});
-try {
-  for (const device of DEVICES) {
-    try { await run(browser, device); }
-    catch (e) { failed++; console.log(`  ✗ stopped while ${step}: ` + e.message.split('\n')[0]); }
+const wanted = (process.env.BROWSERS || Object.keys(BROWSERS).join(',')).split(',').map((b) => b.trim()).filter(Boolean);
+const unknown = wanted.filter((b) => !BROWSERS[b]);
+if (!wanted.length || unknown.length) {
+  console.error(`BROWSERS: unknown ${unknown.join(', ') || '(empty)'}; use chromium, firefox, webkit.`);
+  process.exit(1);
+}
+
+for (const id of wanted) {
+  const engine = BROWSERS[id];
+  let browser;
+  try {
+    browser = await engine.type.launch(id === 'chromium' && process.env.CHROMIUM_PATH ? { executablePath: process.env.CHROMIUM_PATH } : {});
+  } catch (e) {
+    failed++;
+    console.log(`\n${engine.name}\n  ✗ cannot start: ${e.message.split('\n')[0]}`);
+    console.log(`    Install it with \`npx playwright install ${id}\`, or leave it out with BROWSERS=…`);
+    continue;
   }
-} finally {
-  await browser.close();
+  try {
+    for (const device of DEVICES) {
+      try { await run(browser, engine, device); }
+      catch (e) { failed++; console.log(`  ✗ stopped while ${step}: ` + e.message.split('\n')[0]); }
+    }
+  } finally {
+    await browser.close();
+  }
 }
 console.log(`\n${passed} checks passed, ${failed} failed.`);
 process.exit(failed ? 1 : 0);
