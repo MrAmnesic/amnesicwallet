@@ -132,7 +132,7 @@ purpose including commercial ones. What you may **not** do is take it closed —
 if you distribute a modified version, you must release its source code under the
 same licence, keep the copyright notices, and state what you changed.
 
-Packaging it for a distribution (Debian, Tails, AnubitUX or any other) is
+Packaging it for a distribution (Debian, Tails, AnuBitux or any other) is
 explicitly welcome and needs no permission.
 
 If the GPL does not fit your use case, get in touch: alternative terms can be
