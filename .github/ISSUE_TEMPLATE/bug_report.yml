@@ -6,7 +6,7 @@ body:
     attributes:
       value: |
         ⚠️ **Do not report security vulnerabilities here.**
-        Use private reporting instead — see [SECURITY.md](../../security/policy).
+        Use private reporting instead — see [SECURITY.md](https://github.com/MrAmnesic/amnesicwallet/security/policy).
 
         ⚠️ **Never paste a real seed, mnemonic, or private key.** Use only test data.
   - type: textarea

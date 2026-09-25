@@ -25,8 +25,9 @@ npm run docs          # regenerate docs/STEP-BY-STEP.md and docs/FAQ.md from the
 
 All cryptography lives in `src/core.js`, which has no interface code; the
 interface is in `src/app.js`. A pull request that changes `src/` must also
-commit the rebuilt `dist/amnesicwallet.html`, `SHA256SUMS` and
-`site/index.html`: CI rebuilds them and fails if they differ.
+commit the rebuilt `dist/amnesicwallet.html`, `SHA256SUMS`,
+`site/index.html`, `docs/STEP-BY-STEP.md` and `docs/FAQ.md`: CI rebuilds
+them and fails if they differ.
 
 ## Pull requests
 

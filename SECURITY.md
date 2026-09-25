@@ -5,8 +5,8 @@
 Security is the core promise of this project. If you discover a vulnerability,
 **please report it responsibly and privately** before any public disclosure.
 
-- Use GitHub's **[private vulnerability reporting](../../security/advisories/new)** feature, or
-- Open a **draft security advisory**.
+- Use GitHub's **[private vulnerability reporting](https://github.com/MrAmnesic/amnesicwallet/security/advisories/new)**
+  (Security tab → "Report a vulnerability").
 
 Please do **not** open a public issue for security-sensitive reports.
 
