@@ -41,11 +41,13 @@ https://amnesicwallet.com (Netlify, deployed automatically from `main`). Formerl
 npm ci            # exact dependencies
 npm test          # ~1,400 checks on src/core.js; must pass
 npm run build     # dist/amnesicwallet.html (fails on forbidden APIs)
+npm run test:ui   # the built page in Chromium: computer + two phone sizes (~1 min)
+                  # in a cloud session: CHROMIUM_PATH=/opt/pw-browsers/chromium npm run test:ui
 npm run hash      # SHA256SUMS + hash on site/index.html
 npm run docs      # regenerate STEP-BY-STEP.md and FAQ.md
 ```
 
-Before committing a change to `src/`: `npm test && npm run build && npm run hash && npm run docs`,
+Before committing a change to `src/`: `npm test && npm run build && npm run test:ui && npm run hash && npm run docs`,
 then commit `dist/`, `SHA256SUMS`, `site/index.html` and `docs/` together. (If they are missing, CI
 commits them on `main`, but a pull request fails.)
 
