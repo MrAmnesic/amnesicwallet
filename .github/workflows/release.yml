@@ -1,12 +1,24 @@
 name: Release
 
+# Two ways to publish the version written in package.json:
+#   - push a tag vX.Y.Z (same number);
+#   - or, with the version already on main, run this workflow on main
+#     ("Run workflow" in the Actions tab): it creates the tag vX.Y.Z on the
+#     current commit together with the release. It refuses a version that
+#     is already published.
 on:
   push:
     tags:
       - 'v*'
+  workflow_dispatch:
 
 permissions:
   contents: write
+
+# One release at a time.
+concurrency:
+  group: release
+  cancel-in-progress: false
 
 jobs:
   release:
@@ -23,10 +35,19 @@ jobs:
           node-version: 24
           cache: npm
 
-      - name: The tag must match the version in package.json
+      - name: The version to publish is the one in package.json
+        id: version
         run: |
           v="v$(node -p "require('./package.json').version")"
-          [ "$v" = "$GITHUB_REF_NAME" ] || { echo "::error::tag $GITHUB_REF_NAME but package.json says $v"; exit 1; }
+          if [ "$GITHUB_EVENT_NAME" = "push" ]; then
+            [ "$v" = "$GITHUB_REF_NAME" ] || { echo "::error::tag $GITHUB_REF_NAME but package.json says $v"; exit 1; }
+          else
+            [ "$GITHUB_REF" = "refs/heads/main" ] || { echo "::error::Run this workflow on main, not $GITHUB_REF_NAME."; exit 1; }
+            if git ls-remote --exit-code --tags origin "refs/tags/$v" > /dev/null; then
+              echo "::error::$v is already published. Raise the version in package.json (and add its CHANGELOG entry) first."; exit 1
+            fi
+          fi
+          echo "tag=$v" >> "$GITHUB_OUTPUT"
 
       - name: Install exact dependencies (no install scripts)
         run: npm ci --ignore-scripts
@@ -37,7 +58,7 @@ jobs:
       - name: The released file must be exactly the committed one
         run: |
           git diff --exit-code -- dist/amnesicwallet.html SHA256SUMS site/index.html \
-            || { echo "::error::The tagged commit does not contain the rebuilt file. If you edited on github.com, wait for the automatic 'Rebuild' commit and tag that one."; exit 1; }
+            || { echo "::error::This commit does not contain the rebuilt file. If you edited on github.com, wait for the automatic 'Rebuild' commit and publish that one."; exit 1; }
 
       - name: Checksum file
         run: |
@@ -48,16 +69,18 @@ jobs:
       - name: Create GitHub Release
         uses: softprops/action-gh-release@efb35369e0ad2afab669f228072c1b0d510eae64 # v3.0.3
         with:
+          tag_name: ${{ steps.version.outputs.tag }}
+          target_commitish: ${{ github.sha }}
           files: |
             dist/amnesicwallet.html
             dist/amnesicwallet.html.sha256
           generate_release_notes: true
           body: |
-            ## AmnesicWallet ${{ github.ref_name }}
+            ## AmnesicWallet ${{ steps.version.outputs.tag }}
 
             Offline, single-file wallet generator: BIP-39 and SLIP-39 seeds, Shamir backups, multisig vaults — Bitcoin, Ethereum/EVM, TRON, Solana.
 
-            What changed: see [CHANGELOG.md](https://github.com/${{ github.repository }}/blob/${{ github.ref_name }}/CHANGELOG.md).
+            What changed: see [CHANGELOG.md](https://github.com/${{ github.repository }}/blob/${{ steps.version.outputs.tag }}/CHANGELOG.md).
 
             ### Verify the file before opening it
             ```bash
