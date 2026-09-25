@@ -2554,7 +2554,6 @@ function renderRecoverTab() {
       <div class="card">
         <div class="card-header"><span class="step-badge">🔐</span><h2>Reassemble a threshold backup</h2></div>
         <p style="margin-bottom:12px">This section reassembles backups created with <strong>threshold splitting (Shamir)</strong>. You don't need all the parts: just reach the threshold shown on the sheets, for example 3 of 5.</p>
-        <p class="hint" style="margin-bottom:12px">It also reassembles parts made by earlier versions of this program, published under the name SeedForge.</p>
 
         <div class="ok-box" style="margin-bottom:14px">
           <strong>How to recognise the right parts.</strong> Shamir parts have these three characteristics:<br><br>

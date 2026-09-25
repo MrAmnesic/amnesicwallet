@@ -2,7 +2,7 @@
 
 **Implementation specification, security model and declared limits**
 
-Document version: 1.3 — describes AmnesicWallet 1.1.1
+Document version: 1.4 — describes AmnesicWallet 1.1.2
 
 Reference: `amnesicwallet.html` — SHA-256 hash published with every release, in `SHA256SUMS` and on the official website, [amnesicwallet.com](https://amnesicwallet.com)
 
@@ -15,8 +15,6 @@ This document describes how AmnesicWallet works technically. It is not a promoti
 AmnesicWallet is free software distributed under the GNU General Public License v3 or later, **without any warranty**, express or implied. Custody of keys and backups is the sole responsibility of the user. The authors have no access to the wallets generated, keep no data and can under no circumstances recover seeds, passphrases or funds.
 
 The software does not constitute financial, legal or tax advice. Users are responsible for verifying that their use complies with the regulations applicable in their jurisdiction.
-
-AmnesicWallet was previously published as SeedForge (versions 1.0.x) and, before that, as Crypto Vault. The formats of every backup it produces are unchanged across those names (section 5).
 
 ---
 
@@ -271,7 +269,7 @@ Shamir Secret Sharing applied byte by byte to the BIP-39 entropy. It works on an
 
 **What is printed.** Each sheet carries the part number and total ("Part 2 of 5"), the threshold, the verification code and one line saying it is reassembled with AmnesicWallet. Sheets printed by 1.0.x showed only "Part 2", and the code had to be copied by hand.
 
-**Compatibility.** The format is frozen. `tests/vectors/shamir-compat.json` contains parts produced by SeedForge 1.0.1; every combination of three of them must reassemble, and the test suite fails otherwise.
+**Compatibility.** The format is frozen. `tests/vectors/shamir-compat.json` contains parts produced by version 1.0.1; every combination of three of them must reassemble, and the test suite fails otherwise.
 
 **Declared limit.** This scheme is not a public standard; reassembly needs this program or a reimplementation of this section. The file should be kept together with the parts.
 
@@ -394,7 +392,7 @@ npm test
 | SLIP-39 creation | Round trips for several thresholds, with and without passphrase; fewer sheets than the threshold must fail |
 | GF(2⁸) | FIPS-197 examples; inverse and commutativity over the whole field |
 | Shamir split and reassembly | All subsets of every size, 5 lengths × 5 configurations; below-threshold subsets must not give the secret |
-| Shamir compatibility | Parts produced by SeedForge 1.0.1 |
+| Shamir compatibility | Parts produced by version 1.0.1 |
 | Entropy | The formula of 3.3 recomputed; every source changes the result; invalid lengths and sources refused; broken CSPRNG output stops generation |
 | Collectors, dice, grid, sequential split | Simulated clock; exact counts |
 
@@ -410,6 +408,8 @@ Canonical mnemonic `abandon × 11 + about`, no passphrase:
 | TRON | `TUEZSdKsoDHQMeZwihtdoBiN46zxhGWYdH` |
 | Solana | `HAgk14JpMQLgt6rVgv7cBQFJWFto5Dqxi472uT3DKpqk` |
 
+`npm run test:ui` then uses the built file itself, in the three browser engines (Chromium, Firefox, WebKit), on a computer screen and on two phone sizes. It creates a wallet from start to finish and checks that the words form a valid seed and that the addresses shown are the ones that seed gives; it checks known seeds in Check wallet against the independent values above; and it fails on any page error, any network request, or any screen wider than the display. Continuous integration runs it on every change.
+
 ### 8.4 Verifying the absence of network traffic
 
 Run the file with a traffic analyser active, or on a physically disconnected device: no outbound packet should be observed. In the browser's developer tools, any attempted connection would appear as a Content-Security-Policy violation.
@@ -418,7 +418,7 @@ Run the file with a traffic analyser active, or on a physically disconnected dev
 
 Import the same words into an independent implementation — Sparrow or Electrum, still offline — and compare the derived addresses. Agreement between independent implementations is the most significant verification available to an end user.
 
-For release 1.1.0, beyond the test suite, the maintainers drove the built page in a browser through every function (generation with each source, 24 words with a Unicode passphrase, dice, Shamir split and recovery, SLIP-39 creation and recovery, multisig in both modes, every check path, printing), and compared what the page displayed with bip_utils, embit and python-shamir-mnemonic. They also checked 300 further seeds (5 lengths, 3 passphrases including Unicode) — 12,481 values — and found them identical to those of SeedForge 1.0.1.
+For release 1.1.0, beyond the test suite, the maintainers drove the built page in a browser through every function (generation with each source, 24 words with a Unicode passphrase, dice, Shamir split and recovery, SLIP-39 creation and recovery, multisig in both modes, every check path, printing), and compared what the page displayed with bip_utils, embit and python-shamir-mnemonic. They also checked 300 further seeds (5 lengths, 3 passphrases including Unicode) — 12,481 values — and found them identical to those of version 1.0.1.
 
 ### 8.6 Code inspection
 

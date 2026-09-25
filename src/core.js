@@ -222,9 +222,8 @@ export function diceBytesFrom(rolls) {
    Not SLIP-39 (which cannot represent an existing BIP-39 seed). Each
    part is itself encoded as a BIP-39 mnemonic of the same length, plus
    its part number (the x coordinate) and a 4-character verification
-   code. The format is frozen: parts made by any earlier version —
-   including those published as SeedForge and, before that, Crypto
-   Vault — must always reassemble (see tests/vectors/shamir-compat.json).
+   code. The format is frozen: parts made by any earlier version must
+   always reassemble (see tests/vectors/shamir-compat.json).
    ════════════════════════════════════════════════════════════════ */
 export const GF = (() => {
   const exp = new Uint8Array(512), log = new Uint8Array(256);
