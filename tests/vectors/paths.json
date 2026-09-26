@@ -795,6 +795,11 @@
     "0": "FTt72dUEL1X9pPs9V9q4Eh5ejKXEbPD6snaHSQAmnJGU",
     "1": "F1QLGD7iJPG7Lb9kzxd9JZ9QT3wtqkS6b7b5oXxpue99",
     "4": "7Jrk34tBFJGorR9syCxEWq5Q3zwpmozSEo8Um2bGuvtJ"
+   },
+   "solSecp44": {
+    "0": "4EngF3p73rFnEgjcAG5DVQ91QGFze4vsvjVUkAwLjv14",
+    "1": "6NxTyjBPrTFvMEYQ3PH4sxVCoDbu7GcoxrrFtnvYYceK",
+    "4": "5wmd4AConkeUBNPwJMtEtpSTwLrnrnzeqJGL6EKvfuCA"
    }
   },
   {
@@ -1591,6 +1596,11 @@
     "0": "HZG4cGhEkRydtpZrZwgbGo48SFBxVHjxZ7GsJoVf1JxB",
     "1": "AacWCGWtxMe2HNBP1FMGQ7FG6ZGq1Yomi6dAjzjGDPXC",
     "4": "8mcsCqa4otoLik1qZEipRQnzFo7ssME1ssNzco9WtBZB"
+   },
+   "solSecp44": {
+    "0": "4Lb99k2zyrPeA4xZN6mCqFz7eTA9sbSQ48rWNkcVk7XX",
+    "1": "9wBQrHemPTPLXHrBePkTDYWF5MZuQeYHWAbUkViQQvTP",
+    "4": "99aYMF55TXZZdAJg6bpXTumaf8yMXcPhW6oDcNmW26jG"
    }
   },
   {
@@ -2387,6 +2397,11 @@
     "0": "6cpGoCciN7pkejp2G2eWsnbBHVRSmHvo3zR4UmHZ64aS",
     "1": "AGCRVMDGnVr7UZjHuH4fZ8SifT8QBuTREFTKojuF2jJm",
     "4": "D5KfuFJs75zujorx9CPFnctQHzcRjvge7Kmk5N6gM6bk"
+   },
+   "solSecp44": {
+    "0": "Ay1Xn6LyXsR8UyDuoeghemUPR5mVekPEhqLdFro4gEME",
+    "1": "HdZmdHq27RSNuzmwtBUVNzVHyQha2Vb6kLZeYVgxrNuT",
+    "4": "6rK6CGgN7BQPLq5QHS72DAg9gU41MD6oXhQhHcUVX9a5"
    }
   }
  ],

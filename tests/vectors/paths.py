@@ -96,6 +96,12 @@ for mnemonic, passphrase in SEEDS:
     for n in ACCOUNTS:
         priv = secp.DerivePath(f"m/501'/{n}'/0/0").PrivateKey().Raw().ToBytes()
         entry['solSollet'][str(n)] = Base58Encoder.Encode(bytes(SigningKey(priv).verify_key))
+    # m/44'/501'/n'/0/0 (the path Exodus documents for Solana): the same
+    # secp256k1 derivation, private key as the ed25519 secret
+    entry['solSecp44'] = {}
+    for n in ACCOUNTS:
+        priv = secp.DerivePath(f"m/44'/501'/{n}'/0/0").PrivateKey().Raw().ToBytes()
+        entry['solSecp44'][str(n)] = Base58Encoder.Encode(bytes(SigningKey(priv).verify_key))
     # receive and change branches, first five addresses, accounts 0 and 1
     for fmt, purpose in [('native', 84), ('taproot', 86), ('p2sh', 49), ('legacy', 44)]:
         for n in (0, 1):
