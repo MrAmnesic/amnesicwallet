@@ -20,9 +20,10 @@
  *   - "Check wallet" shows, for known seeds, the addresses computed
  *     independently with bip_utils / embit (tests/vectors/addresses.json);
  *   - a mistyped word is named with its position and the right word is
- *     offered; account 2, change addresses, all derivation paths, a path
- *     typed by hand and the check with a public key (zpub, and an Ethereum
- *     account key) give the values in tests/vectors/paths.json;
+ *     offered; each network's own account and derivation buttons, Bitcoin
+ *     change addresses, the search for an address and the check with a
+ *     public key (zpub, and an Ethereum account key) give the values in
+ *     tests/vectors/paths.json;
  *   - no screen is wider than the display (nothing to scroll sideways).
  *
  * On a phone the test taps, and types as an on-screen keyboard does (text
@@ -262,34 +263,42 @@ async function run(browser, engine, device) {
     await press(page.locator('#vf-go'));
     await page.locator('#vf-results .addr-value').nth(3).waitFor();
 
-    step = 'Check wallet: account 2';
-    await press(page.locator('#vf-acct-next'));
-    check((await page.locator('#vf-acct-num').innerText()) === '2', 'account 2 selected');
-    const acct2 = await page.locator('#vf-results .addr-value').allInnerTexts();
-    const want2 = [at('btc', "m/84'/0'/{n}'/0/0", 1).addresses.native, at('eth', "m/44'/60'/0'/0/{n}", 1).address,
-      at('trx', "m/44'/195'/0'/0/{n}", 1).address, at('sol', "m/44'/501'/{n}'/0'", 1).address];
-    check(JSON.stringify(acct2) === JSON.stringify(want2), 'account 2: the four addresses match the independent values');
-    const paths = await page.locator('#vf-results .address-item .path-value').allInnerTexts();
-    check(paths.includes("m/84'/0'/1'/0/0") && paths.includes("m/44'/501'/1'/0'"), 'the derivation paths are shown');
+    step = 'Check wallet: accounts, one network at a time';
+    const card = (id) => page.locator('#vfc-' + id);
+    await press(card('eth').locator('.acct-btn[data-acct="1"]'));
+    check((await card('eth').locator('.acct-num').innerText()) === '2', 'Ethereum on account 2');
+    check((await card('btc').locator('.acct-num').innerText()) === '1', 'Bitcoin stays on account 1');
+    check((await card('eth').locator('.addr-value').innerText()) === at('eth', "m/44'/60'/0'/0/{n}", 1).address, 'Ethereum account 2 (MetaMask) matches');
+    await press(card('eth').locator('.der-seg .seg-btn[data-der="live"]'));
+    check((await card('eth').locator('.addr-value').innerText()) === at('eth', "m/44'/60'/{n}'/0/0", 1).address, 'Ethereum account 2 (Ledger Live) matches');
+    check((await card('eth').locator('.path-value').innerText()) === "m/44'/60'/1'/0/0", 'its derivation path is shown');
+    await press(card('sol').locator('.acct-btn[data-acct="1"]'));
+    check((await card('sol').locator('.addr-value').innerText()) === at('sol', "m/44'/501'/{n}'/0'", 1).address, 'Solana account 2 (Phantom) matches');
+    await press(card('sol').locator('.der-seg .seg-btn[data-der="ledger"]'));
+    check((await card('sol').locator('.addr-value').innerText()) === at('sol', "m/44'/501'/{n}'", 1).address, 'Solana account 2 (Ledger) matches');
+    await press(card('sol').locator('.der-seg .seg-btn[data-der="sollet"]'));
+    check((await card('sol').locator('.addr-value').innerText()) === v.solSollet['1'], 'Solana account 2 (old Sollet) matches');
+    await press(card('trx').locator('.der-seg .seg-btn[data-der="eth"]'));
+    check((await card('trx').locator('.addr-value').innerText()) === at('trx', "m/44'/60'/0'/0/{n}", 0).address, "TRON on Ethereum's path matches");
 
-    step = 'Check wallet: change addresses';
-    await press(page.locator('#vf-more'));
-    await press(page.locator('#vf-branch .seg-btn[data-c="1"]'));
-    const change = await page.locator('.btc-more .more-addr').first().innerText();
+    step = 'Check wallet: Bitcoin formats and change';
+    await press(card('btc').locator('.acct-btn[data-acct="1"]'));
+    await press(card('btc').locator('.der-seg .seg-btn[data-der="taproot"]'));
+    check((await card('btc').locator('.addr-value').innerText()) === at('btc', "m/86'/0'/{n}'/0/0", 1).addresses.taproot, 'Bitcoin account 2, Taproot, matches');
+    await press(card('btc').locator('.der-seg .seg-btn[data-der="native"]'));
+    await press(card('btc').locator('.vf-more'));
+    await press(card('btc').locator('.vf-branch .seg-btn[data-c="1"]'));
+    const change = await card('btc').locator('.more-list .more-addr').first().innerText();
     check(change.startsWith(v.change['native/1/1'][0]), 'account 2, first change address');
+    await press(card('btc').locator('.der-seg .seg-btn[data-der="cross"]'));
+    check((await card('btc').innerText()).includes(at('btc', "m/44'/60'/0'/0/{n}", 1).addresses.native), "Bitcoin on Ethereum's path");
 
-    step = 'Check wallet: all derivation paths';
-    await press(page.locator('#vf-paths summary'));
-    await page.locator('#vf-cpath').waitFor();
-    const body = await page.locator('#vf-paths-body').innerText();
-    check(body.includes(at('btc', "m/44'/60'/0'/0/{n}", 1).addresses.native), "Bitcoin on Ethereum's path is listed");
-    check(body.includes(at('eth', "m/44'/60'/{n}'/0/0", 1).address), 'the Ledger Live path is listed');
-    check(body.includes(at('sol', "m/44'/501'/{n}'", 1).address), "Solana's other path is listed");
-    await page.locator('#vf-cchain').selectOption('eth');
-    await page.locator('#vf-cpath').fill("m/44h/60h/4h/0/0");
-    await press(page.locator('#vf-cgo'));
-    check((await page.locator('#vf-cout').innerText()).includes(at('eth', "m/44'/60'/{n}'/0/0", 4).address), 'a path typed by hand');
-    await noteLayout('all derivation paths');
+    step = 'Check wallet: finding an address';
+    await page.locator('#vf-find').fill(at('eth', "m/44'/60'/0'/{n}", 4).address);
+    await press(page.locator('#vf-find-go'));
+    await page.locator('#vf-find-out .ok-box, #vf-find-out .warn-box').waitFor({ timeout: 60000 });
+    check((await page.locator('#vf-find-out').innerText()).includes("m/44'/60'/0'/4"), 'an address is found with its path');
+    await noteLayout('check wallet, networks');
     await press(page.locator('#vf-clear'));
   }
 

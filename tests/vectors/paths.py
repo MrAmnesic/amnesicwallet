@@ -90,6 +90,12 @@ for mnemonic, passphrase in SEEDS:
                 entry['paths'].append(row)
     # solana-keygen default: the first 32 bytes of the seed as the ed25519 secret
     entry['solSeedBytes'] = Base58Encoder.Encode(bytes(SigningKey(seed[:32]).verify_key))
+    # old Sollet ("deprecated" in Phantom): BIP-32 secp256k1 derivation at
+    # m/501'/n'/0/0, whose private key is the ed25519 secret
+    entry['solSollet'] = {}
+    for n in ACCOUNTS:
+        priv = secp.DerivePath(f"m/501'/{n}'/0/0").PrivateKey().Raw().ToBytes()
+        entry['solSollet'][str(n)] = Base58Encoder.Encode(bytes(SigningKey(priv).verify_key))
     # receive and change branches, first five addresses, accounts 0 and 1
     for fmt, purpose in [('native', 84), ('taproot', 86), ('p2sh', 49), ('legacy', 44)]:
         for n in (0, 1):

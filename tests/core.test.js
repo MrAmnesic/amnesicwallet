@@ -26,7 +26,7 @@ import {
   toChecksumAddress, deriveAll, slip10Ed25519, deriveMultisigXpub, normalizeXpub,
   multisigAddress, isSlip39Passphrase, slip39Create, slip39Recover, metalRows,
   entropyToMnemonic, mnemonicToEntropy, mnemonicToSeedSync, validateMnemonic, wordlist, HDKey,
-  parsePath, addressAtPath, allPaths, PATH_SCHEMES, fillPath, suggestWords, diagnoseMnemonic,
+  parsePath, addressAtPath, DERIVATIONS, deriveWith, hasAccounts, fillPath, addressKind, findAddress, suggestWords, diagnoseMnemonic,
   readPublicKey, addressesFromXpub, xpubDescriptor, KeyError,
 } from '../src/core.js';
 import { sha256 } from '@noble/hashes/sha2.js';
@@ -470,24 +470,54 @@ group('Derivation paths — every known path, account and network (bip_utils / e
     }
     eq(addressAtPath(seed, 'sol', null), v.solSeedBytes, 'Solana with no path (first 32 bytes of the seed)'); n++;
 
-    // allPaths(): every known path of every network, for accounts 1, 2 and 5
+    // deriveWith(): every derivation button of every network, for accounts 1, 2 and 5
     for (const account of [0, 1, 4]) {
       for (const chain of ['btc', 'eth', 'trx', 'sol']) {
-        const want = v.paths.filter(r => r.chain === chain && r.account === account);
-        const got = allPaths(seed, chain, account).filter(r => r.path !== null);
-        eq(got.length, want.length, `${chain}, account ${account + 1}: number of paths`);
-        got.forEach((r, i) => {
-          const w = want.find(x => x.path === r.path);
-          check(!!w, `${chain} path ${r.path} has an independent value`);
-          if (!w) return;
-          if (chain === 'btc') r.addresses.forEach(a => { eq(a.address, w.addresses[a.format], `allPaths BTC ${a.format} ${r.path}`); n++; });
-          else { eq(r.address, w.address, `allPaths ${chain} ${r.path}`); n++; }
-        });
+        for (const d of DERIVATIONS[chain]) {
+          const r = deriveWith(seed, chain, d.id, account);
+          const acct = hasAccounts(d) ? account : 0;
+          eq(r.account, acct, `${chain}/${d.id}: account used`);
+          if (d.cross) {
+            d.cross.forEach((c, k) => {
+              const w = v.paths.find(x => x.chain === 'btc' && x.template === c.path && x.account === acct);
+              check(!!w, `${c.path} has an independent value`);
+              r.cross[k].addresses.forEach(a => { eq(a.address, w.addresses[a.format], `BTC ${a.format} on ${r.cross[k].path}`); n++; });
+            });
+            continue;
+          }
+          let want;
+          if (d.path === null) want = v.solSeedBytes;
+          else if (d.id === 'sollet') want = v.solSollet[String(acct)];
+          else {
+            const w = v.paths.find(x => x.chain === chain && x.template === d.path && x.account === acct);
+            check(!!w, `${chain} ${d.path} has an independent value`);
+            want = w && (chain === 'btc' ? w.addresses[d.fmt] : w.address);
+          }
+          eq(r.address, want, `${chain}/${d.id} account ${account + 1}`); n++;
+          eq(r.path, fillPath(d.path, acct), `${chain}/${d.id} path`);
+        }
       }
     }
-    const solNone = allPaths(seed, 'sol', 0).find(r => r.path === null);
-    eq(solNone && solNone.address, v.solSeedBytes, 'allPaths lists the no-path Solana address with Account 1');
-    check(!allPaths(seed, 'sol', 1).some(r => r.path === null || r.path === "m/44'/501'"), 'single-address paths only with Account 1');
+    check(!hasAccounts(DERIVATIONS.sol.find(d => d.id === 'root')) && !hasAccounts(DERIVATIONS.sol.find(d => d.id === 'none')), 'single-address derivations have no accounts');
+    throws(() => deriveWith(seed, 'eth', 'nope', 0), 'an unknown derivation is refused');
+
+    // findAddress(): the path of an address, found from the words alone
+    const find = (addr) => { const it = findAddress(seed, addr); let r; do { r = it.next(); } while (!r.done); return r.value; };
+    const cases = [
+      [v.change['native/1/1'][3], "m/84'/0'/1'/1/3"],
+      [v.change['taproot/0/0'][4], "m/86'/0'/0'/0/4"],
+      [v.change['legacy/1/0'][2], "m/44'/0'/1'/0/2"],
+      [v.paths.find(x => x.chain === 'btc' && x.path === "m/44'/60'/0'/0/1").addresses.native, "m/44'/60'/0'/0/1"],
+      [v.paths.find(x => x.chain === 'btc' && x.path === "m/84'/0'/4'/0/0").addresses.p2sh, "m/84'/0'/4'/0/0"],
+      [v.paths.find(x => x.chain === 'eth' && x.path === "m/44'/60'/4'/0/0").address, "m/44'/60'/4'/0/0"],
+      [v.paths.find(x => x.chain === 'eth' && x.path === "m/44'/60'/0'/4").address.toLowerCase(), "m/44'/60'/0'/4"],
+      [v.paths.find(x => x.chain === 'trx' && x.path === "m/44'/60'/0'/0/1").address, "m/44'/60'/0'/0/1"],
+      [v.paths.find(x => x.chain === 'sol' && x.path === "m/44'/501'/4'").address, "m/44'/501'/4'"],
+      [v.solSollet['1'], "m/501'/1'/0/0"],
+      [v.solSeedBytes, null],
+    ];
+    for (const [addr, path] of cases) { const r = find(addr); eq(r && r.path, path, `found ${addr.slice(0, 10)}…`); n++; }
+    eq(find(ADDR.seeds[5].eth), null, 'an address of other words is not found');
 
     // The account shown by default on each network
     for (const account of [0, 1, 4]) {
@@ -547,10 +577,19 @@ group('Derivation paths — reading and refusing');
   throws(() => deriveAll(seed, ['btc'], 'native', -1), 'a negative account is refused');
   throws(() => deriveAll(seed, ['btc'], 'native', 2 ** 31), 'an account beyond the hardened range is refused');
   throws(() => deriveAll(seed, ['btc'], 'native', 1.5), 'a fractional account is refused');
-  for (const chain of Object.keys(PATH_SCHEMES)) {
-    check(PATH_SCHEMES[chain].filter(s => s.std).length >= 1, `${chain} has a standard path`);
-    PATH_SCHEMES[chain].forEach(s => check(s.path === null || parsePath(fillPath(s.path, 3)) !== null, `${chain} scheme ${s.path} is a valid path`));
+  for (const chain of Object.keys(DERIVATIONS)) {
+    DERIVATIONS[chain].forEach(d => (d.cross || [d]).forEach(x => check(x.path === null || parsePath(fillPath(x.path, 3)) !== null, `${chain} derivation ${x.path} is a valid path`)));
   }
+  eq(JSON.stringify(addressKind('bc1qcr8te4kr609gcawutmrza0j4xv80jy8z306fyu')), '{"chain":"btc","format":"native"}', 'kind: native');
+  eq(addressKind('bc1p5cyxnuxmeuwuvkwfem96lqzszd02n6xdcjrs20cac6yqjjwudpxqkedrcr').format, 'taproot', 'kind: taproot');
+  eq(addressKind('37VucYSaXLCAsxYyAPfbSi9eh4iEcbShgf').format, 'p2sh', 'kind: p2sh');
+  eq(addressKind('1LqBGSKuX5yYUonjxT5qGfpUsXKYYWeabA').format, 'legacy', 'kind: legacy');
+  eq(addressKind('0x9858EfFD232B4033E47d90003D41EC34EcaEda94').chain, 'eth', 'kind: eth');
+  eq(addressKind('TUEZSdKsoDHQMeZwihtdoBiN46zxhGWYdH').chain, 'trx', 'kind: tron');
+  eq(addressKind('HAgk14JpMQLgt6rVgv7cBQFJWFto5Dqxi472uT3DKpqk').chain, 'sol', 'kind: solana');
+  for (const bad of ['', 'hello', 'bc1qcr8te4kr609gcawutmrza0j4xv80jy8z306fyv', '1LqBGSKuX5yYUonjxT5qGfpUsXKYYWeabB', '0x123', 'tb1qcr8te4kr609gcawutmrza0j4xv80jy8z306fyu'])
+    eq(addressKind(bad), null, `kind: not an address "${bad}"`);
+  throws(() => findAddress(seed, 'hello').next(), 'searching a non-address is refused', e => e.message === 'UNKNOWN_ADDRESS');
   done('paths');
 }
 function pathToStringSafe(t) { const p = parsePath(t); return p && ('m' + p.map(x => `/${x.index}${x.hardened ? "'" : ''}`).join('')); }

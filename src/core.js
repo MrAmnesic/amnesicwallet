@@ -586,69 +586,206 @@ function secpAddress(pubkey, chain, btcFormat) {
   throw new Error('INVALID_CHAIN');
 }
 
-/* Known paths per network. {n} is the account chosen on screen (0 for
-   "Account 1"). 'std' marks the path the check uses by default; 'odd'
-   marks paths that belong to another network or standard, where funds
-   can end up through a wallet that mixes them. For Bitcoin, 'fmt' is
-   the address format that normally goes with the path. */
-export const PATH_SCHEMES = {
+/* The derivations offered for each network, as the check shows them:
+   one button each. {n} is the account chosen on screen (0 = "Account 1").
+   A derivation without {n} gives a single address.
+   Sources for the wallets named: the wallets' own documentation (Phantom
+   lists every Solana and Ethereum path it supports); BIP-44/49/84/86. */
+export const DERIVATIONS = {
   btc: [
-    { path: "m/84'/0'/{n}'/0/0",  fmt: 'native',  used: 'BIP-84 — Native SegWit (most wallets today)', std: true },
-    { path: "m/86'/0'/{n}'/0/0",  fmt: 'taproot', used: 'BIP-86 — Taproot', std: true },
-    { path: "m/49'/0'/{n}'/0/0",  fmt: 'p2sh',    used: 'BIP-49 — SegWit compatible', std: true },
-    { path: "m/44'/0'/{n}'/0/0",  fmt: 'legacy',  used: 'BIP-44 — Legacy', std: true },
-    { path: "m/84'/0'/{n}'/1/0",  fmt: 'native',  used: 'BIP-84, first change address' },
-    { path: "m/0'/0/{n}",         fmt: 'legacy',  used: 'BRD (breadwallet), MultiBit HD — no accounts: the account number picks the address' },
-    { path: "m/0'/0'/{n}'",       fmt: 'p2sh',    used: 'Bitcoin Core HD wallets before version 0.21 — the account number picks the address' },
-    { path: "m/84'/0'/2147483646'/0/{n}", fmt: 'native', used: 'Samourai / Ashigaru, Whirlpool post-mix — the account number picks the address' },
-    { path: "m/84'/0'/2147483645'/0/{n}", fmt: 'native', used: 'Samourai / Ashigaru, Whirlpool pre-mix — the account number picks the address' },
-    { path: "m/44'/145'/{n}'/0/0", fmt: 'legacy', used: "Bitcoin Cash's path", odd: true },
-    { path: "m/44'/60'/0'/0/{n}", fmt: 'legacy',  used: "Ethereum's path", odd: true },
-    { path: "m/44'/195'/0'/0/{n}", fmt: 'legacy', used: "TRON's path", odd: true },
+    { id: 'native',  label: 'Native SegWit',     fmt: 'native',  path: "m/84'/0'/{n}'/0/0", used: 'BIP-84 — most wallets today' },
+    { id: 'taproot', label: 'Taproot',           fmt: 'taproot', path: "m/86'/0'/{n}'/0/0", used: 'BIP-86' },
+    { id: 'p2sh',    label: 'SegWit compatible', fmt: 'p2sh',    path: "m/49'/0'/{n}'/0/0", used: 'BIP-49' },
+    { id: 'legacy',  label: 'Legacy',            fmt: 'legacy',  path: "m/44'/0'/{n}'/0/0", used: 'BIP-44' },
+    { id: 'cross',   label: 'ETH / TRON paths',  cross: [
+      { path: "m/44'/60'/0'/0/{n}",  used: "Ethereum's path" },
+      { path: "m/44'/195'/0'/0/{n}", used: "TRON's path" },
+    ], used: 'Bitcoin addresses made on the paths of Ethereum and TRON, where funds can end up when a wallet mixes up networks' },
   ],
   eth: [
-    { path: "m/44'/60'/0'/0/{n}", used: 'MetaMask, Trezor, Trust Wallet, Rabby, Exodus — "Account N" is the N-th address', std: true },
-    { path: "m/44'/60'/{n}'/0/0", used: 'Ledger Live — each account is its own branch' },
-    { path: "m/44'/60'/0'/{n}",   used: 'Ledger legacy path (MyEtherWallet, MyCrypto)' },
-    { path: "m/44'/0'/0'/0/{n}",  used: "Bitcoin's path", odd: true },
-    { path: "m/44'/195'/0'/0/{n}", used: "TRON's path", odd: true },
+    { id: 'std',     label: 'MetaMask · Trust · Exodus', path: "m/44'/60'/0'/0/{n}", used: 'MetaMask, Trezor, Trust Wallet, Rabby, Exodus, Phantom — “Account N” is the N-th address' },
+    { id: 'live',    label: 'Ledger Live',               path: "m/44'/60'/{n}'/0/0", used: 'Ledger Live — each account is its own branch' },
+    { id: 'legacy',  label: 'Ledger legacy',             path: "m/44'/60'/0'/{n}",   used: 'Ledger legacy path (MyEtherWallet, MyCrypto)' },
   ],
   trx: [
-    { path: "m/44'/195'/0'/0/{n}", used: 'Trust Wallet and most wallets — "Account N" is the N-th address', std: true },
-    { path: "m/44'/195'/{n}'/0/0", used: 'Ledger Live — each account is its own branch' },
-    { path: "m/44'/60'/0'/0/{n}",  used: "Ethereum's path (same key as the Ethereum address)", odd: true },
-    { path: "m/44'/0'/0'/0/{n}",   used: "Bitcoin's path", odd: true },
+    { id: 'std',     label: 'Trust · TronLink',          path: "m/44'/195'/0'/0/{n}", used: 'Trust Wallet and most wallets — “Account N” is the N-th address' },
+    { id: 'live',    label: 'Ledger Live',               path: "m/44'/195'/{n}'/0/0", used: 'Ledger Live — each account is its own branch' },
+    { id: 'eth',     label: "Ethereum's path",           path: "m/44'/60'/0'/0/{n}",  used: 'The key of the Ethereum address, shown as a TRON address' },
   ],
   sol: [
-    { path: "m/44'/501'/{n}'/0'", used: 'Phantom, Solflare, Backpack — "Account N"', std: true },
-    { path: "m/44'/501'/{n}'",    used: 'Ledger, Trust Wallet, Solflare with a Ledger path' },
-    { path: "m/44'/501'",         used: "solana-keygen with the path m/44'/501' (a single address)" },
-    { path: null,                 used: 'solana-keygen default: no path, the first 32 bytes of the seed (a single address)' },
+    { id: 'std',     label: 'Phantom · Solflare · Exodus', path: "m/44'/501'/{n}'/0'", used: 'Phantom, Solflare, Backpack, Exodus, MetaMask — “Account N”' },
+    { id: 'ledger',  label: 'Ledger · Trust',            path: "m/44'/501'/{n}'",    used: 'Ledger Live, Trust Wallet, and Phantom with a Ledger' },
+    { id: 'root',    label: 'Ledger root',               path: "m/44'/501'",         used: 'A single address: Ledger root level, and solana-keygen with this path' },
+    { id: 'none',    label: 'solana-keygen',             path: null,                 used: 'A single address: solana-keygen default, the first 32 bytes of the seed, no path' },
+    { id: 'sollet',  label: 'Sollet (old)',              path: "m/501'/{n}'/0/0",    used: 'The old Sollet wallet (Phantom calls it “deprecated”): a Bitcoin-style path, whose key becomes the Solana key' },
   ],
 };
 
 export const fillPath = (tpl, account) => (tpl === null ? null : tpl.replace(/\{n\}/g, String(account)));
+export const hasAccounts = (d) => (d.cross ? true : d.path !== null && d.path.includes('{n}'));
 
-/* Every known path of one network for one account, with its address.
-   For Bitcoin each path is given in all four address formats. */
-export function allPaths(seed, chain, account = 0) {
+/* Solana keys on the old Sollet path: BIP-32 (secp256k1) derivation, whose
+   private key is used as the ed25519 secret. */
+function solletAddress(seed, path) {
+  const node = HDKey.fromMasterSeed(new Uint8Array(seed)).derive(path);
+  return base58.encode(ed25519.getPublicKey(node.privateKey));
+}
+
+/* The address shown for one derivation of one network and account.
+   For Bitcoin's 'cross' derivation, the addresses on each foreign path in
+   all four formats. */
+export function deriveWith(seed, chain, derivationId, account = 0) {
   if (!Number.isInteger(account) || account < 0 || account >= 0x80000000) throw new Error('invalid account');
-  const master = chain === 'sol' ? null : HDKey.fromMasterSeed(new Uint8Array(seed));
-  const out = [];
-  for (const s of PATH_SCHEMES[chain] || []) {
-    const path = fillPath(s.path, account);
-    // A path with no account number gives a single address: shown with Account 1 only.
-    if (account > 0 && (s.path === null || !s.path.includes('{n}'))) continue;
-    const row = { path, used: s.used, std: !!s.std, odd: !!s.odd };
-    if (chain === 'btc') {
-      const pk = secpPubkey(master, path);
-      row.fmt = s.fmt;
-      row.addresses = Object.keys(BTC_FORMATS).map(f => ({ format: f, address: btcAddressFromPubkey(pk, f) }));
-    } else if (chain === 'sol') row.address = addressAtPath(seed, 'sol', path);
-    else row.address = secpAddress(secpPubkey(master, path), chain);
-    out.push(row);
+  const d = (DERIVATIONS[chain] || []).find(x => x.id === derivationId);
+  if (!d) throw new Error('unknown derivation');
+  const acct = hasAccounts(d) ? account : 0;
+  if (d.cross) {
+    const master = HDKey.fromMasterSeed(new Uint8Array(seed));
+    return {
+      derivation: d, account: acct,
+      cross: d.cross.map(c => {
+        const path = fillPath(c.path, acct);
+        const pk = secpPubkey(master, path);
+        return { path, used: c.used, addresses: Object.keys(BTC_FORMATS).map(f => ({ format: f, address: btcAddressFromPubkey(pk, f) })) };
+      }),
+    };
   }
-  return out;
+  const path = fillPath(d.path, acct);
+  let address;
+  if (chain === 'sol' && d.id === 'sollet') address = solletAddress(seed, path);
+  else address = addressAtPath(seed, chain, path, d.fmt || 'native');
+  return { derivation: d, account: acct, path, address };
+}
+
+/* ════════════════════════════════════════════════════════════════
+   FINDING AN ADDRESS — which path of these words gives it
+   ════════════════════════════════════════════════════════════════ */
+
+/* What kind of address it is, from its shape and checksum. */
+export function addressKind(text) {
+  const a = String(text || '').trim();
+  if (/^0x[0-9a-fA-F]{40}$/.test(a)) return { chain: 'eth' };
+  const lower = a.toLowerCase();
+  if (lower.startsWith('bc1')) {
+    try {
+      const dec = (lower.startsWith('bc1p') ? bech32m : bech32).decode(lower);
+      if (dec.prefix === 'bc') return { chain: 'btc', format: lower.startsWith('bc1p') ? 'taproot' : 'native' };
+    } catch (_) { /* not a valid address */ }
+    return null;
+  }
+  try {
+    const raw = base58check.decode(a);
+    if (raw.length === 21 && raw[0] === 0x00) return { chain: 'btc', format: 'legacy' };
+    if (raw.length === 21 && raw[0] === 0x05) return { chain: 'btc', format: 'p2sh' };
+    if (raw.length === 21 && raw[0] === 0x41) return { chain: 'trx' };
+  } catch (_) { /* not Base58Check */ }
+  try { if (base58.decode(a).length === 32) return { chain: 'sol' }; } catch (_) { /* not Base58 */ }
+  return null;
+}
+
+const SEARCH_ACCOUNTS = 10;     // accounts 1…10
+const SEARCH_INDEXES = 50;      // addresses #0…#49, receiving and change
+
+/* Searches the paths of the network the address belongs to: every
+   derivation the check offers, accounts 1…10, and for Bitcoin the first 50
+   receiving and change addresses of each account, in every branch where
+   the address format can occur. A generator, so the page can show progress:
+   it yields { checked, total } and returns the match or null. */
+export function* findAddress(seed, text) {
+  const kind = addressKind(text);
+  if (!kind) throw new Error('UNKNOWN_ADDRESS');
+  const target = kind.chain === 'eth' ? String(text).trim().toLowerCase() : String(text).trim();
+  const same = (addr) => (kind.chain === 'eth' ? addr.toLowerCase() === target : addr === target);
+  const master = kind.chain === 'sol' ? null : HDKey.fromMasterSeed(new Uint8Array(seed));
+  const jobs = [];      // each: { label, run() → match | null, size }
+
+  if (kind.chain === 'btc') {
+    const fmt = kind.format;
+    const purposes = [84, 86, 49, 44];
+    for (let a = 0; a < SEARCH_ACCOUNTS; a++) {
+      for (const p of purposes) {
+        for (const change of [0, 1]) {
+          jobs.push({ size: SEARCH_INDEXES, run: () => {
+            const branch = master.derive(`m/${p}'/0'/${a}'/${change}`);
+            for (let i = 0; i < SEARCH_INDEXES; i++) {
+              if (same(btcAddressFromPubkey(branch.deriveChild(i).publicKey, fmt))) {
+                return { path: `m/${p}'/0'/${a}'/${change}/${i}`, account: a, change, index: i };
+              }
+            }
+            return null;
+          } });
+        }
+      }
+    }
+    for (const base of ["m/44'/60'/0'/0", "m/44'/195'/0'/0", "m/0'/0", "m/0'/1"]) {
+      jobs.push({ size: SEARCH_INDEXES, run: () => {
+        const branch = master.derive(base);
+        for (let i = 0; i < SEARCH_INDEXES; i++) {
+          if (same(btcAddressFromPubkey(branch.deriveChild(i).publicKey, fmt))) return { path: `${base}/${i}`, index: i };
+        }
+        return null;
+      } });
+    }
+    jobs.push({ size: SEARCH_INDEXES, run: () => {
+      for (let i = 0; i < SEARCH_INDEXES; i++) {
+        const path = `m/0'/0'/${i}'`;
+        if (same(btcAddressFromPubkey(master.derive(path).publicKey, fmt))) return { path, index: i };
+      }
+      return null;
+    } });
+  } else if (kind.chain === 'eth' || kind.chain === 'trx') {
+    const coins = kind.chain === 'eth' ? [60, 195, 0] : [195, 60, 0];
+    const enc = (pk) => secpAddress(pk, kind.chain);
+    for (const coin of coins) {
+      jobs.push({ size: SEARCH_INDEXES * 2, run: () => {
+        const branch = master.derive(`m/44'/${coin}'/0'/0`);
+        for (let i = 0; i < SEARCH_INDEXES * 2; i++) if (same(enc(branch.deriveChild(i).publicKey))) return { path: `m/44'/${coin}'/0'/0/${i}`, index: i };
+        return null;
+      } });
+      jobs.push({ size: SEARCH_INDEXES, run: () => {
+        for (let a = 0; a < SEARCH_INDEXES; a++) {
+          const path = `m/44'/${coin}'/${a}'/0/0`;
+          if (same(enc(master.derive(path).publicKey))) return { path, account: a };
+        }
+        return null;
+      } });
+      jobs.push({ size: SEARCH_INDEXES, run: () => {
+        const branch = master.derive(`m/44'/${coin}'/0'`);
+        for (let i = 0; i < SEARCH_INDEXES; i++) if (same(enc(branch.deriveChild(i).publicKey))) return { path: `m/44'/${coin}'/0'/${i}`, index: i };
+        return null;
+      } });
+    }
+  } else {
+    const sol = (path) => addressAtPath(seed, 'sol', path);
+    jobs.push({ size: 2, run: () => {
+      if (same(sol(null))) return { path: null, note: 'solana-keygen default: the first 32 bytes of the seed, no path' };
+      if (same(sol("m/44'/501'"))) return { path: "m/44'/501'" };
+      return null;
+    } });
+    for (const tpl of ["m/44'/501'/{n}'/0'", "m/44'/501'/{n}'"]) {
+      jobs.push({ size: SEARCH_INDEXES, run: () => {
+        for (let a = 0; a < SEARCH_INDEXES; a++) { const path = fillPath(tpl, a); if (same(sol(path))) return { path, account: a }; }
+        return null;
+      } });
+    }
+    jobs.push({ size: SEARCH_INDEXES, run: () => {
+      for (let a = 0; a < SEARCH_INDEXES; a++) {
+        const path = `m/501'/${a}'/0/0`;
+        if (same(solletAddress(seed, path))) return { path, account: a, note: 'old Sollet derivation' };
+      }
+      return null;
+    } });
+  }
+
+  const total = jobs.reduce((s, j) => s + j.size, 0);
+  let checked = 0;
+  for (const job of jobs) {
+    const hit = job.run();
+    checked += job.size;
+    if (hit) return { chain: kind.chain, format: kind.format || null, ...hit, checked };
+    yield { checked, total };
+  }
+  return null;
 }
 
 /* ════════════════════════════════════════════════════════════════

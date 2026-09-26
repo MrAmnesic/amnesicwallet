@@ -790,7 +790,12 @@
      "1PkfCgkJ2cFpP8rPHtaRmUPrbKfFxJkesf"
     ]
    },
-   "solSeedBytes": "EHqmfkN89RJ7Y33CXM6uCzhVeuywHoJXZZLszBHHZy7o"
+   "solSeedBytes": "EHqmfkN89RJ7Y33CXM6uCzhVeuywHoJXZZLszBHHZy7o",
+   "solSollet": {
+    "0": "FTt72dUEL1X9pPs9V9q4Eh5ejKXEbPD6snaHSQAmnJGU",
+    "1": "F1QLGD7iJPG7Lb9kzxd9JZ9QT3wtqkS6b7b5oXxpue99",
+    "4": "7Jrk34tBFJGorR9syCxEWq5Q3zwpmozSEo8Um2bGuvtJ"
+   }
   },
   {
    "mnemonic": "legal winner thank year wave sausage worth useful legal winner thank yellow",
@@ -1581,7 +1586,12 @@
      "14msmY6DKiSu59CADJeto2yXnu8zUHN2hJ"
     ]
    },
-   "solSeedBytes": "5emnAsg7AQ5Nh8DxRbATbgyCLQj2X9x5zHdWnt2Gkeie"
+   "solSeedBytes": "5emnAsg7AQ5Nh8DxRbATbgyCLQj2X9x5zHdWnt2Gkeie",
+   "solSollet": {
+    "0": "HZG4cGhEkRydtpZrZwgbGo48SFBxVHjxZ7GsJoVf1JxB",
+    "1": "AacWCGWtxMe2HNBP1FMGQ7FG6ZGq1Yomi6dAjzjGDPXC",
+    "4": "8mcsCqa4otoLik1qZEipRQnzFo7ssME1ssNzco9WtBZB"
+   }
   },
   {
    "mnemonic": "zoo zoo zoo zoo zoo zoo zoo zoo zoo zoo zoo zoo zoo zoo zoo zoo zoo zoo zoo zoo zoo zoo zoo vote",
@@ -2372,7 +2382,12 @@
      "1AitghNifNvtSJUgZYJ9xWWoZPGF5eYL7V"
     ]
    },
-   "solSeedBytes": "GksbeTgVcyVZ753NzR5Lnwiu7BcfDzU5mSiR1DSF3VLz"
+   "solSeedBytes": "GksbeTgVcyVZ753NzR5Lnwiu7BcfDzU5mSiR1DSF3VLz",
+   "solSollet": {
+    "0": "6cpGoCciN7pkejp2G2eWsnbBHVRSmHvo3zR4UmHZ64aS",
+    "1": "AGCRVMDGnVr7UZjHuH4fZ8SifT8QBuTREFTKojuF2jJm",
+    "4": "D5KfuFJs75zujorx9CPFnctQHzcRjvge7Kmk5N6gM6bk"
+   }
   }
  ],
  "xpubs": [
