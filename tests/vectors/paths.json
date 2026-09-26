@@ -1,0 +1,2705 @@
+{
+ "source": "Computed with bip_utils and embit (tests/vectors/paths.py)",
+ "seeds": [
+  {
+   "mnemonic": "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about",
+   "passphrase": "",
+   "paths": [
+    {
+     "chain": "btc",
+     "account": 0,
+     "template": "m/84'/0'/{n}'/0/0",
+     "path": "m/84'/0'/0'/0/0",
+     "addresses": {
+      "native": "bc1qcr8te4kr609gcawutmrza0j4xv80jy8z306fyu",
+      "taproot": "bc1p8knh0enfv47gmpuf66528zd4jtkgjq4sv5w5l2gqwgk8exu2ynns9g8c9m",
+      "p2sh": "3GtVZYzsKF6Feikdjd4bDyPdAiyeHANY9b",
+      "legacy": "1JaUQDVNRdhfNsVncGkXedaPSM5Gc54Hso"
+     }
+    },
+    {
+     "chain": "btc",
+     "account": 0,
+     "template": "m/86'/0'/{n}'/0/0",
+     "path": "m/86'/0'/0'/0/0",
+     "addresses": {
+      "native": "bc1qalwlmdxd2ggue4290ekzxl9tetg56neexr6amw",
+      "taproot": "bc1p5cyxnuxmeuwuvkwfem96lqzszd02n6xdcjrs20cac6yqjjwudpxqkedrcr",
+      "p2sh": "39oRj36VbCJdky8wsPCT5FMQNRUUekuoUr",
+      "legacy": "1NsJS4DAHLcegD63trZurmkLm23TRAujXd"
+     }
+    },
+    {
+     "chain": "btc",
+     "account": 0,
+     "template": "m/49'/0'/{n}'/0/0",
+     "path": "m/49'/0'/0'/0/0",
+     "addresses": {
+      "native": "bc1qlxgx0xk2lcjuyas4xua5p0ezg3kjfl6yd3h8y6",
+      "taproot": "bc1pwfx9h4s8ne3zq8xsr5m5gzmxy7y8khxy0v8f3zph4p9zs5y7cq9qyff6g6",
+      "p2sh": "37VucYSaXLCAsxYyAPfbSi9eh4iEcbShgf",
+      "legacy": "1PkaFBUcyAccDp2Xo2K8MqduVMgMB792r2"
+     }
+    },
+    {
+     "chain": "btc",
+     "account": 0,
+     "template": "m/44'/0'/{n}'/0/0",
+     "path": "m/44'/0'/0'/0/0",
+     "addresses": {
+      "native": "bc1qmxrw6qdh5g3ztfcwm0et5l8mvws4eva24kmp8m",
+      "taproot": "bc1plguuppjuw5uk2rpyjnnzvwsuvy5ctswns9fsvhrvn4qt04ns4nmscf9eqf",
+      "p2sh": "3HkzTaFbEMWeJPLyNCNhPyGfZsVLDwdD3G",
+      "legacy": "1LqBGSKuX5yYUonjxT5qGfpUsXKYYWeabA"
+     }
+    },
+    {
+     "chain": "btc",
+     "account": 0,
+     "template": "m/84'/0'/{n}'/1/0",
+     "path": "m/84'/0'/0'/1/0",
+     "addresses": {
+      "native": "bc1q8c6fshw2dlwun7ekn9qwf37cu2rn755upcp6el",
+      "taproot": "bc1pvccnny70dq8hhdu8qen0vkcenwlhxfqvgpzuqh792lhlycj3kzusrap9dt",
+      "p2sh": "3EjM76QBfwkwVoPKaHvt1cMz2NXYfQoKUE",
+      "legacy": "16fuuGhkywq9pB7BBxi3btQ3C3s4f4dz1N"
+     }
+    },
+    {
+     "chain": "btc",
+     "account": 0,
+     "template": "m/0'/0/{n}",
+     "path": "m/0'/0/0",
+     "addresses": {
+      "native": "bc1qgv52mt89gpev6p56huggl970sppqkgftxakv7f",
+      "taproot": "bc1p7g5y5p3xnhp5c4mgzleckhxk3nkx5qw3usrc658cu283vhg2fc9q4am3kj",
+      "p2sh": "3QEXuKi2xSXkzqXfc3owiQ17sKBk6ZYzTK",
+      "legacy": "17871ErDqdevLTLWBH6WzjUc1EKGDQzCMA"
+     }
+    },
+    {
+     "chain": "btc",
+     "account": 0,
+     "template": "m/0'/0'/{n}'",
+     "path": "m/0'/0'/0'",
+     "addresses": {
+      "native": "bc1q8cs3rc2hsjp7cgtu28q8xy77kvkh00tu9q8n9v",
+      "taproot": "bc1p2nqlrk862t6ngprcg5g9ypqe3k7ywftryjef27e69w6zjwnmcf3qkde6e6",
+      "p2sh": "3HzcJ3wZ3BnMkqskxXxPBp3PyqV71L8dpP",
+      "legacy": "16fWWdLokmpctATuim8q5SvAu1GR9prV5m"
+     }
+    },
+    {
+     "chain": "btc",
+     "account": 0,
+     "template": "m/84'/0'/2147483646'/0/{n}",
+     "path": "m/84'/0'/2147483646'/0/0",
+     "addresses": {
+      "native": "bc1qdvltdykkpjvu0cehnn3xeejgk2t4e9t6272q0y",
+      "taproot": "bc1pl3l4upynfspfy48h0s8xf0ru6k36wdsnja3septqznc7ppk029jqte3aqx",
+      "p2sh": "35AiuV5GLLzJUNusMxTisgsqDppCSj1AfX",
+      "legacy": "1An4Rv1D9drFYmXR4VzfmqohFAAEEExMXK"
+     }
+    },
+    {
+     "chain": "btc",
+     "account": 0,
+     "template": "m/84'/0'/2147483645'/0/{n}",
+     "path": "m/84'/0'/2147483645'/0/0",
+     "addresses": {
+      "native": "bc1qtjm7yhv39hd6h8nvgjjmc2k96pumvvpqd05d4c",
+      "taproot": "bc1pj2cneycsgptpkhs7zlc4p2lewghfu4cvta33thhgsq4a59q25akqaug4vz",
+      "p2sh": "32EW6oVGdNPw1NU3PyNucXTxscWSu12Xtm",
+      "legacy": "19TFT9fa15rrCjPbcykteD2DBBLpLuR86W"
+     }
+    },
+    {
+     "chain": "btc",
+     "account": 0,
+     "template": "m/44'/145'/{n}'/0/0",
+     "path": "m/44'/145'/0'/0/0",
+     "addresses": {
+      "native": "bc1qpp4fwlra45e226vk4ukwjznjwgudfzvckuugk8",
+      "taproot": "bc1p4lqpgrt0hv53ldw3j9ukl8juprw8wngq7wl9qpl6av3jexp0nmus7tnfxl",
+      "p2sh": "33VuWYka2ZxC1hqedrdivN46xWVmcnfvx8",
+      "legacy": "1mW6fDEMjKrDHvLvoEsaeLxSCzZBf3Bfg"
+     }
+    },
+    {
+     "chain": "btc",
+     "account": 0,
+     "template": "m/44'/60'/0'/0/{n}",
+     "path": "m/44'/60'/0'/0/0",
+     "addresses": {
+      "native": "bc1qgsvdpdxec8hsu57lhxg5xem7refr233z2ttx7e",
+      "taproot": "bc1p08q6wdgnqe0gwpp4ygs0y8lwgxlpv2l4uc0zq5qjnagwtg92fussqdhm72",
+      "p2sh": "34y4LBtWcT2h1o9BH9KGpJz5tXsYXwxMUs",
+      "legacy": "17D4gErm7cqDznM4EstEfnP6y91MWADXm8"
+     }
+    },
+    {
+     "chain": "btc",
+     "account": 0,
+     "template": "m/44'/195'/0'/0/{n}",
+     "path": "m/44'/195'/0'/0/0",
+     "addresses": {
+      "native": "bc1qk9kn6y39jldqqmjhv4y772xd6sese5ql6a7jrf",
+      "taproot": "bc1pnn73zew4a3htgz8dwldwwfe6qksxz8hqsfyxfpexjdn7j9nncz2secwjy7",
+      "p2sh": "34buMq8PDZKSzdbji9oADi8Aoam942kF9r",
+      "legacy": "1HB9TyxfygUGQZQ5bgT5oAtYHPuSmL4AMb"
+     }
+    },
+    {
+     "chain": "eth",
+     "account": 0,
+     "template": "m/44'/60'/0'/0/{n}",
+     "path": "m/44'/60'/0'/0/0",
+     "address": "0x9858EfFD232B4033E47d90003D41EC34EcaEda94"
+    },
+    {
+     "chain": "eth",
+     "account": 0,
+     "template": "m/44'/60'/{n}'/0/0",
+     "path": "m/44'/60'/0'/0/0",
+     "address": "0x9858EfFD232B4033E47d90003D41EC34EcaEda94"
+    },
+    {
+     "chain": "eth",
+     "account": 0,
+     "template": "m/44'/60'/0'/{n}",
+     "path": "m/44'/60'/0'/0",
+     "address": "0xB8Fd42000d00202DCbCF5e18d6640d656345FD6A"
+    },
+    {
+     "chain": "eth",
+     "account": 0,
+     "template": "m/44'/0'/0'/0/{n}",
+     "path": "m/44'/0'/0'/0/0",
+     "address": "0x030821f53C79461511bCf64367eCc9D013060408"
+    },
+    {
+     "chain": "eth",
+     "account": 0,
+     "template": "m/44'/195'/0'/0/{n}",
+     "path": "m/44'/195'/0'/0/0",
+     "address": "0xC8599111F29c1e1E061265b4AF93eA1F274aD78A"
+    },
+    {
+     "chain": "trx",
+     "account": 0,
+     "template": "m/44'/195'/0'/0/{n}",
+     "path": "m/44'/195'/0'/0/0",
+     "address": "TUEZSdKsoDHQMeZwihtdoBiN46zxhGWYdH"
+    },
+    {
+     "chain": "trx",
+     "account": 0,
+     "template": "m/44'/195'/{n}'/0/0",
+     "path": "m/44'/195'/0'/0/0",
+     "address": "TUEZSdKsoDHQMeZwihtdoBiN46zxhGWYdH"
+    },
+    {
+     "chain": "trx",
+     "account": 0,
+     "template": "m/44'/60'/0'/0/{n}",
+     "path": "m/44'/60'/0'/0/0",
+     "address": "TPrkFhZ8LH8Mruco8vXyA496TaeFBrbmeU"
+    },
+    {
+     "chain": "trx",
+     "account": 0,
+     "template": "m/44'/0'/0'/0/{n}",
+     "path": "m/44'/0'/0'/0/0",
+     "address": "TAFEmhbjjnTAnqRag2w9ke9J2cYiWzvyHr"
+    },
+    {
+     "chain": "sol",
+     "account": 0,
+     "template": "m/44'/501'/{n}'/0'",
+     "path": "m/44'/501'/0'/0'",
+     "address": "HAgk14JpMQLgt6rVgv7cBQFJWFto5Dqxi472uT3DKpqk"
+    },
+    {
+     "chain": "sol",
+     "account": 0,
+     "template": "m/44'/501'/{n}'",
+     "path": "m/44'/501'/0'",
+     "address": "GjJyeC1r2RgkuoCWMyPYkCWSGSGLcz266EaAkLA27AhL"
+    },
+    {
+     "chain": "sol",
+     "account": 0,
+     "template": "m/44'/501'",
+     "path": "m/44'/501'",
+     "address": "D2PPQSYFe83nDzk96FqGumVU8JA7J8vj2Rhjc2oXzEi5"
+    },
+    {
+     "chain": "btc",
+     "account": 1,
+     "template": "m/84'/0'/{n}'/0/0",
+     "path": "m/84'/0'/1'/0/0",
+     "addresses": {
+      "native": "bc1qku0qh0mc00y8tk0n65x2tqw4trlspak0fnjmfz",
+      "taproot": "bc1p3435hx6y2t0s63lz9e4aw4qugzjhjanrspnzldkphzxehs88qhkqu84fr7",
+      "p2sh": "33pTiFRNcAT9qmuy3e8WfHaTLSN48JJ2v4",
+      "legacy": "1HhEejLp8iT1hK3SdbqBgkgE4CRXGxAwbb"
+     }
+    },
+    {
+     "chain": "btc",
+     "account": 1,
+     "template": "m/86'/0'/{n}'/0/0",
+     "path": "m/86'/0'/1'/0/0",
+     "addresses": {
+      "native": "bc1qde78q2xxhlekxckgrzmhp4rj9ysns0y6lsqkqk",
+      "taproot": "bc1pkq6ayylfpe5hn05550ry25pkakuf72x9qkjc2sl06dfcet8sg25q9y3j3y",
+      "p2sh": "34qWnUXQpi3htccrV3eF6RfYQ8KStXMeeb",
+      "legacy": "1B5CQDPjGPRRsKghLb88eMt26kW2yrgBfD"
+     }
+    },
+    {
+     "chain": "btc",
+     "account": 1,
+     "template": "m/49'/0'/{n}'/0/0",
+     "path": "m/49'/0'/1'/0/0",
+     "addresses": {
+      "native": "bc1qrj769wle0ymm5wu3k7x7086zc3m0c6elqdp2v7",
+      "taproot": "bc1pmmr2xefgj43umt7n7kfsgxydhhlreq6e6mcsfzvpdf6cpf7dmmxqrmvhz7",
+      "p2sh": "35eszW2wmZ4hn7hfG5LGqxw5xCPjZcEJPM",
+      "legacy": "13cy6VP9u29DKisW5NxdZKsFQjzqETccHd"
+     }
+    },
+    {
+     "chain": "btc",
+     "account": 1,
+     "template": "m/44'/0'/{n}'/0/0",
+     "path": "m/44'/0'/1'/0/0",
+     "addresses": {
+      "native": "bc1qx5sxxfzaz7wvvy0n0yavmkkx7u08a6y6jnyf65",
+      "taproot": "bc1pzvhkezf2vqetpfu0rk2s5vasy2s2uuugx52dxplw4xnr5lnz75mqgx424k",
+      "p2sh": "3C5bmS4KTqc8mw9fSp9d4kwPh9mUnqpfCk",
+      "legacy": "15qucUWKf95Fo58FdCBhUTSAtsm22HHE2Q"
+     }
+    },
+    {
+     "chain": "btc",
+     "account": 1,
+     "template": "m/84'/0'/{n}'/1/0",
+     "path": "m/84'/0'/1'/1/0",
+     "addresses": {
+      "native": "bc1qt0x83f5vmnapgl2gjj9r3d67rcghvjaqrvgpck",
+      "taproot": "bc1p6jlf2epagj45w4fehdxlskvmshcwxsc44xeaumrl9edc6dnkalcqus5j74",
+      "p2sh": "33X8hcVheYszdrUGKaVeHmY5yVDTPyR7Xw",
+      "legacy": "19NPSNWtsBa5U7GQ1J4GZzgQkcSe6rePQy"
+     }
+    },
+    {
+     "chain": "btc",
+     "account": 1,
+     "template": "m/0'/0/{n}",
+     "path": "m/0'/0/1",
+     "addresses": {
+      "native": "bc1qdec7wsahwjs4tgg7a66gk9g7vul0ufjhemdpqz",
+      "taproot": "bc1p8267k5vhd35aqpfg6n9c55p6qwjvtuz0kfgj6s2c3z5pndehalns2zy2vp",
+      "p2sh": "38rX4zpKvq5yd3omba5Htpd6jKwyJY8TVe",
+      "legacy": "1B4ynFJzDPqvuttzgF16jccWGxvdJwHSWr"
+     }
+    },
+    {
+     "chain": "btc",
+     "account": 1,
+     "template": "m/0'/0'/{n}'",
+     "path": "m/0'/0'/1'",
+     "addresses": {
+      "native": "bc1qf92lfwpk6xs83ksz3z9eejdkxfvj3vcx9du98e",
+      "taproot": "bc1p2asrazvt8vp07s0mftjamttldsh4ev3qnzmctzn06jjf0kn68zcs5drqf8",
+      "p2sh": "3Prsr3jC1R8sD57DFeWMcr8fKZgCXxduKP",
+      "legacy": "17gmJKxBQgF2nFR8VyttWMzSzudmW2LadU"
+     }
+    },
+    {
+     "chain": "btc",
+     "account": 1,
+     "template": "m/84'/0'/2147483646'/0/{n}",
+     "path": "m/84'/0'/2147483646'/0/1",
+     "addresses": {
+      "native": "bc1qhtl0kpcm6qq58dec99ysmlkr6vu5g8k4f4djg8",
+      "taproot": "bc1pffg8x4n5yacha832ylesw703km6p8730l6wxt7rt2c74phtnne5q8qxzny",
+      "p2sh": "33mSCSoDe3W3nMFVisBfDGM2d7Mbgk11Ya",
+      "legacy": "1J3k93QnH9feSCLTM6MXZszkCMnxf73o4m"
+     }
+    },
+    {
+     "chain": "btc",
+     "account": 1,
+     "template": "m/84'/0'/2147483645'/0/{n}",
+     "path": "m/84'/0'/2147483645'/0/1",
+     "addresses": {
+      "native": "bc1qr8uzmlr9vk36pydas7vfjnn0fnn3u4n8328y2u",
+      "taproot": "bc1pufw90daxy8x3q9xwrmu0ckeud302mj88q5dvr6r0xnf9fqjkjlzsyj5ttf",
+      "p2sh": "3A6uvRadkfuwRKhF9JqDq8nYv19Aw4NkMw",
+      "legacy": "13NKCcu61GRV7tYjXT3LJ6pGiBq8s1rVW4"
+     }
+    },
+    {
+     "chain": "btc",
+     "account": 1,
+     "template": "m/44'/145'/{n}'/0/0",
+     "path": "m/44'/145'/1'/0/0",
+     "addresses": {
+      "native": "bc1qyx7gpcwwdqf4q52v0y48k8pmw9etdp49lzr5p7",
+      "taproot": "bc1p2xkreghcmqrfppey83s0rzj2fh95c3tpvaavs9u2fz39vjy65cqsc8tf78",
+      "p2sh": "36Mjfqtr45LePK29wqCxnCBv6v74PD3gLc",
+      "legacy": "145P7nCwq6q6U7Yuw7dhTPvMJsX5M87vaT"
+     }
+    },
+    {
+     "chain": "btc",
+     "account": 1,
+     "template": "m/44'/60'/0'/0/{n}",
+     "path": "m/44'/60'/0'/0/1",
+     "addresses": {
+      "native": "bc1qkffs9e9jzdlnmpk025zgklzd0kpcapzaryywkr",
+      "taproot": "bc1p255jm74yvz5z0hk2jk4mmj3cxy5l02tr7dvweqq55u8y5w036evqsq53hf",
+      "p2sh": "37jwSpUyMLBrgH8Q6sCdMDQGTqDUDmsuSB",
+      "legacy": "1HFtisb5rwGvD3kGuUbV4a4d9mrHDM4BwS"
+     }
+    },
+    {
+     "chain": "btc",
+     "account": 1,
+     "template": "m/44'/195'/0'/0/{n}",
+     "path": "m/44'/195'/0'/0/1",
+     "addresses": {
+      "native": "bc1qsf2u7g9vu6tmfupfqlswfqpsumpr05pg0frhwm",
+      "taproot": "bc1p0u43hadt50aal8e52n4zd8r27zvv266tdre97z0t4s43vtc9xwvsu65y4w",
+      "p2sh": "3JBMoF6bidPGGBMD7cMdBJMroTGgD7erGM",
+      "legacy": "1Ct9e4Nq5TLJ9KjHWjz3db4kJCHYgAPKeR"
+     }
+    },
+    {
+     "chain": "eth",
+     "account": 1,
+     "template": "m/44'/60'/0'/0/{n}",
+     "path": "m/44'/60'/0'/0/1",
+     "address": "0x6Fac4D18c912343BF86fa7049364Dd4E424Ab9C0"
+    },
+    {
+     "chain": "eth",
+     "account": 1,
+     "template": "m/44'/60'/{n}'/0/0",
+     "path": "m/44'/60'/1'/0/0",
+     "address": "0x78839F6054d7ed13918bAe0473BA31b1Ca9D7265"
+    },
+    {
+     "chain": "eth",
+     "account": 1,
+     "template": "m/44'/60'/0'/{n}",
+     "path": "m/44'/60'/0'/1",
+     "address": "0x94381955F4028159A477a107510618aDb6B79Eb7"
+    },
+    {
+     "chain": "eth",
+     "account": 1,
+     "template": "m/44'/0'/0'/0/{n}",
+     "path": "m/44'/0'/0'/0/1",
+     "address": "0x278B715B7fe8b060a92c3259927a1E9AC5A9524F"
+    },
+    {
+     "chain": "eth",
+     "account": 1,
+     "template": "m/44'/195'/0'/0/{n}",
+     "path": "m/44'/195'/0'/0/1",
+     "address": "0xb6E708a39781c96Bd399C7657780Ff9Fe9F052A8"
+    },
+    {
+     "chain": "trx",
+     "account": 1,
+     "template": "m/44'/195'/0'/0/{n}",
+     "path": "m/44'/195'/0'/0/1",
+     "address": "TSeJkUh4Qv67VNFwY8LaAxERygNdy6NQZK"
+    },
+    {
+     "chain": "trx",
+     "account": 1,
+     "template": "m/44'/195'/{n}'/0/0",
+     "path": "m/44'/195'/1'/0/0",
+     "address": "TLrpNTBuCpGMrB9TyVwgEhNVRhtWEQPHh4"
+    },
+    {
+     "chain": "trx",
+     "account": 1,
+     "template": "m/44'/60'/0'/0/{n}",
+     "path": "m/44'/60'/0'/0/1",
+     "address": "TL9gR3f4FgNa9VZAsPt6xuKXPrfWAUJ5MW"
+    },
+    {
+     "chain": "trx",
+     "account": 1,
+     "template": "m/44'/0'/0'/0/{n}",
+     "path": "m/44'/0'/0'/0/1",
+     "address": "TDaJQCL7DM9d4GgxYAEhMutLKuaFcaNiAR"
+    },
+    {
+     "chain": "sol",
+     "account": 1,
+     "template": "m/44'/501'/{n}'/0'",
+     "path": "m/44'/501'/1'/0'",
+     "address": "Hh8QwFUA6MtVu1qAoq12ucvFHNwCcVTV7hpWjeY1Hztb"
+    },
+    {
+     "chain": "sol",
+     "account": 1,
+     "template": "m/44'/501'/{n}'",
+     "path": "m/44'/501'/1'",
+     "address": "ANf3TEKFL6jPWjzkndo4CbnNdUNkBk4KHPggJs2nu8Xi"
+    },
+    {
+     "chain": "btc",
+     "account": 4,
+     "template": "m/84'/0'/{n}'/0/0",
+     "path": "m/84'/0'/4'/0/0",
+     "addresses": {
+      "native": "bc1q8nxmfxqj5wkyssjd430twsh44sgg3chnzrey92",
+      "taproot": "bc1p3ha9jkq3ve28348wc5j8l0jx3l35q8ptr9j0egf7h22lma4f4lss7uvazv",
+      "p2sh": "3LDbTmyviRrUdGo5EmasudmmUZMkYGF5uL",
+      "legacy": "16YVyB8qH2muozCyZ7MokFMZBCUJj1Lxnv"
+     }
+    },
+    {
+     "chain": "btc",
+     "account": 4,
+     "template": "m/86'/0'/{n}'/0/0",
+     "path": "m/86'/0'/4'/0/0",
+     "addresses": {
+      "native": "bc1qjv2qje9mvw23wewk8cxn9jdthj3cmunpv5wuxx",
+      "taproot": "bc1p2e7zq8xcjq05qwtemm2tafepeq5g7sf7ef6jlwdpgqz8x5y2ns3sr9tstm",
+      "p2sh": "34Np4Jz6KAzChX1LzBdrg7noVSGt52otrN",
+      "legacy": "1EQgLNdXpmHY1yEhXGVutzFt3w9EPzxoKA"
+     }
+    },
+    {
+     "chain": "btc",
+     "account": 4,
+     "template": "m/49'/0'/{n}'/0/0",
+     "path": "m/49'/0'/4'/0/0",
+     "addresses": {
+      "native": "bc1qzfzk24ucnaatnz7x3c67gp5e6daauhg8ws45zm",
+      "taproot": "bc1p709hkh92ctw2npzcqh9dwh50fg380l0yg8thqsy4fffhnccfwaks4q7ahp",
+      "p2sh": "3MKpfHg8KQB9nhjHiW6BaWDYyVQMR7nHVR",
+      "legacy": "12fcJAREfiy4dKKbjXzD7rbPK1XEjQDFtd"
+     }
+    },
+    {
+     "chain": "btc",
+     "account": 4,
+     "template": "m/44'/0'/{n}'/0/0",
+     "path": "m/44'/0'/4'/0/0",
+     "addresses": {
+      "native": "bc1qwcx95ktg0d4jqyecvdy35tl0yvhj6ql9eelzje",
+      "taproot": "bc1pdeak343r4th8jsca09n67tc3357c0a752e2zc03qqlqdvc6s39ysqe365c",
+      "p2sh": "3HFFiKF49JbDsvkXMTFHHNBKn1Az3wJeEt",
+      "legacy": "1BmBXw5Z372eK8T7hqMaVBinYZN2PiDbHi"
+     }
+    },
+    {
+     "chain": "btc",
+     "account": 4,
+     "template": "m/84'/0'/{n}'/1/0",
+     "path": "m/84'/0'/4'/1/0",
+     "addresses": {
+      "native": "bc1q4weukw88mch53uvvh8k0vghjue4acar406gg6t",
+      "taproot": "bc1pslvqkcvacfun56a0xuwh3kv8fta4ej4py7kzp02zktw4e74m600qp33alr",
+      "p2sh": "3Fkj7LNsf4qepadJZJvWwZW1NaVJbodsnH",
+      "legacy": "1Gesw6g22cjbFikaC28EBpRCJAR1ztjjgh"
+     }
+    },
+    {
+     "chain": "btc",
+     "account": 4,
+     "template": "m/0'/0/{n}",
+     "path": "m/0'/0/4",
+     "addresses": {
+      "native": "bc1q8mqhxqmnhp2e2em85dn9vfmqceczyyum4zpmuz",
+      "taproot": "bc1pu6aed6jpvdzsglwck4tzkd7ay788va2jez7l7hjydpus7tfgs2qsx67vqm",
+      "p2sh": "359uMvJhCME5GGuTajSw4aTCBoTafd1uvQ",
+      "legacy": "16ipdz6sHrPWFbatC4nyT56rxdvaLNTmcr"
+     }
+    },
+    {
+     "chain": "btc",
+     "account": 4,
+     "template": "m/0'/0'/{n}'",
+     "path": "m/0'/0'/4'",
+     "addresses": {
+      "native": "bc1qydj0c90vvjqclll5aa6rfx2lwc22kvnjq0p5v9",
+      "taproot": "bc1padaeupw9rr2kqqmk62fg73yjuxgrjemexf4txs79mu660dls65hqt8unu6",
+      "p2sh": "3D3qVWyTjxqteozFSFfgmuCJK6RdyttYrJ",
+      "legacy": "14E9dFmnD5PH46yHG8wYvyg22ATR6Rsn3E"
+     }
+    },
+    {
+     "chain": "btc",
+     "account": 4,
+     "template": "m/84'/0'/2147483646'/0/{n}",
+     "path": "m/84'/0'/2147483646'/0/4",
+     "addresses": {
+      "native": "bc1ql7h356u4uwweh8e55637zuqlrzsqquqe5ehgeg",
+      "taproot": "bc1pkj9mtr6qa4m638kj3w6ctmktdt2sd89a7ncqwqllkd3husvju6csykjmmf",
+      "p2sh": "36yWrDSmcR99x3ND9hCq7TCNwJzePJEMWH",
+      "legacy": "1QJw5JSTSpsPQ8HGNa8BRi25ZnTks2oQpG"
+     }
+    },
+    {
+     "chain": "btc",
+     "account": 4,
+     "template": "m/84'/0'/2147483645'/0/{n}",
+     "path": "m/84'/0'/2147483645'/0/4",
+     "addresses": {
+      "native": "bc1qncfvdm2sffr9qsxy7hq8vmqvcylcrn5f8k4pxv",
+      "taproot": "bc1py85e3x000lqj6fynepdyvu5welcxlq49sauucytsu8xeljzwlc8smkt9az",
+      "p2sh": "39nXkyR8TjAcXJTmuL32R6uw4BQe3vNb3k",
+      "legacy": "1FQpFxoYStA6szgSLVRSvb2fKVWkEnpzK3"
+     }
+    },
+    {
+     "chain": "btc",
+     "account": 4,
+     "template": "m/44'/145'/{n}'/0/0",
+     "path": "m/44'/145'/4'/0/0",
+     "addresses": {
+      "native": "bc1qcc0w3te9l62ttxjn2l8mg06uuwjhdl7cem8zkh",
+      "taproot": "bc1pa0ffhz5jar3xxz5rk7dtje3a0df3rsw4nk2dp4fce7wdx33x0p8sn3vm7l",
+      "p2sh": "3FrKNc5nQ78x3AvrVmLV1sr7sXEFHEdSV2",
+      "legacy": "1K4ZpaBFNYYbrUeARQhEf35RsG2ZTKp1ew"
+     }
+    },
+    {
+     "chain": "btc",
+     "account": 4,
+     "template": "m/44'/60'/0'/0/{n}",
+     "path": "m/44'/60'/0'/0/4",
+     "addresses": {
+      "native": "bc1qmyakvm3nhf2w4w2v7a2apdjdnumvnjl9lwes09",
+      "taproot": "bc1pl5xnynax22v6kwt0n3z6dadwv64fxcgmsq3aa7kna33grd28x0ysckhn2x",
+      "p2sh": "3Q2V7BxBLUKtFMnJa28xXwuvLG1wwQyLGc",
+      "legacy": "1LocnpYu8GSCNUhR5GSVe6CB9nu4gAsknE"
+     }
+    },
+    {
+     "chain": "btc",
+     "account": 4,
+     "template": "m/44'/195'/0'/0/{n}",
+     "path": "m/44'/195'/0'/0/4",
+     "addresses": {
+      "native": "bc1qvp22ee3p4h7k0yua5ujz0nd7rgnhyf36dq4c9j",
+      "taproot": "bc1ptt3hxm0tuvr0s6v5x99nfza603phx7yf2had0a0fjmjhrrpxneaqqwge7d",
+      "p2sh": "3Gmvor995aJW9qn7XR5jXEdaxN5nWuvQJG",
+      "legacy": "19nMJmMWjBQyCZfBXdWL4iFjRPLdhHWmHN"
+     }
+    },
+    {
+     "chain": "eth",
+     "account": 4,
+     "template": "m/44'/60'/0'/0/{n}",
+     "path": "m/44'/60'/0'/0/4",
+     "address": "0x51cA8ff9f1C0a99f88E86B8112eA3237F55374cA"
+    },
+    {
+     "chain": "eth",
+     "account": 4,
+     "template": "m/44'/60'/{n}'/0/0",
+     "path": "m/44'/60'/4'/0/0",
+     "address": "0xB9506F020318c2ECA294e0557222511f1e5333CB"
+    },
+    {
+     "chain": "eth",
+     "account": 4,
+     "template": "m/44'/60'/0'/{n}",
+     "path": "m/44'/60'/0'/4",
+     "address": "0x1905d2B47C7cAD0d85d01F587FeB6E1431EBdDeb"
+    },
+    {
+     "chain": "eth",
+     "account": 4,
+     "template": "m/44'/0'/0'/0/{n}",
+     "path": "m/44'/0'/0'/0/4",
+     "address": "0x1111208f65e371cD0e3702Bcb122534ECE9A3422"
+    },
+    {
+     "chain": "eth",
+     "account": 4,
+     "template": "m/44'/195'/0'/0/{n}",
+     "path": "m/44'/195'/0'/0/4",
+     "address": "0xBb1A70862E804Bfe2885F6c7EfC8fDF3f0148b00"
+    },
+    {
+     "chain": "trx",
+     "account": 4,
+     "template": "m/44'/195'/0'/0/{n}",
+     "path": "m/44'/195'/0'/0/4",
+     "address": "TT2X2yyubp7qpAWYYNE5JQWBtoZ7ikQFsY"
+    },
+    {
+     "chain": "trx",
+     "account": 4,
+     "template": "m/44'/195'/{n}'/0/0",
+     "path": "m/44'/195'/4'/0/0",
+     "address": "TFfZS8zcchRR2GDXnSbAKrKqDfiPWVkrG7"
+    },
+    {
+     "chain": "trx",
+     "account": 4,
+     "template": "m/44'/60'/0'/0/{n}",
+     "path": "m/44'/60'/0'/0/4",
+     "address": "THRgPszrEK88w9Gq2156vJSV73g9s1N4q4"
+    },
+    {
+     "chain": "trx",
+     "account": 4,
+     "template": "m/44'/0'/0'/0/{n}",
+     "path": "m/44'/0'/0'/0/4",
+     "address": "TBXT1LZJq9Ts9yHQc6KvmAXbNRu4W2A6i9"
+    },
+    {
+     "chain": "sol",
+     "account": 4,
+     "template": "m/44'/501'/{n}'/0'",
+     "path": "m/44'/501'/4'/0'",
+     "address": "6nod592sTfEWD3VSVPdQndLMVBCNmMc6ngt7MyGBK21j"
+    },
+    {
+     "chain": "sol",
+     "account": 4,
+     "template": "m/44'/501'/{n}'",
+     "path": "m/44'/501'/4'",
+     "address": "4w6V162fV7HJQNma7vZvxjunqmkie8hM2x1DqaFQqxqL"
+    }
+   ],
+   "change": {
+    "native/0/0": [
+     "bc1qcr8te4kr609gcawutmrza0j4xv80jy8z306fyu",
+     "bc1qnjg0jd8228aq7egyzacy8cys3knf9xvrerkf9g",
+     "bc1qp59yckz4ae5c4efgw2s5wfyvrz0ala7rgvuz8z",
+     "bc1qgl5vlg0zdl7yvprgxj9fevsc6q6x5dmcyk3cn3",
+     "bc1qm97vqzgj934vnaq9s53ynkyf9dgr05rargr04n"
+    ],
+    "native/0/1": [
+     "bc1q8c6fshw2dlwun7ekn9qwf37cu2rn755upcp6el",
+     "bc1qggnasd834t54yulsep6fta8lpjekv4zj6gv5rf",
+     "bc1qn8alfh45rlsj44pcdt0f2cadtztgnz4gq3h3uf",
+     "bc1qv6vaedpeke2lxr3q0wek8dd7nzhut9w0eqkz9z",
+     "bc1qetrkzfslk0d4kqjnu29fdh04tkav9vj3k36vuh"
+    ],
+    "native/1/0": [
+     "bc1qku0qh0mc00y8tk0n65x2tqw4trlspak0fnjmfz",
+     "bc1qx0tpa0ctsy5v8xewdkpf69hhtz5cw0rf5uvyj6",
+     "bc1qtyhvpd5mlhuvcwhsy976ayq2ewa9pa6ljgt7z5",
+     "bc1qkgq9enypv0vm7fxmfxd8yfz95vtsuwkm5mpr90",
+     "bc1qr09satsldcqr08e2pclrlnx2edu7w4308ccmdl"
+    ],
+    "native/1/1": [
+     "bc1qt0x83f5vmnapgl2gjj9r3d67rcghvjaqrvgpck",
+     "bc1qa7mufelw8xtut05n0pt8cn7dwfy99lhwxp93yf",
+     "bc1q5zg8q73m6mdqnra9ut8taan3derlhgjmt0lev8",
+     "bc1q2zk22fcn0mxwhn70gr2rhnhdmallg4cg6fntdw",
+     "bc1quj9q7jm4sxng8qdgc0ayq9qslaynyx93ay5k7p"
+    ],
+    "taproot/0/0": [
+     "bc1p5cyxnuxmeuwuvkwfem96lqzszd02n6xdcjrs20cac6yqjjwudpxqkedrcr",
+     "bc1p4qhjn9zdvkux4e44uhx8tc55attvtyu358kutcqkudyccelu0was9fqzwh",
+     "bc1p0d0rhyynq0awa9m8cqrcr8f5nxqx3aw29w4ru5u9my3h0sfygnzs9khxz8",
+     "bc1py0vryk8aqusz65yzuudypggvswzkcpwtau8q0sjm0stctwup0xlqkkxler",
+     "bc1pjpp8nwqvhkx6kdna6vpujdqglvz2304twfd308ve5ppyxpmcjufs7k6xyr"
+    ],
+    "taproot/0/1": [
+     "bc1p3qkhfews2uk44qtvauqyr2ttdsw7svhkl9nkm9s9c3x4ax5h60wqwruhk7",
+     "bc1ptdg60grjk9t3qqcqczp4tlyy3z47yrx9nhlrjsmw36q5a72lhdrs9f00nj",
+     "bc1pgcwgsu8naxp7xlp5p7ufzs7emtfza2las7r2e7krzjhe5qj5xz2q88kmk5",
+     "bc1pmfz8mvmmqhlw58hmfa6h6au0ulglhjhzzj2628kn95eqtc20rp6s28077a",
+     "bc1p7j0q2qrex3pm4hat5lwyjez8tf3jwq0rxdexxted37ddzhck492qas3wav"
+    ],
+    "taproot/1/0": [
+     "bc1pkq6ayylfpe5hn05550ry25pkakuf72x9qkjc2sl06dfcet8sg25q9y3j3y",
+     "bc1pqfhqcv85tqvlzhxcdde06k5arfkyyz6tvf9x03v2mgy2w25qpmjstejna5",
+     "bc1p2dxtdr9efk8wzl0mrwajgudacacrpvr5w772wd8wya0lxu4a5qnqgjvmgv",
+     "bc1pnacmdf5ppsv9mqnuanthyyrxvvws09eke69gwsas8nzx9jreppfqjkaz79",
+     "bc1pvajfrnl2vqpka56phktmxw7cy4t207q2evkqrzehrc6rk0qle5vsadv5f2"
+    ],
+    "taproot/1/1": [
+     "bc1phkewflmppg0ntjqdv7688xmpqmasfw3wqn96vcuzqw4h6znz98ysxmc2wg",
+     "bc1p4zyevqmkr5rpltsanwdsjcsfgf60cqf6jaw06a6g2z6lw6w5hdyq243zeh",
+     "bc1p6ek90r9knljt0j6k8yafuegcj2r7wfcpqal0dgaruc50g696hawsh2t6kq",
+     "bc1psfn3pa5z78hww975gqstl5zvml6x9u43snwdvqkm08l76cpc3yws2dz4u3",
+     "bc1p3cjfcgu8qrgyce6vn0lhklytk5mvvj4f7ghj4dcm5xqhgv2299pq47uscg"
+    ],
+    "p2sh/0/0": [
+     "37VucYSaXLCAsxYyAPfbSi9eh4iEcbShgf",
+     "3LtMnn87fqUeHBUG414p9CWwnoV6E2pNKS",
+     "3B4cvWGR8X6Xs8nvTxVUoMJV77E4f7oaia",
+     "38CahkVftQneLonbWtfWxiiaT2fdnzsEAN",
+     "37mbeJptxfQC6SNNLJ9a8efCY4BwBh5Kak"
+    ],
+    "p2sh/0/1": [
+     "34K56kSjgUCUSD8GTtuF7c9Zzwokbs6uZ7",
+     "3516F2wmK51jVRrggEJsTUBNWMSLLjzvJ2",
+     "3Grd7y95JEDTSh9uiVF5q7z2qGzmkP19CV",
+     "3NUH31YRjTtc7LVJwiouhqpYt26Nn6sM9z",
+     "3BEtJydjKS1FxBhjY2yX4qsxWtQFgSPxCr"
+    ],
+    "p2sh/1/0": [
+     "35eszW2wmZ4hn7hfG5LGqxw5xCPjZcEJPM",
+     "323g91YR7r6FWKF8SegvykHdmy5S2AVTv2",
+     "3GybRPvexiu1JVFJDprYksa1SgWqdDNBib",
+     "35sYkzd7iF6RypJgaLfnWL7oUDcjg2br5A",
+     "34Cqpywg42Bp4AyyMHoMwnvquzoqsxtqv7"
+    ],
+    "p2sh/1/1": [
+     "35gZZo6xPJEPgcz1cj1mTQHRMiPP97NGRY",
+     "36hqYANqZqaaHPoAorLwNAMyAoEFb8L74T",
+     "3MzMw4ie283VwnzQRopz4FkPfma4dTasZ4",
+     "385ev1HXXn6huYeeWRKvx6PWqAaMTLPxC1",
+     "3My4odoqqGLAX8vJmAWPoCZ73xyfUFewPg"
+    ],
+    "legacy/0/0": [
+     "1LqBGSKuX5yYUonjxT5qGfpUsXKYYWeabA",
+     "1Ak8PffB2meyfYnbXZR9EGfLfFZVpzJvQP",
+     "1MNF5RSaabFwcbtJirJwKnDytsXXEsVsNb",
+     "1MVGa13XFvvpKGZdX389iU8b3qwtmAyrsJ",
+     "1Gka4JdwhLxRwXaC6oLNH4YuEogeeSwqW7"
+    ],
+    "legacy/0/1": [
+     "1J3J6EvPrv8q6AC3VCjWV45Uf3nssNMRtH",
+     "13vKxXzHXXd8HquAYdpkJoi9ULVXUgfpS5",
+     "1M21Wx1nGrHMPaz52N2En7c624nzL4MYTk",
+     "1DzVLMA4HzjXPAr6aZoaacDPHXXntsZ2zL",
+     "16HBKhLAkBRFsnxTLLUix5vzJ2tGa1HqKk"
+    ],
+    "legacy/1/0": [
+     "15qucUWKf95Fo58FdCBhUTSAtsm22HHE2Q",
+     "1Gb9eQ8tqEd1dHQEU2JB5V6p7C4ivQyBDq",
+     "1ySUqih8WWYVRidAnfcH3PwgCAFjRx2q9",
+     "167ZsDiE8GyMVKcMT4cnv2fbCTfYzZ6qMH",
+     "1MxKfDfK9WkJN5sFoK1W3od5M1ZEkpo2T5"
+    ],
+    "legacy/1/1": [
+     "1DgjtFUiXvqxGic9A9fiDPrHNyKC4cGtTH",
+     "1EvGSTEPFTx6CBXUum8evW5nXFE5VNSNSf",
+     "1q9nNhaQQshJTu3HiEPKAmGqH3Ytdjcc4",
+     "1GbfPnNKuK4qKJMM7M2M6DXbS9GH6n8y6N",
+     "1PkfCgkJ2cFpP8rPHtaRmUPrbKfFxJkesf"
+    ]
+   },
+   "solSeedBytes": "EHqmfkN89RJ7Y33CXM6uCzhVeuywHoJXZZLszBHHZy7o",
+   "solSollet": {
+    "0": "FTt72dUEL1X9pPs9V9q4Eh5ejKXEbPD6snaHSQAmnJGU",
+    "1": "F1QLGD7iJPG7Lb9kzxd9JZ9QT3wtqkS6b7b5oXxpue99",
+    "4": "7Jrk34tBFJGorR9syCxEWq5Q3zwpmozSEo8Um2bGuvtJ"
+   }
+  },
+  {
+   "mnemonic": "legal winner thank year wave sausage worth useful legal winner thank yellow",
+   "passphrase": "TREZOR",
+   "paths": [
+    {
+     "chain": "btc",
+     "account": 0,
+     "template": "m/84'/0'/{n}'/0/0",
+     "path": "m/84'/0'/0'/0/0",
+     "addresses": {
+      "native": "bc1qcgphwddfcv5pax0agdw697rd8ewde8r02nwrex",
+      "taproot": "bc1pgn2zyxgrnpsx28ury95m3pak6grnmq80x2h70rr4yut826klry3s24xx5k",
+      "p2sh": "3LC5C7KTjAhx4bqXdHVYQgoctuAxotbPxt",
+      "legacy": "1JgrF1ncaH7dLWwJsBkGaEcDoqjpNWaZKz"
+     }
+    },
+    {
+     "chain": "btc",
+     "account": 0,
+     "template": "m/86'/0'/{n}'/0/0",
+     "path": "m/86'/0'/0'/0/0",
+     "addresses": {
+      "native": "bc1qnk6dl29sj6z9l26fzf75yplnytgqg7l2xk6t88",
+      "taproot": "bc1py95g80zqw74m0tcy8dhnmhqcgty36tfrfunu908tmnk9xslvy62sfgpnqr",
+      "p2sh": "3BFbXiFYHkr9m2nvgxRg1VXazxA81Yv6xg",
+      "legacy": "1FNsmSXbtf4WGkmPbPopd2DasLZ6Vfbuoh"
+     }
+    },
+    {
+     "chain": "btc",
+     "account": 0,
+     "template": "m/49'/0'/{n}'/0/0",
+     "path": "m/49'/0'/0'/0/0",
+     "addresses": {
+      "native": "bc1qy7qqzwk2c5pqytjzalmmypwfa45km3fe8m9qq9",
+      "taproot": "bc1pk8lu2aevfu4h8pe8q9ud45vnje3alw4ehv8zdt4z02vr8sjcasxsaulkq5",
+      "p2sh": "3HLYoykVrarXnoJF1fwu5YV7EzZiihQr5R",
+      "legacy": "14brhQqkbYhQArdYNSctVhFpFjt4gpqb8X"
+     }
+    },
+    {
+     "chain": "btc",
+     "account": 0,
+     "template": "m/44'/0'/{n}'/0/0",
+     "path": "m/44'/0'/0'/0/0",
+     "addresses": {
+      "native": "bc1q2z30tm2v0sezzc0dkrhmwqxcjeylpqxnyra3f8",
+      "taproot": "bc1p3dh9vcmaj0ezdjyargnj6zx4cq5snr42gz4wfyq68e463clskf0qleam04",
+      "p2sh": "381apshmvaH5F38yXD5nQHr3EMdv8AfQ4M",
+      "legacy": "18MNH3xiSXsYNYxCvwQ6JouW2RkWwStSwy"
+     }
+    },
+    {
+     "chain": "btc",
+     "account": 0,
+     "template": "m/84'/0'/{n}'/1/0",
+     "path": "m/84'/0'/0'/1/0",
+     "addresses": {
+      "native": "bc1qx5up40p2e9ytmrrzscmth6eyz4pyh9hyf9vtsu",
+      "taproot": "bc1p956na5ay9t9ugt4jzsc2lmp2s7m40mj79t5rda6r3wexslxu652qe604zl",
+      "p2sh": "3Hved4w75wUVYedsi5NDoYExFMRSzSMsPf",
+      "legacy": "15rQ2NYQmeCRHnThZ9CxonyhY39JPWNpTr"
+     }
+    },
+    {
+     "chain": "btc",
+     "account": 0,
+     "template": "m/0'/0/{n}",
+     "path": "m/0'/0/0",
+     "addresses": {
+      "native": "bc1qdnnseyrl54pfp87y8j4rvtq6yq7fsm6necpel5",
+      "taproot": "bc1p45l5c0j0y4nku99ez82a82h463w9gepztyh949ctaqqdapv5p8gq5lec2n",
+      "p2sh": "37pTpmDkEm8zqZTg4bo7rGphdo8X7vMvGE",
+      "legacy": "1AvpmHmr27mP8fQmwwoyJuzooNVQQ5wiwA"
+     }
+    },
+    {
+     "chain": "btc",
+     "account": 0,
+     "template": "m/0'/0'/{n}'",
+     "path": "m/0'/0'/0'",
+     "addresses": {
+      "native": "bc1qkfhhcm8rswd7nuts6jqga2lq5ypfrmmm38c79x",
+      "taproot": "bc1p7gfs9dzu7q4qe34l2ra3qsc9h6g7cua062202ltwjjvpegta4t5s2npg3q",
+      "p2sh": "3LFUkxzHsRvTB5WPQpFPpaTKsQwdPPTN8K",
+      "legacy": "1HGUqLDwCZDKzgxV1dTAcCsrzLBY3fMkaf"
+     }
+    },
+    {
+     "chain": "btc",
+     "account": 0,
+     "template": "m/84'/0'/2147483646'/0/{n}",
+     "path": "m/84'/0'/2147483646'/0/0",
+     "addresses": {
+      "native": "bc1qn5lneac20s4uw99h8xlq46yzhgm7rzue00juqj",
+      "taproot": "bc1pvnjkzva9ypmvlh9kjcqwhjuu3re9zmugheddqkv99np9ea6z3mrq992n5f",
+      "p2sh": "3FHdQZ7mjMw288r2TnD3UUoEn9RP7KEim7",
+      "legacy": "1FLSqyt36o4sVBhTLMQzpvEXPwnnU7gEJx"
+     }
+    },
+    {
+     "chain": "btc",
+     "account": 0,
+     "template": "m/84'/0'/2147483645'/0/{n}",
+     "path": "m/84'/0'/2147483645'/0/0",
+     "addresses": {
+      "native": "bc1qjntfmpnwvfr73ncwh8rglqrewr0u2pftcqqwcs",
+      "taproot": "bc1p85tn9zw8x0sfqgp90kcjnss6sdwac0h45zlrrajw3xzecjwsrpdse565pl",
+      "p2sh": "3DWtx5K7yEuMBgge8MvzEywJJAYbd6Nce2",
+      "legacy": "1EZz78HbwVNN9rzrg6y3Zgjz9jnKVDXvsn"
+     }
+    },
+    {
+     "chain": "btc",
+     "account": 0,
+     "template": "m/44'/145'/{n}'/0/0",
+     "path": "m/44'/145'/0'/0/0",
+     "addresses": {
+      "native": "bc1q5x64faneq6wtf6mumn4c9z9ecs4g0epe80qstp",
+      "taproot": "bc1p9zxr83v8hrqd0khq77xv4lhhg9p004cjp6d2wqz02lrhv0lk0crsww4ka6",
+      "p2sh": "3H9nih8R8Nd44Y6Srprow6XuQK8YXzkBUy",
+      "legacy": "1Fk323cQGxPYU4kWp5ZhexmCRBnBTCe96W"
+     }
+    },
+    {
+     "chain": "btc",
+     "account": 0,
+     "template": "m/44'/60'/0'/0/{n}",
+     "path": "m/44'/60'/0'/0/0",
+     "addresses": {
+      "native": "bc1qurl7k8fqwt02qnncdjmclmu2ns2hpp9kcztm6n",
+      "taproot": "bc1p9vekva9yzwkw0kxl53ta4q9229xnvme043xdrzpw0z00620gpk0quxlsty",
+      "p2sh": "3AAfuhHxBJsJHBcQCgi3G6nP1yxe5tG4uN",
+      "legacy": "1MWgwVbmSamCNNgMLC1fWtV1Ebfv7fRzSd"
+     }
+    },
+    {
+     "chain": "btc",
+     "account": 0,
+     "template": "m/44'/195'/0'/0/{n}",
+     "path": "m/44'/195'/0'/0/0",
+     "addresses": {
+      "native": "bc1qfpycglvsk66smmuqmpe3g7h3tpapaunzzr3vk2",
+      "taproot": "bc1pkxjsjhrvq59gnguuqz4qkzf2el78vhe027vdt4yguy4wwq46zgwqjxd5za",
+      "p2sh": "39m8YcvRVukytvT83LGZSn81yUPKKkZYzV",
+      "legacy": "17bDiuCtxCpTkc3ZSrLnVx1VUYzNn3nMQp"
+     }
+    },
+    {
+     "chain": "eth",
+     "account": 0,
+     "template": "m/44'/60'/0'/0/{n}",
+     "path": "m/44'/60'/0'/0/0",
+     "address": "0x6006ef1944FB519A746d00cDAf715Cbd27a5a008"
+    },
+    {
+     "chain": "eth",
+     "account": 0,
+     "template": "m/44'/60'/{n}'/0/0",
+     "path": "m/44'/60'/0'/0/0",
+     "address": "0x6006ef1944FB519A746d00cDAf715Cbd27a5a008"
+    },
+    {
+     "chain": "eth",
+     "account": 0,
+     "template": "m/44'/60'/0'/{n}",
+     "path": "m/44'/60'/0'/0",
+     "address": "0x025aC2F2bBD256F077765d44a9B27347A9DF1927"
+    },
+    {
+     "chain": "eth",
+     "account": 0,
+     "template": "m/44'/0'/0'/0/{n}",
+     "path": "m/44'/0'/0'/0/0",
+     "address": "0x1394fb99d7DF170a21C35b1ffd07796aF9A722a4"
+    },
+    {
+     "chain": "eth",
+     "account": 0,
+     "template": "m/44'/195'/0'/0/{n}",
+     "path": "m/44'/195'/0'/0/0",
+     "address": "0x719c641fE56E63d6c36889990B0F57bC80eab520"
+    },
+    {
+     "chain": "trx",
+     "account": 0,
+     "template": "m/44'/195'/0'/0/{n}",
+     "path": "m/44'/195'/0'/0/0",
+     "address": "TLKvhyqakrxrN5SYXFpLETSyHvy4QMS84L"
+    },
+    {
+     "chain": "trx",
+     "account": 0,
+     "template": "m/44'/195'/{n}'/0/0",
+     "path": "m/44'/195'/0'/0/0",
+     "address": "TLKvhyqakrxrN5SYXFpLETSyHvy4QMS84L"
+    },
+    {
+     "chain": "trx",
+     "account": 0,
+     "template": "m/44'/60'/0'/0/{n}",
+     "path": "m/44'/60'/0'/0/0",
+     "address": "TJixBFoc437Cwz6H7YS3LEdadcjKeYsPLT"
+    },
+    {
+     "chain": "trx",
+     "account": 0,
+     "template": "m/44'/0'/0'/0/{n}",
+     "path": "m/44'/0'/0'/0/0",
+     "address": "TBkkKDD96S1jUPpnF1fRXCi9bSmjDNVrR9"
+    },
+    {
+     "chain": "sol",
+     "account": 0,
+     "template": "m/44'/501'/{n}'/0'",
+     "path": "m/44'/501'/0'/0'",
+     "address": "AzshxZEXxrMd9UHDsAQWbVYa1aMDchbh9BFrDa5KgiJN"
+    },
+    {
+     "chain": "sol",
+     "account": 0,
+     "template": "m/44'/501'/{n}'",
+     "path": "m/44'/501'/0'",
+     "address": "DPaQFaSTXE1KpXwbbGE7aHLe1DwDCvG9tVo2Z16Lp6Fc"
+    },
+    {
+     "chain": "sol",
+     "account": 0,
+     "template": "m/44'/501'",
+     "path": "m/44'/501'",
+     "address": "A5tbenYxwsEL4NXbmfYVwTXDQSmUa7D9yMxPJmqJA1oN"
+    },
+    {
+     "chain": "btc",
+     "account": 1,
+     "template": "m/84'/0'/{n}'/0/0",
+     "path": "m/84'/0'/1'/0/0",
+     "addresses": {
+      "native": "bc1q0gfe0nu5ms9juvvvjd0qnmpesgxrnj9kzeegag",
+      "taproot": "bc1p93r49gltg0szfr94drufqhs064rn6dkv266p7feyy3utv29w88hsuhuxzp",
+      "p2sh": "38QcPNumQ4yTx2wvG44rfzTDvQDDr8Qz6d",
+      "legacy": "1C8UukUdwpS7T7hsyqaeAJ7MPdVJopetZR"
+     }
+    },
+    {
+     "chain": "btc",
+     "account": 1,
+     "template": "m/86'/0'/{n}'/0/0",
+     "path": "m/86'/0'/1'/0/0",
+     "addresses": {
+      "native": "bc1qgvm5dvj6ma9a979kj6ea2u9ttvkytldwtp93tt",
+      "taproot": "bc1pap7vpk222vqlqmcnktcxveuyds0nynzkzg44ud06j279pdy5u20s5dlmf9",
+      "p2sh": "38psAyKSGRciDjqH7DrzUncx6G36PpyZTZ",
+      "legacy": "178QVWSDRdPKvCFvVRhKqarBbwnhsWMSXm"
+     }
+    },
+    {
+     "chain": "btc",
+     "account": 1,
+     "template": "m/49'/0'/{n}'/0/0",
+     "path": "m/49'/0'/1'/0/0",
+     "addresses": {
+      "native": "bc1q39zpvcd4ep6fqm8xy4knulwnwdhgkqrgejvc2n",
+      "taproot": "bc1phn92dmzlnw5v6636dx6jurv08y3ep6mt97wk4ccwrdz3209jucws84muaj",
+      "p2sh": "3LMAFcChtiD8zCAJHv8umCuXb2LkCF4u5e",
+      "legacy": "1DWo95YAxj6CUARGjND9V781YtC48MtvxN"
+     }
+    },
+    {
+     "chain": "btc",
+     "account": 1,
+     "template": "m/44'/0'/{n}'/0/0",
+     "path": "m/44'/0'/1'/0/0",
+     "addresses": {
+      "native": "bc1qvx65xx73ft62tdrw9vc8qsth7e0uhufa3f63fy",
+      "taproot": "bc1p4pcyj09j6gmur0jdh9qde5wjnkay6tv5mwqn3323pkmlap40rjysj6t3lm",
+      "p2sh": "3QPpnLcY4K2enVXw1LPghSDUGWrqsuBFhi",
+      "legacy": "19udgvUnrDAweFBB87XMKESCxPHp4tyvkm"
+     }
+    },
+    {
+     "chain": "btc",
+     "account": 1,
+     "template": "m/84'/0'/{n}'/1/0",
+     "path": "m/84'/0'/1'/1/0",
+     "addresses": {
+      "native": "bc1qde2g3ssgvjswc65k0x344pmytjnw6a5hz09gs3",
+      "taproot": "bc1phcf8lrgaxtha9z8m673ks4ssa7nayrheyg2q62psklllp3stzg9s9e9zx5",
+      "p2sh": "3CGkrbCh4GAt6CKg1LPyZrSbgKkp8u81mw",
+      "legacy": "1B4NbeCFejT5gv9bNasxRQSyxjDNYbrXsq"
+     }
+    },
+    {
+     "chain": "btc",
+     "account": 1,
+     "template": "m/0'/0/{n}",
+     "path": "m/0'/0/1",
+     "addresses": {
+      "native": "bc1q4g52644c6ezvp5zvsyj3ug7cfkre0v3gxtt4rh",
+      "taproot": "bc1pz06s9lh9p80zm78d9pczzers3zvuxu3lg6vll4mk35a67z55yx3sttjr9d",
+      "p2sh": "35FngPdoHpEoNDcrmHhxosFDpuTb1QHRTC",
+      "legacy": "1GWibuYb8a4vmAvweBNwuHg1EuHjvp6D5n"
+     }
+    },
+    {
+     "chain": "btc",
+     "account": 1,
+     "template": "m/0'/0'/{n}'",
+     "path": "m/0'/0'/1'",
+     "addresses": {
+      "native": "bc1qht7v5q4z6x904m0dc5f5u8s52960zx8nctflg2",
+      "taproot": "bc1p2ypq2etdhv0rh6w5kjencgstyttul4y3pfz3mpdu2wzn3jg3zv4qkjrw8y",
+      "p2sh": "3QCwkjgg7Ehsk5PVcobcZpHXXFimnNyzEz",
+      "legacy": "1J3hWmxtYiZDgi7tzqvaDoCQc6kXtKPnUU"
+     }
+    },
+    {
+     "chain": "btc",
+     "account": 1,
+     "template": "m/84'/0'/2147483646'/0/{n}",
+     "path": "m/84'/0'/2147483646'/0/1",
+     "addresses": {
+      "native": "bc1q7ylpn9jst257xs8flqgtnrzgyvqnm3xwg2ef8g",
+      "taproot": "bc1p3547j4x9hqufxnxcj9wr07n2msnn073qdq8hlz964sta4ugnxkkq2hmsj7",
+      "p2sh": "3HbDcsuFNCL7aHUgGV5ZgPXrGK2mZF45D5",
+      "legacy": "1NzaF1eyu8i5vzczWwKiHkSD8tGVzAPM4n"
+     }
+    },
+    {
+     "chain": "btc",
+     "account": 1,
+     "template": "m/84'/0'/2147483645'/0/{n}",
+     "path": "m/84'/0'/2147483645'/0/1",
+     "addresses": {
+      "native": "bc1qh3ruaanav8lw4s2udrvwrctc4qem2jv44e5p56",
+      "taproot": "bc1plt6zrsz70hemm4hk0hqsaq7cknup940e269j6envhj6gq7u8measvjw63e",
+      "p2sh": "3LgcQ4X5hsf4iVjyodf5GnXRx1o9udx4vc",
+      "legacy": "1JAY4QMLuiZ3hi43shCWNqdJgFaVdvhr2D"
+     }
+    },
+    {
+     "chain": "btc",
+     "account": 1,
+     "template": "m/44'/145'/{n}'/0/0",
+     "path": "m/44'/145'/1'/0/0",
+     "addresses": {
+      "native": "bc1qkrsvfy4n2k853cvzwj9u38cpsuly4dehzt5cds",
+      "taproot": "bc1pn0psurs00n8lqgjujmxu4whlwvfstx8eeuys4d3c3vy65cy66vuqjtlvr9",
+      "p2sh": "35uYPzLT9skHheN8TtfnZJkr2gGLnRb3MC",
+      "legacy": "1H8FBucU6Ko6vsRCTMo25hNexNqJqU58qN"
+     }
+    },
+    {
+     "chain": "btc",
+     "account": 1,
+     "template": "m/44'/60'/0'/0/{n}",
+     "path": "m/44'/60'/0'/0/1",
+     "addresses": {
+      "native": "bc1qvu5kdzzgzcajql5k4we8y3lu7cfe3j8x78crny",
+      "taproot": "bc1p8284tdr79e5cesgcv9ukns6p5sq9jyyc5swv5k99er5f4c3kjxxskuzh48",
+      "p2sh": "3M4fJGEAdLe9VhKJTp1LTyaZ17DDiGgN58",
+      "legacy": "1AQUCKNzjQthRu7qBK7siedJV44S7CpDHV"
+     }
+    },
+    {
+     "chain": "btc",
+     "account": 1,
+     "template": "m/44'/195'/0'/0/{n}",
+     "path": "m/44'/195'/0'/0/1",
+     "addresses": {
+      "native": "bc1qu7tnr2t8e2c2yltlktc0704fdprruyzd7v7785",
+      "taproot": "bc1pvjesz8cj9azy3gz44msrxvalufv07s67p9v030s53zvqv6jlj80sy5lq2k",
+      "p2sh": "3K6hcF5KJqQCMphgmpvKrpYYR44cWDrxfm",
+      "legacy": "1N7YDTRJj7KbFBiM1g9kBJSXB8NLZL1otu"
+     }
+    },
+    {
+     "chain": "eth",
+     "account": 1,
+     "template": "m/44'/60'/0'/0/{n}",
+     "path": "m/44'/60'/0'/0/1",
+     "address": "0xA5Cd5A7a353DAD72643512f25F395eC1857Bc1CA"
+    },
+    {
+     "chain": "eth",
+     "account": 1,
+     "template": "m/44'/60'/{n}'/0/0",
+     "path": "m/44'/60'/1'/0/0",
+     "address": "0xC31586D2dFcf058dC45fE44563cf106e78abEdfC"
+    },
+    {
+     "chain": "eth",
+     "account": 1,
+     "template": "m/44'/60'/0'/{n}",
+     "path": "m/44'/60'/0'/1",
+     "address": "0x75366B2ACBbf0B854E5A5Ff1e491b2ca238d7190"
+    },
+    {
+     "chain": "eth",
+     "account": 1,
+     "template": "m/44'/0'/0'/0/{n}",
+     "path": "m/44'/0'/0'/0/1",
+     "address": "0x6739825257917a3be0Af490810F630655deF9Ef0"
+    },
+    {
+     "chain": "eth",
+     "account": 1,
+     "template": "m/44'/195'/0'/0/{n}",
+     "path": "m/44'/195'/0'/0/1",
+     "address": "0xa0F9521d74253c0c7a5084eC7265DBA2250154ba"
+    },
+    {
+     "chain": "trx",
+     "account": 1,
+     "template": "m/44'/195'/0'/0/{n}",
+     "path": "m/44'/195'/0'/0/1",
+     "address": "TQeMnrxMgCJmgkzdH4NXA3GPJkLiWCooNB"
+    },
+    {
+     "chain": "trx",
+     "account": 1,
+     "template": "m/44'/195'/{n}'/0/0",
+     "path": "m/44'/195'/1'/0/0",
+     "address": "TSDakTveaEPwAKqBARrRCNQda6q4A3o4Bj"
+    },
+    {
+     "chain": "trx",
+     "account": 1,
+     "template": "m/44'/60'/0'/0/{n}",
+     "path": "m/44'/60'/0'/0/1",
+     "address": "TR5tVv9zQnLtr1gE1FQNqvgV56XqjtBgWc"
+    },
+    {
+     "chain": "trx",
+     "account": 1,
+     "template": "m/44'/0'/0'/0/{n}",
+     "path": "m/44'/0'/0'/0/1",
+     "address": "TKP1VcnB7BWeqVdpBdwXbCoEjD8pB9rFCS"
+    },
+    {
+     "chain": "sol",
+     "account": 1,
+     "template": "m/44'/501'/{n}'/0'",
+     "path": "m/44'/501'/1'/0'",
+     "address": "2Eki9EzVVF8dtZfnKtkbJqseyy3AgeCxoXMhvS55GmRy"
+    },
+    {
+     "chain": "sol",
+     "account": 1,
+     "template": "m/44'/501'/{n}'",
+     "path": "m/44'/501'/1'",
+     "address": "EGbHXZpWAkavUGAGHSxm5hkLVYbZA2fBaYTi215Scau6"
+    },
+    {
+     "chain": "btc",
+     "account": 4,
+     "template": "m/84'/0'/{n}'/0/0",
+     "path": "m/84'/0'/4'/0/0",
+     "addresses": {
+      "native": "bc1q0d9qgx6s0sh5lv8q5xpphwutlqrja6qsf7fy09",
+      "taproot": "bc1peqpyfm2k6g0gwcl8qwfu2uvd65jey3mg0pj09msdc6wjssttsrmsgyux3s",
+      "p2sh": "39B6S9Jqf83XNwrAvTxnDwTrxFvTrNDpLT",
+      "legacy": "1CEtnKZ5ym7RBfjxYaNDLHYsK7YnZmZBF5"
+     }
+    },
+    {
+     "chain": "btc",
+     "account": 4,
+     "template": "m/86'/0'/{n}'/0/0",
+     "path": "m/86'/0'/4'/0/0",
+     "addresses": {
+      "native": "bc1qh3pf74wag3urnk2x9st3anz3qj60vp5dyn6zky",
+      "taproot": "bc1p6d4f2lw6k535h2tth0pvc8yn7j0ymxuefxaw89jgem5l6u48z0ks89ukwn",
+      "p2sh": "37qHSAv6aiuzejGdHmgEXQVfZYZ8JFToYE",
+      "legacy": "1JARr548bmneFvBVeyx9RV1R8i78kxCdQ3"
+     }
+    },
+    {
+     "chain": "btc",
+     "account": 4,
+     "template": "m/49'/0'/{n}'/0/0",
+     "path": "m/49'/0'/4'/0/0",
+     "addresses": {
+      "native": "bc1qcnrss4clwdhne5tcvhfus268v9ldn6enu8f4pg",
+      "taproot": "bc1pmk3mffm4gtxj9scg6u5cz47p734kg7fhn5jdy58nd0ta4m35jzpshayszq",
+      "p2sh": "3Hf68U5f4EBAiQGqo9obeRPn5jovdahfyn",
+      "legacy": "1JwTsdEtMnZPbSwxjHGFRVYZ4tNTiMg5pz"
+     }
+    },
+    {
+     "chain": "btc",
+     "account": 4,
+     "template": "m/44'/0'/{n}'/0/0",
+     "path": "m/44'/0'/4'/0/0",
+     "addresses": {
+      "native": "bc1q83u9jndgyd0hkqwp4fc00xuwpdgj2hxscyx45z",
+      "taproot": "bc1pun02adf2lhdyag3g8nz8ft04lsjqt5qwj4w0ydjy7pat75a3m6qsqp2r6s",
+      "p2sh": "3MAyuZqSLjLFrZ7RbQcz2266AmB6ibmwoL",
+      "legacy": "16WjiVeWCXxMLCjLFEFGU7kondRSZaqSGr"
+     }
+    },
+    {
+     "chain": "btc",
+     "account": 4,
+     "template": "m/84'/0'/{n}'/1/0",
+     "path": "m/84'/0'/4'/1/0",
+     "addresses": {
+      "native": "bc1q6zsx406xpxlc2atjfqsa5g8mwje46dmz7w3xjh",
+      "taproot": "bc1pytkqdha85rs6rtmqcc2t5ytnlgwvhj3nkdrett5z8guw2mncht8q96rjzy",
+      "p2sh": "3KZRj4AeFVe6wKTHr2jyu73ojzVoDtsSrV",
+      "legacy": "1L27isLsb2hT5i9WTEQMAKxurM1swDDqXp"
+     }
+    },
+    {
+     "chain": "btc",
+     "account": 4,
+     "template": "m/0'/0/{n}",
+     "path": "m/0'/0/4",
+     "addresses": {
+      "native": "bc1qxzeuk3qxerwwpsttc4k4wkf804jj5hr5z9d4t3",
+      "taproot": "bc1pug3vf0n3q0yed40wh7kwm535hyzfet0w7dm3ssv0urp8dgq2hqjsc033xw",
+      "p2sh": "35K3w3DCsWvs7cU2shzHY876k9oqmYZ4B1",
+      "legacy": "15SWpWqdB1A1fm1Ra66xhg3xj6MfAJrPzu"
+     }
+    },
+    {
+     "chain": "btc",
+     "account": 4,
+     "template": "m/0'/0'/{n}'",
+     "path": "m/0'/0'/4'",
+     "addresses": {
+      "native": "bc1qyvj2z5vzlt7d2pf64ga45tt908kqhlmsfpmal4",
+      "taproot": "bc1phhxvra9s83j98qxxkl0qydk37d9a7uk4kyvmdvpwm8efje34rt5ss8jhxt",
+      "p2sh": "3C37m9Z17KSpJQgT4dHdrc58kjYFz5Saf3",
+      "legacy": "14CpXpeYpgSb8tmcDhYijRbXYfDTDihxoT"
+     }
+    },
+    {
+     "chain": "btc",
+     "account": 4,
+     "template": "m/84'/0'/2147483646'/0/{n}",
+     "path": "m/84'/0'/2147483646'/0/4",
+     "addresses": {
+      "native": "bc1q5hj9xtz0tmw7paagnnummjd4wlfn5dmlaep7fn",
+      "taproot": "bc1p70eq0sc8m4m6w2egwd249n22xaf7krllhenw4meln0fgy6x8zjpqr0a9kk",
+      "p2sh": "3A2NTsYaNP1MdUrt8EUcKT1otzLMvgaVKB",
+      "legacy": "1G8A1wk4QixJKWWGPuhYgNt3EaBDaUaKCz"
+     }
+    },
+    {
+     "chain": "btc",
+     "account": 4,
+     "template": "m/84'/0'/2147483645'/0/{n}",
+     "path": "m/84'/0'/2147483645'/0/4",
+     "addresses": {
+      "native": "bc1q9fu4x79dq3hg6emyz7gughyk9f4ulygcgf7dfc",
+      "taproot": "bc1p8xvsxx0a8w5pdshm420hp74mz45tge4vqgut2y00cgfe3uqc3ezqyn4f3t",
+      "p2sh": "3BovByBu8auDoMC4utsamwfXTyLjEt9CRW",
+      "legacy": "14saiwUsfuMVYB9b8wuV5w8bWdrio9bjgK"
+     }
+    },
+    {
+     "chain": "btc",
+     "account": 4,
+     "template": "m/44'/145'/{n}'/0/0",
+     "path": "m/44'/145'/4'/0/0",
+     "addresses": {
+      "native": "bc1qqxsdeclf947pq605jj7h297wup7wm8fzlqexzr",
+      "taproot": "bc1p7yksx9c05g3xsv38kau8346tppdsmdffdydrtjf0vl69hhkm20squug9sd",
+      "p2sh": "3FmxGWgDaHJViRyPZgeHHjnL2cPHwXVpq4",
+      "legacy": "19cP93r5wAZPvPAnou8StE3grTRP3yM4a"
+     }
+    },
+    {
+     "chain": "btc",
+     "account": 4,
+     "template": "m/44'/60'/0'/0/{n}",
+     "path": "m/44'/60'/0'/0/4",
+     "addresses": {
+      "native": "bc1qhnn7nhhhxksezqyj3464nttrkn3mvt65wd2xy2",
+      "taproot": "bc1pehl6j09uwhartxesu0hks9q393casgmk5makj8n2cpxf7nja0mjsmv9cxe",
+      "p2sh": "3JsqXjDynmTfXse5CTsvgCr9LM8csDEFVF",
+      "legacy": "1JDqrhdzEV4tRNfKBtoryEHFZTkTimC3Zy"
+     }
+    },
+    {
+     "chain": "btc",
+     "account": 4,
+     "template": "m/44'/195'/0'/0/{n}",
+     "path": "m/44'/195'/0'/0/4",
+     "addresses": {
+      "native": "bc1q968duqe2acvu6ytlpq264falu8gwcd8nfyxayz",
+      "taproot": "bc1pltgnu3yfh7ldkreh7duzdkdkutaxf3hm8lf3t4ft4g3qjxv2adtqzanhka",
+      "p2sh": "3BHT9ZhY1C1eNCrSkJjgk7EeoAJodGofaV",
+      "legacy": "15FBEQzvUrCDMxgKAHXN8FcczQVkUb79iG"
+     }
+    },
+    {
+     "chain": "eth",
+     "account": 4,
+     "template": "m/44'/60'/0'/0/{n}",
+     "path": "m/44'/60'/0'/0/4",
+     "address": "0x316Ce3AE1ef6365A356f6929C59E1F1E3f458bdc"
+    },
+    {
+     "chain": "eth",
+     "account": 4,
+     "template": "m/44'/60'/{n}'/0/0",
+     "path": "m/44'/60'/4'/0/0",
+     "address": "0xEF7D8a700AaF1630A19a8980d6230E405384AeD6"
+    },
+    {
+     "chain": "eth",
+     "account": 4,
+     "template": "m/44'/60'/0'/{n}",
+     "path": "m/44'/60'/0'/4",
+     "address": "0xEB06607aa2459031542C93C296BC93d5f914E59c"
+    },
+    {
+     "chain": "eth",
+     "account": 4,
+     "template": "m/44'/0'/0'/0/{n}",
+     "path": "m/44'/0'/0'/0/4",
+     "address": "0x887519c5577901A8fE0c4936047262eD79c52566"
+    },
+    {
+     "chain": "eth",
+     "account": 4,
+     "template": "m/44'/195'/0'/0/{n}",
+     "path": "m/44'/195'/0'/0/4",
+     "address": "0xb41d2344297064E4fA0b0A0dcDf1B151256958b4"
+    },
+    {
+     "chain": "trx",
+     "account": 4,
+     "template": "m/44'/195'/0'/0/{n}",
+     "path": "m/44'/195'/0'/0/4",
+     "address": "TSPZY7edKrrbUWCd97W6Sj1ZkhaWd6HrCT"
+    },
+    {
+     "chain": "trx",
+     "account": 4,
+     "template": "m/44'/195'/{n}'/0/0",
+     "path": "m/44'/195'/4'/0/0",
+     "address": "TD42om2d97wNVGi7riGCo745iiPeC9ESpA"
+    },
+    {
+     "chain": "trx",
+     "account": 4,
+     "template": "m/44'/60'/0'/0/{n}",
+     "path": "m/44'/60'/0'/0/4",
+     "address": "TEUYZE1eBdJb5qnTmqvvQFSwVm17UHiqW9"
+    },
+    {
+     "chain": "trx",
+     "account": 4,
+     "template": "m/44'/0'/0'/0/{n}",
+     "path": "m/44'/0'/0'/0/4",
+     "address": "TNQjBSm4djGj9m372PFDupTHAPNHAPiH4N"
+    },
+    {
+     "chain": "sol",
+     "account": 4,
+     "template": "m/44'/501'/{n}'/0'",
+     "path": "m/44'/501'/4'/0'",
+     "address": "APqUosK3nHXrQA4iNH5RpQqYY4vXFKrYGndUrQJaqRWF"
+    },
+    {
+     "chain": "sol",
+     "account": 4,
+     "template": "m/44'/501'/{n}'",
+     "path": "m/44'/501'/4'",
+     "address": "G3Q93dEwyhzcCoYJA6mDBtZg1CznEf618TihjR6uMboS"
+    }
+   ],
+   "change": {
+    "native/0/0": [
+     "bc1qcgphwddfcv5pax0agdw697rd8ewde8r02nwrex",
+     "bc1qku5m0l93z59dnvylens3gs075jyms99vrvnqpp",
+     "bc1qvhrrn9edhc9pna3ukjtu9xt6ntdwq9gwz77vlr",
+     "bc1quxve9dgnrxp6rvc8t6rqzyz4fw5ye0k2yx2tn0",
+     "bc1qp06mm6t2nlx343ljezklmrkx57lwv4wsjlxsvm"
+    ],
+    "native/0/1": [
+     "bc1qx5up40p2e9ytmrrzscmth6eyz4pyh9hyf9vtsu",
+     "bc1q74a7s86f6s6vjnpakq8ptl3tj9hpmrrcffwm7n",
+     "bc1qxy46tu753np5wdg836ed7n5qrej6k09c7vkms7",
+     "bc1qgxu0ev567hphrejst5jzhlwd537pz43r09mlaf",
+     "bc1qqy7wl5sftdnf0dugyfs2nvznq4v4pl3ht4ddrt"
+    ],
+    "native/1/0": [
+     "bc1q0gfe0nu5ms9juvvvjd0qnmpesgxrnj9kzeegag",
+     "bc1qtctyxha9t6vpppxmyea9jyt4rgurwq4spd92m0",
+     "bc1qt4s98qwkvn086r9rqsc0d98h40evpkzu27ktaw",
+     "bc1q5kt4f4g4rqp48vwhx48s5xad0fj6lwmmkkes8n",
+     "bc1qwvwylky98mmm8l5fcxe8f5wcg59leyf8tzmuae"
+    ],
+    "native/1/1": [
+     "bc1qde2g3ssgvjswc65k0x344pmytjnw6a5hz09gs3",
+     "bc1qhp6yvugw2ua93vvgps424q9mgark7lk22a0u89",
+     "bc1qmu8avmp4vcwr4fldsu623j0lm33tj9p4xtgyve",
+     "bc1qr8ul8r3t4a9j7w5smfql79emh6p7t8epnr8p75",
+     "bc1qrdylmf7a4vsdj5h2vpt72z8wlsf4znxk7xmsye"
+    ],
+    "taproot/0/0": [
+     "bc1py95g80zqw74m0tcy8dhnmhqcgty36tfrfunu908tmnk9xslvy62sfgpnqr",
+     "bc1pzz7ltxw4pcp49xqsqvj68xx5mh9ggand7pfg4w6k4fm6qpdwxdjqpf80cx",
+     "bc1py0s7llcvc6ss9trhynm904purl8aw948ad8kflwzej8f50hhgfuqavuq88",
+     "bc1p6q7728zwem8qdcas6pfx7kvhe32h968k85jk28tnetvpxuydczhsut7s9v",
+     "bc1prs90g2rfx78d9dvhhrextt3w9c24rcnejc8j3csarps4zyv9wg5sdx6mer"
+    ],
+    "taproot/0/1": [
+     "bc1p6tcyzajky26zsltz4w0juzraewag55pm8qqdz97jugmjcwl662qss6e37w",
+     "bc1pl3su66xjxtnhjppw0peppvz8qcxlukcvfngznv3uge233nl00ewsv5sqhs",
+     "bc1ptjjdthf0v2kq07vx22fxua4cwszwulssfrfy44u34a5cs3tmnv6qcr4krn",
+     "bc1parkqfxj3fmfjuctm0uth3sw8j72uzrzknah3lfgm5kfl65shezmqdve8fe",
+     "bc1pfcd4hju2dcy7n53ft60cwdqmmfdsj9x7mpw8trhk9ezl5ursr69sa6zk9n"
+    ],
+    "taproot/1/0": [
+     "bc1pap7vpk222vqlqmcnktcxveuyds0nynzkzg44ud06j279pdy5u20s5dlmf9",
+     "bc1p9khwkc6c20dqarayh2g32wjsuxetlzfqrvqyud2rk4tgnvqjcteqc7ej2q",
+     "bc1pfpp3n260ekfm09q2zuqm0cs222lgd7kr74t7r8k0k7wj3luxmzds5ckfl9",
+     "bc1pa2mv2kdl0ew05saravcqnh96gtv3lpy338dqp6f2stnm5cu9vyesya4cmp",
+     "bc1pz76fna8vmyz395jrg2lcflhl8hw87qzhwm9ucy3aznheqr9cl3hses6rac"
+    ],
+    "taproot/1/1": [
+     "bc1pnl3gwazesn26n046gljs2aqg7tjj34whf4fheau7hk3pvdx5ccmq5ynrfs",
+     "bc1pq8wv8hjnfnd98hmmy5n9f8q0y6rtwyn7nfcgzhucufx04u7277cssxxssr",
+     "bc1pq0zufrn9zzqn2nax0nla6q6s6dzervfmtartnsdt3afwg072qnfq0nwmp2",
+     "bc1pq7dphalusjttw89fyvyvfysk7lcdhd43rq3gkdcfzp8lm54lk0tswy6hdz",
+     "bc1phuecuyz6c90c66f2n97f3ct8ypceuku0pmd2g4wvaaf8ayrugeaqxmjcf6"
+    ],
+    "p2sh/0/0": [
+     "3HLYoykVrarXnoJF1fwu5YV7EzZiihQr5R",
+     "3HQLcAwQnFpBhRNzkQVp3TtvQR2HQXa2hk",
+     "35sVgeZsyHTUn6ThhtRvVVvKCJcRHoCGMi",
+     "3BQRegC2DpmtWnRYRjytis5GpcCRnzwUBy",
+     "3CUG8oHoAhnRGifCqXrYNZNugUapejVysg"
+    ],
+    "p2sh/0/1": [
+     "37RWVPwHQ3LH11sxLnkGxzAkaJW6S3pJkJ",
+     "3Nk4hhJGcfyuanA3c5AfNwyfGSMcAjLaHA",
+     "3BfanGm8N32G6KvkxxK5k82FFT8WEVrfAj",
+     "3KKbrg23uNhLPqe9ytHAEj9qNMdCASjuzL",
+     "3DkPuGDZS6MJSjtdeSZtTLeUwe59PqDEDb"
+    ],
+    "p2sh/1/0": [
+     "3LMAFcChtiD8zCAJHv8umCuXb2LkCF4u5e",
+     "3CadKhRGcRZ5ZLwzwkfZ2dpj618AhfXRCe",
+     "3QcEY2imxCWnMxRFH5JD2aozpEkXUdFU8s",
+     "3GMhwAvm7YbDFDKx9YdY1NySZpRBJ1dWGv",
+     "3DTaBMV9JtMLXstYy9hXxeVWLgGYQoiqG2"
+    ],
+    "p2sh/1/1": [
+     "3P6oEof6GeFXaDVxQptGQrY8Mpykqn53wC",
+     "3N4Xk1Dud7Ai6DJURqnQ1eFgei8TXvdwzs",
+     "3B59eXo6xczsc7L8Pav2e9Hcn8mvEyn8tW",
+     "366PJ49asYUbKwTbi2keBJDWb5pfhPpJxD",
+     "342wKE87iamjAmE6gvSW1CNjcL5RSkjSjn"
+    ],
+    "legacy/0/0": [
+     "18MNH3xiSXsYNYxCvwQ6JouW2RkWwStSwy",
+     "16uFjFcdHDS7qSCMEHL6caUgZ8JsNnU8te",
+     "15YNLtb4a19T9Zz2pZXgshvrQL2e2RfB1e",
+     "16WrwvYZKBoiH3B75krcMih3xxH3HzsZ1K",
+     "1FbHhBPHRV525SrG6CYyBz3NLEQJWqYMAL"
+    ],
+    "legacy/0/1": [
+     "1AaypjAW4QtkFNiQ51caqKz21d1Tc7Z5wY",
+     "17Hw83Ap5UMHWoXTgWsVoRK8kAxQbUN2f6",
+     "13qqSon2wsq9uck54Dre6217B6zhj3QV3J",
+     "178eJj8mZ3a4GwvPsdSaKnBNqcv9q2cdGC",
+     "1LerHrfwDr6AwDnawLWC9hcDxn7ztsTZJh"
+    ],
+    "legacy/1/0": [
+     "19udgvUnrDAweFBB87XMKESCxPHp4tyvkm",
+     "1PhN39vXa8pYQB5HnXRmSv6EjSrC6wfqNS",
+     "1FLgsFqWCg52NYUAAfWGm9txiRkh5XKTSf",
+     "1EbirhM6x6zh54BN8G65476QA8QKMqb2xt",
+     "1JmwyVJqvAhgNuJ5XvnfxBY9wmY3BP53Sk"
+    ],
+    "legacy/1/1": [
+     "1DsJ5yNp91ydj9zXrVnwasutnUt4Des8WU",
+     "1CXHbBG2fnNvv5JV5unEKVgW9T8vjs349B",
+     "1BJwcDPBdeahSJZLCNhEHrp9ReiTkoR264",
+     "1AbZbtzJhRCg5i68D4JdZDuzj29Dg2v8Yb",
+     "14msmY6DKiSu59CADJeto2yXnu8zUHN2hJ"
+    ]
+   },
+   "solSeedBytes": "5emnAsg7AQ5Nh8DxRbATbgyCLQj2X9x5zHdWnt2Gkeie",
+   "solSollet": {
+    "0": "HZG4cGhEkRydtpZrZwgbGo48SFBxVHjxZ7GsJoVf1JxB",
+    "1": "AacWCGWtxMe2HNBP1FMGQ7FG6ZGq1Yomi6dAjzjGDPXC",
+    "4": "8mcsCqa4otoLik1qZEipRQnzFo7ssME1ssNzco9WtBZB"
+   }
+  },
+  {
+   "mnemonic": "zoo zoo zoo zoo zoo zoo zoo zoo zoo zoo zoo zoo zoo zoo zoo zoo zoo zoo zoo zoo zoo zoo zoo vote",
+   "passphrase": "",
+   "paths": [
+    {
+     "chain": "btc",
+     "account": 0,
+     "template": "m/84'/0'/{n}'/0/0",
+     "path": "m/84'/0'/0'/0/0",
+     "addresses": {
+      "native": "bc1qctmx7cs89xvm2vvz6fwu7wyh67x84x9d50zluq",
+      "taproot": "bc1pzwg72eqqkhlukdps2swrfa32h0d7kcuhuphapmqw9l7lyvllc3yql8l2tl",
+      "p2sh": "3A6563rM78m2qBPyfSkF2ewK5W7JnwDuWX",
+      "legacy": "1JmsJpsKLKfp71zARk2TqzFHyAzvz898SS"
+     }
+    },
+    {
+     "chain": "btc",
+     "account": 0,
+     "template": "m/86'/0'/{n}'/0/0",
+     "path": "m/86'/0'/0'/0/0",
+     "addresses": {
+      "native": "bc1qz796udecyzj0gg5hluyj4mgzkycd0gkfhsvgxx",
+      "taproot": "bc1pawdw93cxa44vyht9ujks086znenqhlykz3jursx0z677eycdjj6shug7aa",
+      "p2sh": "35YxHxtiWsL6f2WQygRMxRQxEechyb74te",
+      "legacy": "139VsaxXjtkUHTJxUdahAPDoGNhKCHtfqo"
+     }
+    },
+    {
+     "chain": "btc",
+     "account": 0,
+     "template": "m/49'/0'/{n}'/0/0",
+     "path": "m/49'/0'/0'/0/0",
+     "addresses": {
+      "native": "bc1q5dh0rvzdztgvqn3jp53jw557lz0kq4pkqyjjeh",
+      "taproot": "bc1pe6dxtsyraz4x3ryrkqxhjjnvy8lhy09d7xhyx74pljg3q8ny854smuyc8u",
+      "p2sh": "386yQdFWfbAuEUa1ctbZo9Lgacj3PhXs9R",
+      "legacy": "1FuA3oMtzwaULCjRmAUhWUiJ6afn5t75Mx"
+     }
+    },
+    {
+     "chain": "btc",
+     "account": 0,
+     "template": "m/44'/0'/{n}'/0/0",
+     "path": "m/44'/0'/0'/0/0",
+     "addresses": {
+      "native": "bc1qg79lunta2y05937tl4pnd2txll6qre2rxq65d4",
+      "taproot": "bc1pp7y0j49q82yk673t3qdcqwdghke3mwdwe9df984yrq5mdjez24yqaq30gw",
+      "p2sh": "3NoynvN4pwT3kFjwVbE15LwaeZYkicfcR2",
+      "legacy": "17XJgXjL6MCFhxLAsLeSNx2m3eFx7xeYyV"
+     }
+    },
+    {
+     "chain": "btc",
+     "account": 0,
+     "template": "m/84'/0'/{n}'/1/0",
+     "path": "m/84'/0'/0'/1/0",
+     "addresses": {
+      "native": "bc1qsenpqy4kr60wtm2st3j5y64hhavajskcephdur",
+      "taproot": "bc1p2f27sn4jed709plgumlc4u950f3562n4yfj7r4yu3r65vuryz02qgt0nzd",
+      "p2sh": "3K8Z15fNLMQF4FAUjAggUnWa2TmcSSXW26",
+      "legacy": "1DFdp9p7N5uGwJGEGxEujQB1cMTcToPHPS"
+     }
+    },
+    {
+     "chain": "btc",
+     "account": 0,
+     "template": "m/0'/0/{n}",
+     "path": "m/0'/0/0",
+     "addresses": {
+      "native": "bc1qsyytwps4gal8shvu8ezg24cnyknsul7nfwgdg9",
+      "taproot": "bc1pjqxkqeyvpj98mvlqcsuqeeazr2qt350h692jqw3mguqrw6j6q95sshh6gx",
+      "p2sh": "37TxBsR3uiVkE81Ssd5aqE7Y1tx8ogVBNE",
+      "legacy": "1CmGcGh5Ad8fcaCmGwBaus6ce6M9EMYGn5"
+     }
+    },
+    {
+     "chain": "btc",
+     "account": 0,
+     "template": "m/0'/0'/{n}'",
+     "path": "m/0'/0'/0'",
+     "addresses": {
+      "native": "bc1qnmldn2w3km678scmv42eaxeyx7wfdmyg567vq2",
+      "taproot": "bc1pyucqtpwh9chk0pz9smde6tn3qfd0lagwf9yy44s5lhkvvfafy8uqq584vl",
+      "p2sh": "34vGdVutejuuL6KhZv1rmAxAvJ9yyztLBQ",
+      "legacy": "1FVh4cfJ1F8h4MqaPu3XPR8JVyMLwbTWz2"
+     }
+    },
+    {
+     "chain": "btc",
+     "account": 0,
+     "template": "m/84'/0'/2147483646'/0/{n}",
+     "path": "m/84'/0'/2147483646'/0/0",
+     "addresses": {
+      "native": "bc1qya5nluz4yu5ujk70xhe6gtnjqtze2yj4e59zvu",
+      "taproot": "bc1pr484jk6pqyakzz6767s9vq4gl246wr0g2spqm46dalfcwpvdc0dsfvs6te",
+      "p2sh": "3E66Nvihis9fWvKUjvUToVYiTy8zts92go",
+      "legacy": "14bPSN44fc2HY2Z4qajWv8DQ3BKKrAe9do"
+     }
+    },
+    {
+     "chain": "btc",
+     "account": 0,
+     "template": "m/84'/0'/2147483645'/0/{n}",
+     "path": "m/84'/0'/2147483645'/0/0",
+     "addresses": {
+      "native": "bc1qnx425q9z73t7rnadcxlm85p0grndk9u7jv8wx8",
+      "taproot": "bc1pcmhgr28gpa7vfgtkzwm92ruhhcx66xap29k63sgap6rvr6x4nqesds5htp",
+      "p2sh": "3DM6Db9hmR365DZsd43aBM6yBG1PcYHmYX",
+      "legacy": "1F1WqJGP2nFup6cfjAWBKWYRksEFiG39A5"
+     }
+    },
+    {
+     "chain": "btc",
+     "account": 0,
+     "template": "m/44'/145'/{n}'/0/0",
+     "path": "m/44'/145'/0'/0/0",
+     "addresses": {
+      "native": "bc1qvjsvf9nr4jcf0rp4rgdsy0rygsrdy7hsxlf55n",
+      "taproot": "bc1pflq053repqd3kgj5fu8nz3f9vgkc00nhdcq9eqxg7k9kx8u07g4shskf6k",
+      "p2sh": "3CDZya7VEeRsCn8cb6TRvc4EtYhsAPzYaN",
+      "legacy": "1AB5AXyANVDAY1KuopUHf82NrszAbStLsV"
+     }
+    },
+    {
+     "chain": "btc",
+     "account": 0,
+     "template": "m/44'/60'/0'/0/{n}",
+     "path": "m/44'/60'/0'/0/0",
+     "addresses": {
+      "native": "bc1qfjz8v8cvapflrd27c7xvygcaqtfzfqrts0vjuw",
+      "taproot": "bc1pdl39e27ppwvx50dc2z52xd2q280slkhr9gjw2jahqfhakmmfupyqc6yr49",
+      "p2sh": "394ZzfaeH1WYAdMrRkDDoyLuSGtpmc2FTt",
+      "legacy": "17yb3AEws3F8EnkCBA9yJHZJaEVd7qvnnJ"
+     }
+    },
+    {
+     "chain": "btc",
+     "account": 0,
+     "template": "m/44'/195'/0'/0/{n}",
+     "path": "m/44'/195'/0'/0/0",
+     "addresses": {
+      "native": "bc1q56j02xp8k0qa6x747ukvdzca8zkkzjj5xrne99",
+      "taproot": "bc1psz5s2wmnxmc0kcmgwxcxrqamtqhznv2sjnhyxn6jy707fvl7dy8sjxqc4d",
+      "p2sh": "3GEzz1hr7FE4SLK7MFVM7Q8vjv49G6tPzD",
+      "legacy": "1GC8nHXUkDZ4wJX2uzkUsUaYtRWajLatrj"
+     }
+    },
+    {
+     "chain": "eth",
+     "account": 0,
+     "template": "m/44'/60'/0'/0/{n}",
+     "path": "m/44'/60'/0'/0/0",
+     "address": "0x1959f5f4979c5Cd87D5CB75c678c770515cb5E0E"
+    },
+    {
+     "chain": "eth",
+     "account": 0,
+     "template": "m/44'/60'/{n}'/0/0",
+     "path": "m/44'/60'/0'/0/0",
+     "address": "0x1959f5f4979c5Cd87D5CB75c678c770515cb5E0E"
+    },
+    {
+     "chain": "eth",
+     "account": 0,
+     "template": "m/44'/60'/0'/{n}",
+     "path": "m/44'/60'/0'/0",
+     "address": "0xCE7672Af79330AE944E6F52ad08BFd5220E70C5D"
+    },
+    {
+     "chain": "eth",
+     "account": 0,
+     "template": "m/44'/0'/0'/0/{n}",
+     "path": "m/44'/0'/0'/0/0",
+     "address": "0x96bd242af08b08D35F29287368834675d730A49f"
+    },
+    {
+     "chain": "eth",
+     "account": 0,
+     "template": "m/44'/195'/0'/0/{n}",
+     "path": "m/44'/195'/0'/0/0",
+     "address": "0x8d765eF87aCEE24aD4fF6F5e755F36c1ee557424"
+    },
+    {
+     "chain": "trx",
+     "account": 0,
+     "template": "m/44'/195'/0'/0/{n}",
+     "path": "m/44'/195'/0'/0/0",
+     "address": "TNsC5fdh1ZfbTZpMjbiXZifseoxKRgNrqb"
+    },
+    {
+     "chain": "trx",
+     "account": 0,
+     "template": "m/44'/195'/{n}'/0/0",
+     "path": "m/44'/195'/0'/0/0",
+     "address": "TNsC5fdh1ZfbTZpMjbiXZifseoxKRgNrqb"
+    },
+    {
+     "chain": "trx",
+     "account": 0,
+     "template": "m/44'/60'/0'/0/{n}",
+     "path": "m/44'/60'/0'/0/0",
+     "address": "TCHFfSNJTUYP3wcM1Mzu9XWRoTS49MER68"
+    },
+    {
+     "chain": "trx",
+     "account": 0,
+     "template": "m/44'/0'/0'/0/{n}",
+     "path": "m/44'/0'/0'/0/0",
+     "address": "TPiEwbkziFjrJyBtMNr9QLnZpB2MyKhVRa"
+    },
+    {
+     "chain": "sol",
+     "account": 0,
+     "template": "m/44'/501'/{n}'/0'",
+     "path": "m/44'/501'/0'/0'",
+     "address": "4wX8yu9YmSe4mv9ZPtTeoF9pe6Ji4ScjuJEffS3sCKZ4"
+    },
+    {
+     "chain": "sol",
+     "account": 0,
+     "template": "m/44'/501'/{n}'",
+     "path": "m/44'/501'/0'",
+     "address": "F1bMRUwGqs7sFYc6rFWcasX8H4K7mieABafuUjGPyWFV"
+    },
+    {
+     "chain": "sol",
+     "account": 0,
+     "template": "m/44'/501'",
+     "path": "m/44'/501'",
+     "address": "GbzicZrwizCSDYxPkJhRxppgCEKQuEJ1MvuZe3c5mPne"
+    },
+    {
+     "chain": "btc",
+     "account": 1,
+     "template": "m/84'/0'/{n}'/0/0",
+     "path": "m/84'/0'/1'/0/0",
+     "addresses": {
+      "native": "bc1qny4s3xmzntladnlw7qu8lh9e4z8vsq3qa6huy4",
+      "taproot": "bc1pz44rq2zwd7g0n0xqmluk994vkg3da0j9ux6j3lkqg300dqs6muksrf0p9p",
+      "p2sh": "3K5H6VAVMXH21MN2GKo2LvxwDfYB6zzusc",
+      "legacy": "1ExswNx8wyZiBZ1rgoekvSHSMLjgM2Z4V3"
+     }
+    },
+    {
+     "chain": "btc",
+     "account": 1,
+     "template": "m/86'/0'/{n}'/0/0",
+     "path": "m/86'/0'/1'/0/0",
+     "addresses": {
+      "native": "bc1qss2gumakq9d3ax4c55tgwhh8fc74x8a5pgutjz",
+      "taproot": "bc1pgny0t8wmuvsul9xnv6ge7849v98fqtqlye4m77xhcq85xafrge5qary5hv",
+      "p2sh": "3MThGqSvhAEDS1dHn1Qnrk4uMtA8yvw1Jj",
+      "legacy": "1D3Npc5U6AxHzQDKRFecvt5Tb3kMxprPBF"
+     }
+    },
+    {
+     "chain": "btc",
+     "account": 1,
+     "template": "m/49'/0'/{n}'/0/0",
+     "path": "m/49'/0'/1'/0/0",
+     "addresses": {
+      "native": "bc1qv3glc6u7vr67f6zrc6q0ky38kt3ey934puzk00",
+      "taproot": "bc1p8f2awv6j38hmr2ve68ynaaz78kqafllss5xzfwp9d63h4w8mar8qzra07y",
+      "p2sh": "3F32Fo1QMYbSXPLufdAi4r9tq5EQbRjHFJ",
+      "legacy": "1A9SnfwWyKtYES9y4ELZad4Fqj8smRuz2P"
+     }
+    },
+    {
+     "chain": "btc",
+     "account": 1,
+     "template": "m/44'/0'/{n}'/0/0",
+     "path": "m/44'/0'/1'/0/0",
+     "addresses": {
+      "native": "bc1qkgkkr8mh79v8h4n6d09z8d2z3z3xe0n8uxugej",
+      "taproot": "bc1pvdkzzvt2swqf3ucya6t5dgknqthfv24rxxzcngx8kps6a4hprnmqnkleja",
+      "p2sh": "32F4aLHyJnT1hrFp63rRnnN9kVxmgx16Tb",
+      "legacy": "1HF7eJCeMpQyLRhfvser6ddndUDbc4g883"
+     }
+    },
+    {
+     "chain": "btc",
+     "account": 1,
+     "template": "m/84'/0'/{n}'/1/0",
+     "path": "m/84'/0'/1'/1/0",
+     "addresses": {
+      "native": "bc1q6muyfh3965ufhmtn3qrk9utjjkx22qp62qw5fy",
+      "taproot": "bc1peam6awsp0zdeypc4qnvw3muzt8d3grp8n2exqgtuj5adgmdxr9ms9z0n48",
+      "p2sh": "3A3ZZdw1qzeeL34aECEmLZbGG5V9q7yLSU",
+      "legacy": "1Lbf25wqDvajZF9k3ohwb7rx56AyU39Rew"
+     }
+    },
+    {
+     "chain": "btc",
+     "account": 1,
+     "template": "m/0'/0/{n}",
+     "path": "m/0'/0/1",
+     "addresses": {
+      "native": "bc1qm4mxqpk0aq7urtsu04r4rktdf644sz5hklfcm8",
+      "taproot": "bc1pz77ts6n3g4mls002mh9ngqhhlrrduj30da87nuxemhpdktjk637sgk86jl",
+      "p2sh": "3EsM53Bpt8SFej8q4TCRkYqsr5x6BZtV96",
+      "legacy": "1MBz9EyWXBPTvtLGsDV9QFNeTzjZrfMJne"
+     }
+    },
+    {
+     "chain": "btc",
+     "account": 1,
+     "template": "m/0'/0'/{n}'",
+     "path": "m/0'/0'/1'",
+     "addresses": {
+      "native": "bc1q0xrltumnu2a0xwck8mncfksuvrc6wxjc8a4ddd",
+      "taproot": "bc1p5372ld0nmyws97lzl34enlcgagz87qvxpwu7ls7mvz92jyh27vtqsmd0vc",
+      "p2sh": "38qHrbd2CWJka2t4Df1A3FxmWWPb8tGgzk",
+      "legacy": "1C5bdvvc5ZLAsjHEzVnNdGXMUjRjDaW6hY"
+     }
+    },
+    {
+     "chain": "btc",
+     "account": 1,
+     "template": "m/84'/0'/2147483646'/0/{n}",
+     "path": "m/84'/0'/2147483646'/0/1",
+     "addresses": {
+      "native": "bc1qmvfkfllc8azqacxpxlam656cqucz0y9vsq8s8h",
+      "taproot": "bc1p9g55fu4x0sfhgw0gsvrvwkzq4dylpk7y4xc3dmmzn8k9ezv6l9lqneytyq",
+      "p2sh": "3LEN2sPjadDE8wDeZqDi5P2aZB8Zn7HD5V",
+      "legacy": "1LyNDZrf5QXczQ7LPExGxiYFCzoYkN2t9H"
+     }
+    },
+    {
+     "chain": "btc",
+     "account": 1,
+     "template": "m/84'/0'/2147483645'/0/{n}",
+     "path": "m/84'/0'/2147483645'/0/1",
+     "addresses": {
+      "native": "bc1qr7lw3mke7002ygek6fpgge9cwnnkcljm83tqm6",
+      "taproot": "bc1ph0jwd0fqzqjwkvd62f6jacf3ugut8py7nljxfr680yuqmy0lez6qke7ymf",
+      "p2sh": "32x4R1n2S9MyM3qDYxVp7BHzm6oLUrrd98",
+      "legacy": "13trebjExnhXnWFjwPwKS4Hp9FD1QjWYgd"
+     }
+    },
+    {
+     "chain": "btc",
+     "account": 1,
+     "template": "m/44'/145'/{n}'/0/0",
+     "path": "m/44'/145'/1'/0/0",
+     "addresses": {
+      "native": "bc1qlmmlcpvquhe7l5gr336ce06g2jq5qr032vkp32",
+      "taproot": "bc1p7ucep0grt02v293zxmnnazw2xpx8en9yjmqxw922jhs4g77usphs9ey08n",
+      "p2sh": "3KSUrSr1k5jKRJDJUogSiqpu3Ex7jpW167",
+      "legacy": "1QF9hzFxApNW65BxcVN12aQ75vtDLYyJ1E"
+     }
+    },
+    {
+     "chain": "btc",
+     "account": 1,
+     "template": "m/44'/60'/0'/0/{n}",
+     "path": "m/44'/60'/0'/0/1",
+     "addresses": {
+      "native": "bc1qq760r7na66csk2x5m2f8ljlclhn8nt2452symh",
+      "taproot": "bc1ph2v780tnjn2nn2qnrnz902g8k7v30kt4dv46ye3yvk2vgxj452hqjy88d9",
+      "p2sh": "35mLBzh5PeA9V6Kz6e6VoubnAYu1bCLr35",
+      "legacy": "1hkVdzCV57MLA5rjVoz4BjXMBTEseKaFd"
+     }
+    },
+    {
+     "chain": "btc",
+     "account": 1,
+     "template": "m/44'/195'/0'/0/{n}",
+     "path": "m/44'/195'/0'/0/1",
+     "addresses": {
+      "native": "bc1q0x6fnykznwsfaanjkqj3rj9favsl0fzfec2x39",
+      "taproot": "bc1p0hl92eylkwkhweg2dqasrls2kejg0dmcdtq3u5vgqc46qhqeyn0q0xx7rg",
+      "p2sh": "3JPzJpFVWGqJfqhkDyMs2WrqhVH95o3rHm",
+      "legacy": "1C6X7Wi6TNHnDoLbXZquq7vcPFGMLvnDca"
+     }
+    },
+    {
+     "chain": "eth",
+     "account": 1,
+     "template": "m/44'/60'/0'/0/{n}",
+     "path": "m/44'/60'/0'/0/1",
+     "address": "0xEFC840572B9889de6bF172Da76b7fA59B53a0Ea0"
+    },
+    {
+     "chain": "eth",
+     "account": 1,
+     "template": "m/44'/60'/{n}'/0/0",
+     "path": "m/44'/60'/1'/0/0",
+     "address": "0xbCD02d8f6EaC6528546cE07e3f636Cb7cdEC9259"
+    },
+    {
+     "chain": "eth",
+     "account": 1,
+     "template": "m/44'/60'/0'/{n}",
+     "path": "m/44'/60'/0'/1",
+     "address": "0x44413D837Af7Aa12f83d674D7139cB372CBB71cC"
+    },
+    {
+     "chain": "eth",
+     "account": 1,
+     "template": "m/44'/0'/0'/0/{n}",
+     "path": "m/44'/0'/0'/0/1",
+     "address": "0x7BaFF7548E1c89a4da3E96CC8A4F7F65551542Dc"
+    },
+    {
+     "chain": "eth",
+     "account": 1,
+     "template": "m/44'/195'/0'/0/{n}",
+     "path": "m/44'/195'/0'/0/1",
+     "address": "0x9e9113Cb852004f53B25D8D565B6a1c8c310Fb61"
+    },
+    {
+     "chain": "trx",
+     "account": 1,
+     "template": "m/44'/195'/0'/0/{n}",
+     "path": "m/44'/195'/0'/0/1",
+     "address": "TQRdZWxpRrDNPr3UrLZ1Y5y1qdkMhcquFh"
+    },
+    {
+     "chain": "trx",
+     "account": 1,
+     "template": "m/44'/195'/{n}'/0/0",
+     "path": "m/44'/195'/1'/0/0",
+     "address": "TGA4Yu32vJfmJ94HUH7CzYngFR5mZ2gpz1"
+    },
+    {
+     "chain": "trx",
+     "account": 1,
+     "template": "m/44'/60'/0'/0/{n}",
+     "path": "m/44'/60'/0'/0/1",
+     "address": "TXq4PcVkAnbuZ2Q976P2kokccXr4ufa1y7"
+    },
+    {
+     "chain": "trx",
+     "account": 1,
+     "template": "m/44'/0'/0'/0/{n}",
+     "path": "m/44'/0'/0'/0/1",
+     "address": "TMFCuzh1vh8JtgoB8fdyXX2i2Jgpj3qwPg"
+    },
+    {
+     "chain": "sol",
+     "account": 1,
+     "template": "m/44'/501'/{n}'/0'",
+     "path": "m/44'/501'/1'/0'",
+     "address": "4pD4GUDpxajyFDE3jPhReL4DnLjHL98Z8UXpxf73rbT4"
+    },
+    {
+     "chain": "sol",
+     "account": 1,
+     "template": "m/44'/501'/{n}'",
+     "path": "m/44'/501'/1'",
+     "address": "6usuHVZVgukfG5S5tgVqjRwwxZP68ChMLZkTWSAKkz79"
+    },
+    {
+     "chain": "btc",
+     "account": 4,
+     "template": "m/84'/0'/{n}'/0/0",
+     "path": "m/84'/0'/4'/0/0",
+     "addresses": {
+      "native": "bc1qt2cxqtsxgglhwfxjnystm2nn8azv5nnxjt2qlk",
+      "taproot": "bc1p8v0ldy989yzuyewy7292u00panqjsmmqn506kxqyjppuz37f6lrqzf3mvd",
+      "p2sh": "3QLHzYvynsUbDRJuPtMpmH6sJhU2DKCUpF",
+      "legacy": "19GX74gBqrmK4aVxt58MDyo8QVkBrfSfQp"
+     }
+    },
+    {
+     "chain": "btc",
+     "account": 4,
+     "template": "m/86'/0'/{n}'/0/0",
+     "path": "m/86'/0'/4'/0/0",
+     "addresses": {
+      "native": "bc1qnw0e9sf4kxthkf4yfjjac7xf370ezq7dquggm8",
+      "taproot": "bc1pnkecszq6tx2l2lycxfvf394jzkmacq6splmmf4czteqf5gvmlt7s9gphp0",
+      "p2sh": "38FoHFrQRX73A8cYy95DyKD6nZVD9aYAMw",
+      "legacy": "1FBru5YCN835vem1rvqhjhMiTYf4y9xn1G"
+     }
+    },
+    {
+     "chain": "btc",
+     "account": 4,
+     "template": "m/49'/0'/{n}'/0/0",
+     "path": "m/49'/0'/4'/0/0",
+     "addresses": {
+      "native": "bc1q9qpgv90xr8ddpysgr0nfnyhtp83fjyzc4cn4mj",
+      "taproot": "bc1p976jl0rgn0jnaakw8ca0luxt5238wkttte3gj3kyjyk4yh0tu95q8ax9zu",
+      "p2sh": "377vGhgP8V8pnaKzJSf5cVUph4feD8dXtX",
+      "legacy": "14eZ42d1SW6hMBnkPfzta7s5fDEcGunNr1"
+     }
+    },
+    {
+     "chain": "btc",
+     "account": 4,
+     "template": "m/44'/0'/{n}'/0/0",
+     "path": "m/44'/0'/4'/0/0",
+     "addresses": {
+      "native": "bc1ql0vv7nt0fe25mer5xd7jkp68zemzgex0h8extn",
+      "taproot": "bc1p6rf6uyvea2rjkp7u36u6xrergduvc95jfftzf7sdcvf7upnr4etqw524d4",
+      "p2sh": "3K2RaDS9wMhSrUnPb8tJSywdtQBQag5MaB",
+      "legacy": "1PxeLMgzpChjWYGgnKLqJcgzJPVqwx5Lii"
+     }
+    },
+    {
+     "chain": "btc",
+     "account": 4,
+     "template": "m/84'/0'/{n}'/1/0",
+     "path": "m/84'/0'/4'/1/0",
+     "addresses": {
+      "native": "bc1q0zy7hv6zkvzf3a7ssma9g7rsgc52fxfxj2v9km",
+      "taproot": "bc1pkdykujq5dvuy7nr22hrk7fak7d3fsnhktyrnkyy66grepdxmyv6qdrgfss",
+      "p2sh": "3KbTydBQ2JB2rWta5ayEiQoH3RECKdRNMJ",
+      "legacy": "1BzMJvFiS3zhG3QQvDtrt55KaBipYsgE2j"
+     }
+    },
+    {
+     "chain": "btc",
+     "account": 4,
+     "template": "m/0'/0/{n}",
+     "path": "m/0'/0/4",
+     "addresses": {
+      "native": "bc1qlpq8geq5fx5twlevrkqkuejq0pzsg7gjgy8dd0",
+      "taproot": "bc1pjzv7p2m6s87th6c5jl0vyvnvjhu6x9q7cc25uw0kaz4t3s5ha26q53kq8p",
+      "p2sh": "3Hojo5i5V1TgMq4nhkV5AvicXsQK2bu1XT",
+      "legacy": "1Pddnxn6ouMuamRbjmc51PT2obKadtw2Qa"
+     }
+    },
+    {
+     "chain": "btc",
+     "account": 4,
+     "template": "m/0'/0'/{n}'",
+     "path": "m/0'/0'/4'",
+     "addresses": {
+      "native": "bc1q4sg96cf9jl6lp3j3dvrd3kqnhcf75e90x9e6ez",
+      "taproot": "bc1pe7lhd7qyw54tze9y7l43jxx2kvsv0t3gv9nhmdfpsucy4tnc57esyjszdw",
+      "p2sh": "32cAQym4E1MhZSEUP2VLazQGcEuARBnvfF",
+      "legacy": "1Ggnq3EegmX6gPRZC75hME71AVz9254jL1"
+     }
+    },
+    {
+     "chain": "btc",
+     "account": 4,
+     "template": "m/84'/0'/2147483646'/0/{n}",
+     "path": "m/84'/0'/2147483646'/0/4",
+     "addresses": {
+      "native": "bc1qf2s5te2hlaknap4h4e72csn5u83v7syj2n9958",
+      "taproot": "bc1panfxthkxgx6340egk5jsl9te7dj8345nyf5dvwn5plprar8lcsps2gwtap",
+      "p2sh": "3FY1UAmioPxfpuV8EhkAgrLe7FFRgcBuzM",
+      "legacy": "17ocCeEw72VtEncX5VJaqJihyzicPD14Q3"
+     }
+    },
+    {
+     "chain": "btc",
+     "account": 4,
+     "template": "m/84'/0'/2147483645'/0/{n}",
+     "path": "m/84'/0'/2147483645'/0/4",
+     "addresses": {
+      "native": "bc1qjjgxz8keewkw9utyw757dss5x8lsr2mky7ywq6",
+      "taproot": "bc1pn9uhym953kqhrunng6jkvwtqxzk7pfhedejl7rr34p8s3pfgkm3q6r7cfe",
+      "p2sh": "3D3ci1VWc7ETKrN8QiSUPnDB3Nbhxfcrs1",
+      "legacy": "1EYXy3fMDjVseW4ZT9TjPPfhM98qKQTzPT"
+     }
+    },
+    {
+     "chain": "btc",
+     "account": 4,
+     "template": "m/44'/145'/{n}'/0/0",
+     "path": "m/44'/145'/4'/0/0",
+     "addresses": {
+      "native": "bc1qndr90g7xh0sxw40h8xqxvpghwledg0pj9af99t",
+      "taproot": "bc1pp9c975jlgwcysyymc8vvrkqp7eesu3g62g3qqaqpkrvsrzqvwgdq0f34hx",
+      "p2sh": "3PR5nRnYsmrimoQbCfxqExesbskuUGNhZ3",
+      "legacy": "1FA21Cut1ZNRGry2CDMCDuSfRNZgkKXP79"
+     }
+    },
+    {
+     "chain": "btc",
+     "account": 4,
+     "template": "m/44'/60'/0'/0/{n}",
+     "path": "m/44'/60'/0'/0/4",
+     "addresses": {
+      "native": "bc1qc4j3udvsl6u7n7yn7dv6ytnsnqjd60xv4hzz5p",
+      "taproot": "bc1p3lusqde4z59ufu6jg9vgafhuvnk9tacnj2zl7f6pj8z7hw3dcm7q7g44wq",
+      "p2sh": "32xAgxBKV8LSvWBXiZfRgWqJrKdBQRE2Z3",
+      "legacy": "1JzjFbNyqubBYk6FbNQ1y9ENELpMdNfZzr"
+     }
+    },
+    {
+     "chain": "btc",
+     "account": 4,
+     "template": "m/44'/195'/0'/0/{n}",
+     "path": "m/44'/195'/0'/0/4",
+     "addresses": {
+      "native": "bc1qawjgcq7mydgkzj8jv0kyqa7tlcxdjfnytzcvjn",
+      "taproot": "bc1p23ts7feerczn6fdqdapsfpnh0xpvfkg90zu9m8g3zseq4kvyz3fswsmc80",
+      "p2sh": "3JQ27mGTyCobJQJkRhxGPjspkwvqmYp2wt",
+      "legacy": "1NUxv16CJZFaKxwT8SvjBPNP1p3UZFt7L4"
+     }
+    },
+    {
+     "chain": "eth",
+     "account": 4,
+     "template": "m/44'/60'/0'/0/{n}",
+     "path": "m/44'/60'/0'/0/4",
+     "address": "0x57Dc1AcfA4A904BDF72BC01e7db3dc3bB5ddD83e"
+    },
+    {
+     "chain": "eth",
+     "account": 4,
+     "template": "m/44'/60'/{n}'/0/0",
+     "path": "m/44'/60'/4'/0/0",
+     "address": "0xB6Dd89c6D4b8d14c225314f9523B89Efed49D0DA"
+    },
+    {
+     "chain": "eth",
+     "account": 4,
+     "template": "m/44'/60'/0'/{n}",
+     "path": "m/44'/60'/0'/4",
+     "address": "0x7261001485c6Cb8A26A2d0df9a2d72d8909Ba0F3"
+    },
+    {
+     "chain": "eth",
+     "account": 4,
+     "template": "m/44'/0'/0'/0/{n}",
+     "path": "m/44'/0'/0'/0/4",
+     "address": "0x104170C459B810085b89d94364e68a0D5dD137ac"
+    },
+    {
+     "chain": "eth",
+     "account": 4,
+     "template": "m/44'/195'/0'/0/{n}",
+     "path": "m/44'/195'/0'/0/4",
+     "address": "0x5be3F76f671A2EBC18cf162c2AEd5Cb4D5E01000"
+    },
+    {
+     "chain": "trx",
+     "account": 4,
+     "template": "m/44'/195'/0'/0/{n}",
+     "path": "m/44'/195'/0'/0/4",
+     "address": "TJM5auf8F7bqqCHVcwMagEfB9HrqQKy5fQ"
+    },
+    {
+     "chain": "trx",
+     "account": 4,
+     "template": "m/44'/195'/{n}'/0/0",
+     "path": "m/44'/195'/4'/0/0",
+     "address": "TT1C59FF51tTRRNVW2yY429WD8peUmXHiD"
+    },
+    {
+     "chain": "trx",
+     "account": 4,
+     "template": "m/44'/60'/0'/0/{n}",
+     "path": "m/44'/60'/0'/0/4",
+     "address": "THymTtkVKZyH75NjRJJYfLqvhYepadBDRP"
+    },
+    {
+     "chain": "trx",
+     "account": 4,
+     "template": "m/44'/0'/0'/0/{n}",
+     "path": "m/44'/0'/0'/0/4",
+     "address": "TBTAD1kDvy9nfVnZXDAXpgsLwTdLjLNfWa"
+    },
+    {
+     "chain": "sol",
+     "account": 4,
+     "template": "m/44'/501'/{n}'/0'",
+     "path": "m/44'/501'/4'/0'",
+     "address": "32TsQd3neLRDTYCVmuM2ZHbtVxHvdLMHvwBsvotMdpig"
+    },
+    {
+     "chain": "sol",
+     "account": 4,
+     "template": "m/44'/501'/{n}'",
+     "path": "m/44'/501'/4'",
+     "address": "FH1pyx3bNMJSNuxFq1QzJWxrhuWC983c89v99595Janc"
+    }
+   ],
+   "change": {
+    "native/0/0": [
+     "bc1qctmx7cs89xvm2vvz6fwu7wyh67x84x9d50zluq",
+     "bc1qqaauex480r67x2qrruvgnhqxk0v3vx4z44cnxj",
+     "bc1q7sf0u330nk2ghtad9x3m237macn99geml2n0ql",
+     "bc1qy9y6l5amm87nwzwfkkvs0xv57s5x6f6sqn9d8x",
+     "bc1q0h3jwlga9vfjs4w76fah3j4umr0dtxuuq6dwyw"
+    ],
+    "native/0/1": [
+     "bc1qsenpqy4kr60wtm2st3j5y64hhavajskcephdur",
+     "bc1qa6e0cus7uad6q85xutmet248qg8mtcxhgsz280",
+     "bc1qe7tcqp6lwces6mpnfehxgqdu9082t95pkj9pwh",
+     "bc1q77m9a55uttqyy6el9fsea8qlazlnwy9hs7xhtd",
+     "bc1q7xn3euc90q2mckz4w2rtrv4rftss6s2tz07ghk"
+    ],
+    "native/1/0": [
+     "bc1qny4s3xmzntladnlw7qu8lh9e4z8vsq3qa6huy4",
+     "bc1qgnm6dtggdn032ht0qn9wj3x79rg4wzp26dh6ns",
+     "bc1q924hwgv65ppyzws0u83ukz2xknmsldupr3wwp7",
+     "bc1q7af0rqn32hxeffkdk46zuzwksana5y0svadw7h",
+     "bc1qc57mggjkcgmehx5dywlre2la030qszddhqcfpz"
+    ],
+    "native/1/1": [
+     "bc1q6muyfh3965ufhmtn3qrk9utjjkx22qp62qw5fy",
+     "bc1q0rdqgedg6qqxh9n9aelalj87yxd3lm8yw7clgq",
+     "bc1qhw07syn84xd0saea9ywkarwrtxgvvjhr689r5k",
+     "bc1qy3me4972sn5ul3gkz28sq6pqexd6f4m7ttkynw",
+     "bc1qe9m7lhndvyk9zpls8365gst29kal983p64xfnc"
+    ],
+    "taproot/0/0": [
+     "bc1pawdw93cxa44vyht9ujks086znenqhlykz3jursx0z677eycdjj6shug7aa",
+     "bc1pywwq4ygfluze3pytecm9ccsggynwhvrjnlwf06eqpgrr0lvspwjs229s4w",
+     "bc1pxmvct630deuhkgwmu9g9l8g480mq2ze3tam78xspylpn6mxyjp4qxlkpe2",
+     "bc1pnpc54n59r5znzm7aa0h6marz264ylklvzuz4cg4j4ly4pwg0elhqg8njl7",
+     "bc1psut5jwwfak6wfp69yn4wss5e7sa378md8dpd58pkfkaewl5e0vvs8t027q"
+    ],
+    "taproot/0/1": [
+     "bc1pnltfcsq3w7shxccmhx0h8mveajw2hkp6secv7q3yyqhahfdnuc8q8w6qjq",
+     "bc1ptcpzquer83qjwsn263qahh6m27ush3h73e8tqp2sgxxf2z303vfqupplw7",
+     "bc1p26z9xyn78p68r3f7szuc8698g9ygh80kkw2fpcznsz5jsqcdh79sxrpwk7",
+     "bc1phswdaznxjg68gkuu43azmsevazr3dug7jh22nknp8fr42pcgw2jqndc8uj",
+     "bc1pdd2kfd9g4jeuxm3qrkdws3788949gsmtlzq9cc05aw358ut4lylqc8t2hj"
+    ],
+    "taproot/1/0": [
+     "bc1pgny0t8wmuvsul9xnv6ge7849v98fqtqlye4m77xhcq85xafrge5qary5hv",
+     "bc1ppyre7x0s2yqtwvddsaa4g5khjrqk9gfch2knyrfegzkzradwvlaqrqm9xy",
+     "bc1pqqw3s6730c66tsfzjga2macp5uem60pj0a2ud266v6aj2gnss9eqrvkjcx",
+     "bc1pag7hhaxg88erjf78ar0804nq0eajltmd73wxduj9d09z9v752h7q6czqle",
+     "bc1prk706hsm65hat3dahj5r4xdmcsu8frr6h9s2ewdcrwzqfa4efxasymf307"
+    ],
+    "taproot/1/1": [
+     "bc1puhsljvr4gkwfch2v8t76tdvphwyf72gw47whpensmzcau2lrpl6qzzuc7j",
+     "bc1pgwdt9cyxdkl7jk003t6ez0j06vvgf7tsmfpp3cdc5swnhfkrcftq9p5spg",
+     "bc1pd3j36zgrycyygj4lw6t5r4zhhh23dg2zzvrddkk5l8th3wzgpjyqmf0jux",
+     "bc1pyxk8xuaj780qns77jzmxraxy87nml5clq733emu829ar8zq6qfmql0dt33",
+     "bc1pnsuhd9286r64skdmm6kw9rcd9ney80v40wu633sh866qqj65vacqyfyslc"
+    ],
+    "p2sh/0/0": [
+     "386yQdFWfbAuEUa1ctbZo9Lgacj3PhXs9R",
+     "32CqcJpGjMwjHwyd52PyyLj4RERci6zszJ",
+     "39y6GWJfLbSExm3fs3QVouaPasfpwVeg6i",
+     "37URemj6fvDJjFQr2M4p35gCNp23wLUpMZ",
+     "3HzwkYaGrUXx71H3RPhBAdr2dNPZoaU13Y"
+    ],
+    "p2sh/0/1": [
+     "3GKPfDejbuzxUhrjG4qCCsU2Foe3SqE54v",
+     "3KvZJApDhgUR1cKpSh4PnuCqzbmYLANkSC",
+     "37s4ApvTaernTEC7Hs6jVEuGfpbhhb5qhi",
+     "3KMpSwRX6rTEr2cJh4UPtUPsL3Jjcs3VQF",
+     "32CMma9pxdM17g8nvRz2p8D752i8JmNu6M"
+    ],
+    "p2sh/1/0": [
+     "3F32Fo1QMYbSXPLufdAi4r9tq5EQbRjHFJ",
+     "3FdafjggNTgQjdCLxB8kVoeUmCmsyaYuNL",
+     "3KiwawUUkqHZmMejBueGzaD11QoWzPb2fo",
+     "3JdqkEw3kyBb1y62pVVcB8r4t94SfgULHa",
+     "3GZZFx1AzeCnRxCkFQpU1H1qmxQHv5dvmq"
+    ],
+    "p2sh/1/1": [
+     "3BtuzS56mSmC9oEMucZLQT5hGuh9Rvy7pB",
+     "36w8EHHRCNHdXJmeFDrKVvkQ1ubxTuavsg",
+     "3AR2mZWMZ7gTUWf68xspenSMm6Gdar6xTv",
+     "3M1VS7LKvy73sm4goE8LsiVr3TWDBgixSa",
+     "3DfkfkAR4nbmMrAhLsLNg16uJAN4Z22pnc"
+    ],
+    "legacy/0/0": [
+     "17XJgXjL6MCFhxLAsLeSNx2m3eFx7xeYyV",
+     "19LNs9QJB6zvReGr2zkvqiqtiSeNmTLQnK",
+     "19wbeRmeqZNyxkTNcpzjeUfhoJM7dNAv7U",
+     "195Sqwy6abK7reM6A1sKxxQGmo5HGUqt8L",
+     "16FQoKGjggGTdPkDM7XFGARvAjN9SRGMLv"
+    ],
+    "legacy/0/1": [
+     "1PGeSLMrhX7Q18owWVwVm4h6zJgrct633g",
+     "13Xvt83hb5exdMZhTqf981n3L8jmQcfiaj",
+     "12QsY7cReXNeQgZN9Mc42PaqJT6EzQS1W6",
+     "1AekbsEmoAs6ajAqG1az8BSYx27jPL8Nge",
+     "1GqoSzyHGSaeNUqJDv43sv7Q8V6aQMypyJ"
+    ],
+    "legacy/1/0": [
+     "1HF7eJCeMpQyLRhfvser6ddndUDbc4g883",
+     "1P91usYxpZe4Y9MzBaaDQrrr59VchfTXH6",
+     "1NfRYKfPAmVYokLnjGMLayJNvQv25rxcKn",
+     "17Smfu15yi1XGCTkeuZ2jn6cBcccVxgxyG",
+     "1CUfM76TD3iYbDpiScG7DHg9E1yPiG3qmB"
+    ],
+    "legacy/1/1": [
+     "1BMhpJddzNqpTfcK3yXHY1VnssYa2J13rJ",
+     "147RY9yB4baAfNQ36o8j16h9CpkrR5L5XE",
+     "1LMKfpCFzN1PCcaWxJWLJXDitSkmDHbqq7",
+     "1EqJ7TBUUrYri2pX3FXQyfSujqcnnE8VNb",
+     "1AitghNifNvtSJUgZYJ9xWWoZPGF5eYL7V"
+    ]
+   },
+   "solSeedBytes": "GksbeTgVcyVZ753NzR5Lnwiu7BcfDzU5mSiR1DSF3VLz",
+   "solSollet": {
+    "0": "6cpGoCciN7pkejp2G2eWsnbBHVRSmHvo3zR4UmHZ64aS",
+    "1": "AGCRVMDGnVr7UZjHuH4fZ8SifT8QBuTREFTKojuF2jJm",
+    "4": "D5KfuFJs75zujorx9CPFnctQHzcRjvge7Kmk5N6gM6bk"
+   }
+  }
+ ],
+ "xpubs": [
+  {
+   "path": "m/44'/0'/0'",
+   "key": "xpub6CLnqHkhTJCd5tKkHcV4L7svcNUMYSrpNLseX1Y3hGNwxhJ31osZJU9yHFHkvB5A8znnfYrrXtdAputUi71KQ5oENSzdRs4TufgfpmeWCyW",
+   "xpub": "xpub6CLnqHkhTJCd5tKkHcV4L7svcNUMYSrpNLseX1Y3hGNwxhJ31osZJU9yHFHkvB5A8znnfYrrXtdAputUi71KQ5oENSzdRs4TufgfpmeWCyW",
+   "depth": 3,
+   "receive": {
+    "native": [
+     "bc1q2z30tm2v0sezzc0dkrhmwqxcjeylpqxnyra3f8",
+     "bc1qgzagmwlaff2hezk5njf0jwp7q35h0e4zedjyqa",
+     "bc1qx88nd5x4kmstw5yd5myg4c8ddmvcqv9lan8ek7"
+    ],
+    "taproot": [
+     "bc1p3dh9vcmaj0ezdjyargnj6zx4cq5snr42gz4wfyq68e463clskf0qleam04",
+     "bc1pdjyflt78qqcd0fc3047pu84hzcw6vtqvh3aleh9hra508a48wgvqduths8",
+     "bc1pfmsgfvxl753z7yg22095864ml84mdauc42jryptur9krrwxkdwzsdcl0qv"
+    ],
+    "p2sh": [
+     "381apshmvaH5F38yXD5nQHr3EMdv8AfQ4M",
+     "36kA3cerTjj4sSNEC7Q93dR7NMdyMWjAut",
+     "3GA6wqvEk7YqDehr3kDe62WgTgW7MVwXzr"
+    ],
+    "legacy": [
+     "18MNH3xiSXsYNYxCvwQ6JouW2RkWwStSwy",
+     "16uFjFcdHDS7qSCMEHL6caUgZ8JsNnU8te",
+     "15YNLtb4a19T9Zz2pZXgshvrQL2e2RfB1e"
+    ]
+   },
+   "change": {
+    "native": [
+     "bc1qdyny4j0ffcz9cd44ckv7qhfcnj20js37fcwws6",
+     "bc1qg5zfdxemva3xgyllh3cr7wksjg5dxnrua2v7xg"
+    ],
+    "taproot": [
+     "bc1plxj4vytxjdqjdhqkvtgch8fd6xq9tk4dc8dfmpjml86x4cq5k93s4l5n26",
+     "bc1p7s6q7j2n2zngy5w8yv64y8h5fd632sf2vhvfy7xg5qr57jzfcdesgqv9ph"
+    ],
+    "p2sh": [
+     "3QZGm2WjT5SFtUMswHA91QSAQdnxebQGxg",
+     "33Biv7ba4aF5fH3bT2scdG3cEqrBEjWs1y"
+    ],
+    "legacy": [
+     "1AaypjAW4QtkFNiQ51caqKz21d1Tc7Z5wY",
+     "17Hw83Ap5UMHWoXTgWsVoRK8kAxQbUN2f6"
+    ]
+   },
+   "descriptor": {
+    "native": "wpkh(xpub6CLnqHkhTJCd5tKkHcV4L7svcNUMYSrpNLseX1Y3hGNwxhJ31osZJU9yHFHkvB5A8znnfYrrXtdAputUi71KQ5oENSzdRs4TufgfpmeWCyW/0/*)#vaexngzt",
+    "taproot": "tr(xpub6CLnqHkhTJCd5tKkHcV4L7svcNUMYSrpNLseX1Y3hGNwxhJ31osZJU9yHFHkvB5A8znnfYrrXtdAputUi71KQ5oENSzdRs4TufgfpmeWCyW/0/*)#a3tup2gc",
+    "p2sh": "sh(wpkh(xpub6CLnqHkhTJCd5tKkHcV4L7svcNUMYSrpNLseX1Y3hGNwxhJ31osZJU9yHFHkvB5A8znnfYrrXtdAputUi71KQ5oENSzdRs4TufgfpmeWCyW/0/*))#jmmdr4t7",
+    "legacy": "pkh(xpub6CLnqHkhTJCd5tKkHcV4L7svcNUMYSrpNLseX1Y3hGNwxhJ31osZJU9yHFHkvB5A8znnfYrrXtdAputUi71KQ5oENSzdRs4TufgfpmeWCyW/0/*)#czafw46h"
+   },
+   "eth": [
+    "0x1394fb99d7DF170a21C35b1ffd07796aF9A722a4",
+    "0x6739825257917a3be0Af490810F630655deF9Ef0",
+    "0x1c68Ae74230B0b14a660572E25F5Ab52E9eB5a21"
+   ],
+   "trx": [
+    "TBkkKDD96S1jUPpnF1fRXCi9bSmjDNVrR9",
+    "TKP1VcnB7BWeqVdpBdwXbCoEjD8pB9rFCS",
+    "TCZRKpqVRpafE1gvSJT9FvC7PdZrpPtWnq"
+   ]
+  },
+  {
+   "path": "m/49'/0'/0'",
+   "key": "ypub6Wd1rZTC1SsVgDeHuK5KT9WPCmFre3mxJxsURfXqzJhkFQJRSm5AyaW9Ym3b9pFhRmuvxUAyshqk98tUS2SMfWHjUPfF9ssbGHT2gEDu2Yq",
+   "xpub": "xpub6BnkYtnGrmL1pvTB4xHhF4Qt2o7QhRnTPrMFeGdxcJKsCJVCC6ucMWr1XZ619ubn28o8CzaRR3VCFrGuiL2LsGc8c3xpZy46zZPPHeKB2Qx",
+   "depth": 3,
+   "receive": {
+    "native": [
+     "bc1qy7qqzwk2c5pqytjzalmmypwfa45km3fe8m9qq9",
+     "bc1qtncdy0kprvrdsext7r4c72m5n8r8jv2dl7znna",
+     "bc1qnm46vxtw5x5gu9hsuyu5qta6hgzed8fvadwspy"
+    ],
+    "taproot": [
+     "bc1pk8lu2aevfu4h8pe8q9ud45vnje3alw4ehv8zdt4z02vr8sjcasxsaulkq5",
+     "bc1plectty24lvc5qdzeyssyyevyu2wgylzzuyx6cx4eqyr3r6f3darsp6pecz",
+     "bc1pfu5vlau5kkvtg94a5h6hsvyx64mq4eye52qt7udxpxcf5xrwfe9sv0j2sm"
+    ],
+    "p2sh": [
+     "3HLYoykVrarXnoJF1fwu5YV7EzZiihQr5R",
+     "3HQLcAwQnFpBhRNzkQVp3TtvQR2HQXa2hk",
+     "35sVgeZsyHTUn6ThhtRvVVvKCJcRHoCGMi"
+    ],
+    "legacy": [
+     "14brhQqkbYhQArdYNSctVhFpFjt4gpqb8X",
+     "19URfCorZwtSeSVzX6cEXzgVzWLDqfh7Cz",
+     "1FVJ4UeSdFiRztrrtndcyn5mHDpuraboEB"
+    ]
+   },
+   "change": {
+    "native": [
+     "bc1qq689tl09z8u8wxrpj099wh732ms9gzfwrv9y09",
+     "bc1q348pw57r5ernseau2untarwphww926zrq0g2r7"
+    ],
+    "taproot": [
+     "bc1plwjdhd3ue0yqahmrxu4ztht0z79nf3k8hshrskkc8q27s4gjlnvq5nnngh",
+     "bc1p395ljnsup8qv74x4npmevsd7nrecqyz9sfyw4sw0txw3w3q94yuqa9g2jc"
+    ],
+    "p2sh": [
+     "37RWVPwHQ3LH11sxLnkGxzAkaJW6S3pJkJ",
+     "3Nk4hhJGcfyuanA3c5AfNwyfGSMcAjLaHA"
+    ],
+    "legacy": [
+     "1bfZpjo12xEvDJFK2R1VJs1fVXN24DVch",
+     "1Dt9pv2uc9tDLxC2Jr61RycQx8Bo7bS4zZ"
+    ]
+   },
+   "descriptor": {
+    "native": "wpkh(xpub6BnkYtnGrmL1pvTB4xHhF4Qt2o7QhRnTPrMFeGdxcJKsCJVCC6ucMWr1XZ619ubn28o8CzaRR3VCFrGuiL2LsGc8c3xpZy46zZPPHeKB2Qx/0/*)#ysjlx3kq",
+    "taproot": "tr(xpub6BnkYtnGrmL1pvTB4xHhF4Qt2o7QhRnTPrMFeGdxcJKsCJVCC6ucMWr1XZ619ubn28o8CzaRR3VCFrGuiL2LsGc8c3xpZy46zZPPHeKB2Qx/0/*)#8ymued5q",
+    "p2sh": "sh(wpkh(xpub6BnkYtnGrmL1pvTB4xHhF4Qt2o7QhRnTPrMFeGdxcJKsCJVCC6ucMWr1XZ619ubn28o8CzaRR3VCFrGuiL2LsGc8c3xpZy46zZPPHeKB2Qx/0/*))#evpnccmy",
+    "legacy": "pkh(xpub6BnkYtnGrmL1pvTB4xHhF4Qt2o7QhRnTPrMFeGdxcJKsCJVCC6ucMWr1XZ619ubn28o8CzaRR3VCFrGuiL2LsGc8c3xpZy46zZPPHeKB2Qx/0/*)#w8dlzlxq"
+   },
+   "eth": [
+    "0x15228B88Da60E11d74F0035D29Fe89e5c5d03320",
+    "0x2b48CFc436d2919383EE021fDaDea0980c2C2433",
+    "0x98eFc23D442547381C4fB09e5ACEc3727E513a70"
+   ],
+   "trx": [
+    "TBtxaKWz6cXAUrGVPeR5HUUycCHVkjfajo",
+    "TDv5HLzZh5w2MzwJoSysHBkhhsfraGB8hb",
+    "TPurvwt5m9rgHgaZo7YRzNXEjsxuv5dTh7"
+   ]
+  },
+  {
+   "path": "m/84'/0'/0'",
+   "key": "zpub6qad26gaxrG1dAoZygTcK1ehxz3t7PuVwnm7xHMXnDGviYhrhxFn8PiVvTnML9RfaGRhsRjyTHD81ZpRWQUqcD9Chyj9GKrUMmejdvyrYkC",
+   "xpub": "xpub6Bv6QmLkfVB3vaRLJxtMtqThd3kzE9vW7ZigPVZm2CXAcM5QCdvetGQDt3sBLL7pkzC6NUYrXxW2EzbJ51ep1jmzyJLJ6WDVpKXSrk3mh6M",
+   "depth": 3,
+   "receive": {
+    "native": [
+     "bc1qcgphwddfcv5pax0agdw697rd8ewde8r02nwrex",
+     "bc1qku5m0l93z59dnvylens3gs075jyms99vrvnqpp",
+     "bc1qvhrrn9edhc9pna3ukjtu9xt6ntdwq9gwz77vlr"
+    ],
+    "taproot": [
+     "bc1pgn2zyxgrnpsx28ury95m3pak6grnmq80x2h70rr4yut826klry3s24xx5k",
+     "bc1p6qze6fryvwgtnh5fxg5nxnkputyp3fkpy5jkl6r4ejwtjwych4cs363dld",
+     "bc1pjdmhjzswcvlqy5vt3p4qzyjvzerq94ffenzwu845v26ya5hjj2dq3laz4u"
+    ],
+    "p2sh": [
+     "3LC5C7KTjAhx4bqXdHVYQgoctuAxotbPxt",
+     "34qMYSEDNz7ddhxFKTA2CA4kxbjT5a5Box",
+     "39TYq1CVs8HoLMLrRkNyWgKMFtc9J4c71B"
+    ],
+    "legacy": [
+     "1JgrF1ncaH7dLWwJsBkGaEcDoqjpNWaZKz",
+     "1HhUdmijWorFYhVwsqpdDk3724THCVEwTw",
+     "1AH8iHdfTTU94JMJvGT22x4FevNwsGBxDW"
+    ]
+   },
+   "change": {
+    "native": [
+     "bc1qx5up40p2e9ytmrrzscmth6eyz4pyh9hyf9vtsu",
+     "bc1q74a7s86f6s6vjnpakq8ptl3tj9hpmrrcffwm7n"
+    ],
+    "taproot": [
+     "bc1p956na5ay9t9ugt4jzsc2lmp2s7m40mj79t5rda6r3wexslxu652qe604zl",
+     "bc1p5uel6n0e6vud7hh3sakuarz6wxnm3trnz5y2nn5tp02vu8avgwds8ch0zm"
+    ],
+    "p2sh": [
+     "3Hved4w75wUVYedsi5NDoYExFMRSzSMsPf",
+     "3KhL3Um86TnuaKCwcLHwvJzXhgp46axtzc"
+    ],
+    "legacy": [
+     "15rQ2NYQmeCRHnThZ9CxonyhY39JPWNpTr",
+     "1PNzzBx8ozossTMzNjqE88tF7xKaAbK5N7"
+    ]
+   },
+   "descriptor": {
+    "native": "wpkh(xpub6Bv6QmLkfVB3vaRLJxtMtqThd3kzE9vW7ZigPVZm2CXAcM5QCdvetGQDt3sBLL7pkzC6NUYrXxW2EzbJ51ep1jmzyJLJ6WDVpKXSrk3mh6M/0/*)#nvxxexsg",
+    "taproot": "tr(xpub6Bv6QmLkfVB3vaRLJxtMtqThd3kzE9vW7ZigPVZm2CXAcM5QCdvetGQDt3sBLL7pkzC6NUYrXxW2EzbJ51ep1jmzyJLJ6WDVpKXSrk3mh6M/0/*)#fjzfs7th",
+    "p2sh": "sh(wpkh(xpub6Bv6QmLkfVB3vaRLJxtMtqThd3kzE9vW7ZigPVZm2CXAcM5QCdvetGQDt3sBLL7pkzC6NUYrXxW2EzbJ51ep1jmzyJLJ6WDVpKXSrk3mh6M/0/*))#ph6e5hp0",
+    "legacy": "pkh(xpub6Bv6QmLkfVB3vaRLJxtMtqThd3kzE9vW7ZigPVZm2CXAcM5QCdvetGQDt3sBLL7pkzC6NUYrXxW2EzbJ51ep1jmzyJLJ6WDVpKXSrk3mh6M/0/*)#dkhssc08"
+   },
+   "eth": [
+    "0x99F3a7b4EDc8EF42C71464bEE72E4495233069cc",
+    "0xAdE971a30AA09780567164581374037CFF6470DF",
+    "0x02F2f4E6355b51Da18d0F3A75907F4153f427FD7"
+   ],
+   "trx": [
+    "TQ1EGryjJBAakS8pbVJPZmeELumFJABW8c",
+    "TRpmZDEfriZymqoUnzWTPimfTSPhxVkhN9",
+    "TAEoQNAmiqRVR1apvgu7VfCrriwDBxTU2U"
+   ]
+  },
+  {
+   "path": "m/86'/0'/0'",
+   "key": "xpub6CRHPZV87CvKtbuC1t395jyKvVsdpyQtZsyMKLWwEKcLJPi9soaZtRK1LeHyiSV282MLw7XxzbCmadhkHUtLZ8ie9avHQW9HD8pz57oCTTY",
+   "xpub": "xpub6CRHPZV87CvKtbuC1t395jyKvVsdpyQtZsyMKLWwEKcLJPi9soaZtRK1LeHyiSV282MLw7XxzbCmadhkHUtLZ8ie9avHQW9HD8pz57oCTTY",
+   "depth": 3,
+   "receive": {
+    "native": [
+     "bc1qnk6dl29sj6z9l26fzf75yplnytgqg7l2xk6t88",
+     "bc1qyug29akyasqq5pt094qrdwq2u25erezewrs3rz",
+     "bc1qhyf2djh2da62rh487zcuv005msskaz2nls0z5x"
+    ],
+    "taproot": [
+     "bc1py95g80zqw74m0tcy8dhnmhqcgty36tfrfunu908tmnk9xslvy62sfgpnqr",
+     "bc1pzz7ltxw4pcp49xqsqvj68xx5mh9ggand7pfg4w6k4fm6qpdwxdjqpf80cx",
+     "bc1py0s7llcvc6ss9trhynm904purl8aw948ad8kflwzej8f50hhgfuqavuq88"
+    ],
+    "p2sh": [
+     "3BFbXiFYHkr9m2nvgxRg1VXazxA81Yv6xg",
+     "36GJgfRuMyPZnhwHvhqLoN7iBgdxb94Aig",
+     "3FJyRh5ZwS3oCdjwssksMTuzu54A1kzoyt"
+    ],
+    "legacy": [
+     "1FNsmSXbtf4WGkmPbPopd2DasLZ6Vfbuoh",
+     "14ZZHQqtML7VCtjYz4RKrfwvHuU5au5BsU",
+     "1HsaMRMap732krrZfxNAbbMtPrwwbNE5xj"
+    ]
+   },
+   "change": {
+    "native": [
+     "bc1qzk7ek899rl63nr5lh35zytgs0ceaww5sp69wr2",
+     "bc1q3erkn35yyv54ra0yszwudy4n898m8t05vcs4np"
+    ],
+    "taproot": [
+     "bc1p6tcyzajky26zsltz4w0juzraewag55pm8qqdz97jugmjcwl662qss6e37w",
+     "bc1pl3su66xjxtnhjppw0peppvz8qcxlukcvfngznv3uge233nl00ewsv5sqhs"
+    ],
+    "p2sh": [
+     "3417vPXYQbqHF8ppChrgqFLEiHWNSHPax6",
+     "3CTaoaAhnEBoC1a7dBJqHdKKDhxyU65XaC"
+    ],
+    "legacy": [
+     "12yxL5WVepK5ZmCU99toEkrBjpbxqyb1Ds",
+     "1DyJW7fx2D6Kvt1qBnMfGKdQfvbh14FC9m"
+    ]
+   },
+   "descriptor": {
+    "native": "wpkh(xpub6CRHPZV87CvKtbuC1t395jyKvVsdpyQtZsyMKLWwEKcLJPi9soaZtRK1LeHyiSV282MLw7XxzbCmadhkHUtLZ8ie9avHQW9HD8pz57oCTTY/0/*)#mw9rq40p",
+    "taproot": "tr(xpub6CRHPZV87CvKtbuC1t395jyKvVsdpyQtZsyMKLWwEKcLJPi9soaZtRK1LeHyiSV282MLw7XxzbCmadhkHUtLZ8ie9avHQW9HD8pz57oCTTY/0/*)#mhjxcc0e",
+    "p2sh": "sh(wpkh(xpub6CRHPZV87CvKtbuC1t395jyKvVsdpyQtZsyMKLWwEKcLJPi9soaZtRK1LeHyiSV282MLw7XxzbCmadhkHUtLZ8ie9avHQW9HD8pz57oCTTY/0/*))#9gut93n4",
+    "legacy": "pkh(xpub6CRHPZV87CvKtbuC1t395jyKvVsdpyQtZsyMKLWwEKcLJPi9soaZtRK1LeHyiSV282MLw7XxzbCmadhkHUtLZ8ie9avHQW9HD8pz57oCTTY/0/*)#5ejmvj4l"
+   },
+   "eth": [
+    "0x114981FA106e9dD77a6178f9e48819f76Fb3D0a6",
+    "0x47994C497CDF6c47055c095e33E49fd5abDB7BA8",
+    "0x8c14E40faB57D046A191371D3b89e097521a986D"
+   ],
+   "trx": [
+    "TBYcYj575xs59cVuDrg2HKAGuGZ6g7kodp",
+    "TGVnd1ZVSVcDyUL8r9gQ1tTq5fPs88nfm1",
+    "TNjtdSMVU6T29GoS6vnxif5ExWjyDZXV96"
+   ]
+  },
+  {
+   "path": "m/44'/60'/0'",
+   "key": "xpub6D8kHgX9nQJo93qC8bv7qTPutfbzmAkKuhVnEA7AbvMprcBoG9WwfeV6xpe8yYoTnJnPwKu3E2WiXZ4PMcUrpxE9B5X4cAsve2YwE81jyEj",
+   "xpub": "xpub6D8kHgX9nQJo93qC8bv7qTPutfbzmAkKuhVnEA7AbvMprcBoG9WwfeV6xpe8yYoTnJnPwKu3E2WiXZ4PMcUrpxE9B5X4cAsve2YwE81jyEj",
+   "depth": 3,
+   "receive": {
+    "native": [
+     "bc1qurl7k8fqwt02qnncdjmclmu2ns2hpp9kcztm6n",
+     "bc1qvu5kdzzgzcajql5k4we8y3lu7cfe3j8x78crny",
+     "bc1qld2959muw9lpmccyg4fwgg5dtq8ag60pn5mmsl"
+    ],
+    "taproot": [
+     "bc1p9vekva9yzwkw0kxl53ta4q9229xnvme043xdrzpw0z00620gpk0quxlsty",
+     "bc1p8284tdr79e5cesgcv9ukns6p5sq9jyyc5swv5k99er5f4c3kjxxskuzh48",
+     "bc1pv3q45havg2mf9gr2c85pze3knc3wnn0yj6dxx3394pqlmcnnt77qezhf7r"
+    ],
+    "p2sh": [
+     "3AAfuhHxBJsJHBcQCgi3G6nP1yxe5tG4uN",
+     "3M4fJGEAdLe9VhKJTp1LTyaZ17DDiGgN58",
+     "3P4VKBrB5nK8X6JsewSspQSfyovr6Dd3Ki"
+    ],
+    "legacy": [
+     "1MWgwVbmSamCNNgMLC1fWtV1Ebfv7fRzSd",
+     "1AQUCKNzjQthRu7qBK7siedJV44S7CpDHV",
+     "1Puuf2NYVkkh4i7hLqFZsVV8wAg4Q83DYK"
+    ]
+   },
+   "change": {
+    "native": [
+     "bc1qmmcj7xw4y8wl7h0w264decfw4nw4jqqta3zsvj",
+     "bc1qdh6feqwmvg3jgnwk4rze33veech2ydj3fg8unc"
+    ],
+    "taproot": [
+     "bc1pwrf74lkpna03mq0qxx3mxwnte0c0xefzehdqpcl3yz4qczznqjnss5q7su",
+     "bc1p0yzd45ntesaq39kw665356su0mzhw5g0ewev74tkp3gc2d3x4y2qj57da0"
+    ],
+    "p2sh": [
+     "3JnJk9wK3U7mBZitSXzYhAQ8jozY9W4LxK",
+     "34tHoyan9yAQUryCYbCc7DnZ12GD8HiGNZ"
+    ],
+    "legacy": [
+     "1MKowLvvrm7oK2VGsPUQmnLGE3XxtC8PXX",
+     "1B2PgofQdbeygYA5C7m3cRBKG8Lsug6nhK"
+    ]
+   },
+   "descriptor": {
+    "native": "wpkh(xpub6D8kHgX9nQJo93qC8bv7qTPutfbzmAkKuhVnEA7AbvMprcBoG9WwfeV6xpe8yYoTnJnPwKu3E2WiXZ4PMcUrpxE9B5X4cAsve2YwE81jyEj/0/*)#40tyxece",
+    "taproot": "tr(xpub6D8kHgX9nQJo93qC8bv7qTPutfbzmAkKuhVnEA7AbvMprcBoG9WwfeV6xpe8yYoTnJnPwKu3E2WiXZ4PMcUrpxE9B5X4cAsve2YwE81jyEj/0/*)#ua5990xd",
+    "p2sh": "sh(wpkh(xpub6D8kHgX9nQJo93qC8bv7qTPutfbzmAkKuhVnEA7AbvMprcBoG9WwfeV6xpe8yYoTnJnPwKu3E2WiXZ4PMcUrpxE9B5X4cAsve2YwE81jyEj/0/*))#5nnt7t3s",
+    "legacy": "pkh(xpub6D8kHgX9nQJo93qC8bv7qTPutfbzmAkKuhVnEA7AbvMprcBoG9WwfeV6xpe8yYoTnJnPwKu3E2WiXZ4PMcUrpxE9B5X4cAsve2YwE81jyEj/0/*)#mytsn2ld"
+   },
+   "eth": [
+    "0x6006ef1944FB519A746d00cDAf715Cbd27a5a008",
+    "0xA5Cd5A7a353DAD72643512f25F395eC1857Bc1CA",
+    "0xB6b04040Df8e63FeE7105a644904826cC69De344"
+   ],
+   "trx": [
+    "TJixBFoc437Cwz6H7YS3LEdadcjKeYsPLT",
+    "TR5tVv9zQnLtr1gE1FQNqvgV56XqjtBgWc",
+    "TSdB875VwEMWdRrFS5HCL5EVBiSdSSNJmL"
+   ]
+  }
+ ]
+}

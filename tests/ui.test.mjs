@@ -19,6 +19,11 @@
  *     the page);
  *   - "Check wallet" shows, for known seeds, the addresses computed
  *     independently with bip_utils / embit (tests/vectors/addresses.json);
+ *   - a mistyped word is named with its position and the right word is
+ *     offered; each network's own account and derivation buttons, Bitcoin
+ *     change addresses, the search for an address and the check with a
+ *     public key (zpub, and an Ethereum account key) give the values in
+ *     tests/vectors/paths.json;
  *   - no screen is wider than the display (nothing to scroll sideways).
  *
  * On a phone the test taps, and types as an on-screen keyboard does (text
@@ -48,6 +53,7 @@ const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const FILE = path.join(ROOT, 'dist', 'amnesicwallet.html');
 const URL = pathToFileURL(FILE).href;
 const VECTORS = JSON.parse(fs.readFileSync(path.join(ROOT, 'tests', 'vectors', 'addresses.json'), 'utf8'));
+const PATHS = JSON.parse(fs.readFileSync(path.join(ROOT, 'tests', 'vectors', 'paths.json'), 'utf8'));
 
 const BROWSERS = {
   chromium: { name: 'Chromium', type: chromium, phone: 'finger' },
@@ -231,6 +237,98 @@ async function run(browser, engine, device) {
     const want = [v.btc.native[0], v.eth, v.trx, v.sol];
     check(JSON.stringify(got) === JSON.stringify(want), `Check wallet (${label}): the four addresses match the independent values`);
     await noteLayout('check wallet');
+  }
+
+  /* 2b. A mistyped word, other accounts, change, every path */
+  {
+    const v = PATHS.seeds[1];
+    const at = (chain, tpl, account) => v.paths.find(r => r.chain === chain && r.template === tpl && r.account === account);
+    step = 'Check wallet: a mistyped word';
+    await press(page.locator('.tab[data-tab="check"]'));
+    if (await page.locator('#vf-clear').count()) await press(page.locator('#vf-clear'));
+    const words = v.mnemonic.split(' ');
+    const typo = [...words]; typo[2] = words[2].slice(0, -1) + words[2].slice(-1).repeat(2);   // one letter doubled
+    await page.locator('#vf-words').fill(typo.join(' '));
+    await page.locator('#vf-pass').fill(v.passphrase);
+    for (const id of ['eth', 'trx', 'sol']) {
+      if (!(await page.locator('#vf-chk-' + id).isChecked())) await press(page.locator(`label:has(#vf-chk-${id})`));
+    }
+    await press(page.locator('#vf-go'));
+    const diag = await page.locator('#vf-err').innerText();
+    check(diag.includes('Word 3') && diag.includes(typo[2]), 'a mistyped word is named with its position');
+    const fix = page.locator(`.vf-sugg[data-pos="3"][data-word="${words[2]}"]`);
+    check(await fix.count() === 1, 'the right word is offered');
+    await press(fix);
+    check((await page.locator('#vf-words').inputValue()) === v.mnemonic, 'choosing it corrects the words');
+    await press(page.locator('#vf-go'));
+    await page.locator('#vf-results .addr-value').nth(3).waitFor();
+
+    step = 'Check wallet: accounts, one network at a time';
+    const card = (id) => page.locator('#vfc-' + id);
+    check(await card('eth').locator('.der-seg .seg-btn').count() === 2, 'Ethereum, account 1: two different paths, no duplicate');
+    check((await card('eth').locator('.der-seg .seg-btn').first().innerText()) === "m/44'/60'/0'/0/0", 'the buttons show the path itself');
+    await press(card('eth').locator('.acct-btn[data-acct="1"]'));
+    check((await card('eth').locator('.acct-num').innerText()) === '2', 'Ethereum on account 2');
+    check((await card('btc').locator('.acct-num').innerText()) === '1', 'Bitcoin stays on account 1');
+    check((await card('eth').locator('.addr-value').innerText()) === at('eth', "m/44'/60'/0'/0/{n}", 1).address, 'Ethereum account 2 (MetaMask) matches');
+    await press(card('eth').locator('.der-seg .seg-btn[data-der="live"]'));
+    check((await card('eth').locator('.addr-value').innerText()) === at('eth', "m/44'/60'/{n}'/0/0", 1).address, 'Ethereum account 2 (Ledger Live) matches');
+    check((await card('eth').locator('.path-value').innerText()) === "m/44'/60'/1'/0/0", 'its derivation path is shown');
+    await press(card('sol').locator('.acct-btn[data-acct="1"]'));
+    check((await card('sol').locator('.addr-value').innerText()) === at('sol', "m/44'/501'/{n}'/0'", 1).address, 'Solana account 2 (Phantom) matches');
+    await press(card('sol').locator('.der-seg .seg-btn[data-der="ledger"]'));
+    check((await card('sol').locator('.addr-value').innerText()) === at('sol', "m/44'/501'/{n}'", 1).address, 'Solana account 2 (Ledger) matches');
+    await press(card('sol').locator('.der-seg .seg-btn[data-der="sollet"]'));
+    check((await card('sol').locator('.addr-value').innerText()) === v.solSollet['1'], 'Solana account 2 (old Sollet) matches');
+    await press(card('trx').locator('.der-seg .seg-btn[data-der="eth"]'));
+    check((await card('trx').locator('.addr-value').innerText()) === at('trx', "m/44'/60'/0'/0/{n}", 0).address, "TRON on Ethereum's path matches");
+
+    step = 'Check wallet: Bitcoin formats and change';
+    await press(card('btc').locator('.acct-btn[data-acct="1"]'));
+    await press(card('btc').locator('.der-seg .seg-btn[data-der="taproot"]'));
+    check((await card('btc').locator('.addr-value').innerText()) === at('btc', "m/86'/0'/{n}'/0/0", 1).addresses.taproot, 'Bitcoin account 2, Taproot, matches');
+    await press(card('btc').locator('.der-seg .seg-btn[data-der="native"]'));
+    await press(card('btc').locator('.vf-more'));
+    await press(card('btc').locator('.vf-branch .seg-btn[data-c="1"]'));
+    const change = await card('btc').locator('.more-list .more-addr').first().innerText();
+    check(change.startsWith(v.change['native/1/1'][0]), 'account 2, first change address');
+    await press(card('btc').locator('.der-seg .seg-btn[data-der="cross"]'));
+    check((await card('btc').innerText()).includes(at('btc', "m/44'/60'/0'/0/{n}", 1).addresses.native), "Bitcoin on Ethereum's path");
+
+    step = 'Check wallet: finding an address';
+    await page.locator('#vf-find').fill(at('eth', "m/44'/60'/0'/{n}", 4).address);
+    await press(page.locator('#vf-find-go'));
+    await page.locator('#vf-find-out .ok-box, #vf-find-out .warn-box').waitFor({ timeout: 60000 });
+    check((await page.locator('#vf-find-out').innerText()).includes("m/44'/60'/0'/4"), 'an address is found with its path');
+    await noteLayout('check wallet, networks');
+    await press(page.locator('#vf-clear'));
+  }
+
+  /* 2c. Check with a public key only */
+  {
+    step = 'Check with a public key';
+    await press(page.locator('#vf-back'));
+    await press(page.locator('#ctrl-xpub'));
+    const z = PATHS.xpubs.find(k => k.key.startsWith('zpub'));
+    await page.locator('#xp-key').fill(z.key);
+    await press(page.locator('#xp-go'));
+    await page.locator('#xp-results .more-addr').nth(2).waitFor();
+    const rec = (await page.locator('#xp-results .more-addr').allInnerTexts()).slice(0, 3).map(t => t.split('\n')[0]);
+    check(JSON.stringify(rec) === JSON.stringify(z.receive.native), 'zpub: the receiving addresses match');
+    await press(page.locator('#xp-branch .seg-btn[data-c="1"]'));
+    check((await page.locator('#xp-results .more-addr').first().innerText()).startsWith(z.change.native[0]), 'zpub: the change addresses match');
+    check((await page.locator('#xp-results').innerText()).includes(z.descriptor.native), 'zpub: the descriptor matches');
+    const e = PATHS.xpubs.find(k => k.path === "m/44'/60'/0'");
+    await page.locator('#xp-key').fill(e.key);
+    await press(page.locator('#xp-go'));
+    await press(page.locator('#xp-as .seg-btn[data-as="eth"]'));
+    const eth = (await page.locator('#xp-results .more-addr').allInnerTexts()).slice(0, 3).map(t => t.split('\n')[0]);
+    check(JSON.stringify(eth) === JSON.stringify(e.eth), 'Ethereum account key: the addresses match');
+    await noteLayout('check with a public key');
+    await page.locator('#xp-key').fill('xprv9s21ZrQH143K3GJpoapnV8SFfukcVBSfeCficPSGfubmSFDxo1kuHnLisriDvSnRRuL2Qrg5ggqHKNVpxR86QEC8w35uxmGoggxtQTPvfUu');
+    await press(page.locator('#xp-go'));
+    check((await page.locator('#xp-err').innerText()).includes('private'), 'a private key is refused');
+    check(await page.locator('#xp-results .more-addr').count() === 0, 'and no address is shown for it');
   }
 
   /* 3. The guide */

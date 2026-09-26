@@ -116,7 +116,7 @@ Bitcoin has changed address format several times over the years. From the **same
 
 **Taproot** (*bc1p…*) — The most recent: even lower fees and greater privacy. Some older services don't accept it yet.
 
-**SegWit compatible** (*3…*) — A transitional format, accepted even by the oldest services.
+**Nested SegWit** (*3…*) — A transitional format, accepted even by the oldest services.
 
 **Legacy** (*1…*) — The original format from 2009. It always works, but costs more in fees.
 
@@ -137,6 +137,10 @@ Here is a derivation path explained:
 **What does the apostrophe mean?** It indicates a *hardened* derivation, that is a reinforced one. Without it, anyone holding an extended public key and a single child private key could work back to the parent key. The apostrophe closes that road. That's why the first three levels always have it.
 
 **Why it concerns you.** If you import the seed elsewhere and the addresses don't match (particularly with Bitcoin, which has several formats), it is almost always the path that differs — not the seed. It's the reason why a Legacy wallet and a Native SegWit one, though born from the same words, show completely different addresses: they simply sit on different branches of the same tree.
+
+**Not every wallet counts accounts the same way.** “Account 2” in MetaMask is the second address of the first branch (`m/44'/60'/0'/0/1`); in Ledger Live it is a branch of its own (`m/44'/60'/1'/0/0`). Same words, different addresses.
+
+**How to find a missing address.** In *Check wallet*, every network has its own account number (− and +) and a button for each derivation path that gives a different address — for Bitcoin the four formats, and also Bitcoin addresses on the paths of Ethereum and TRON. Bitcoin also shows its change addresses. Or paste the address into *Find the path of an address*: the page looks for it among the addresses of your words and tells you its account and path. If you only have the account's public key (xpub, ypub or zpub), *A public key only* shows its addresses without typing any secret word.
 
 ---
 

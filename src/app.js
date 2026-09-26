@@ -28,6 +28,7 @@ import {
   diceRollsNeeded, diceBytesFrom, shamirSplit, shamirCombine, verificationCode, classicSplit,
   deriveAll, deriveBTC, deriveBTCMany, btcAccountInfo, btcPath, deriveMultisigXpub, multisigAddress, KeyError,
   slip39Create, slip39Recover, isSlip39Passphrase, metalRows, normalizeWords,
+  DERIVATIONS, deriveWith, hasAccounts, derivationChoices, addressKind, findAddress, diagnoseMnemonic, readPublicKey, addressesFromXpub, xpubDescriptor,
   entropyToMnemonic, mnemonicToEntropy, mnemonicToSeedSync, validateMnemonic, wordlist, HDKey,
 } from './core.js';
 import QRCode from 'qrcode';
@@ -145,9 +146,7 @@ let vfSeed = null;        // seed of the Check tab (isolated from the main walle
 let vfMnemonic = null;
 let vfResults = null;
 let csResults = null;     // addresses recovered from SLIP-39 sheets (Check tab), kept apart from vf*
-let vfFormat = 'native';
-let vfExtra = null;
-let vfAccount = null;
+let xp = null;            // Check with a public key: { info, as, change, list }
 let pendingConfig = null;            // {words, passphrase, useDice, twoDice}
 let pendingDice = null;              // {rolls:[], needed, twoDice, first}
 let mouseCollector = null;
@@ -236,6 +235,7 @@ function renderApp() {
       else wireShamirChooser();
     }
     if (ctrlPath === 'multisig') wireCtrlMultisig();
+    if (ctrlPath === 'xpub') wireCtrlXpub();
   }
 }
 
@@ -283,6 +283,7 @@ function renderCheckTab() {
   }
   if (ctrlPath === 'slip') return renderCtrlSlip();
   if (ctrlPath === 'multisig') return renderCtrlMultisig();
+  if (ctrlPath === 'xpub') return renderCtrlXpub();
   return `
     <section>
       <div class="card hero-card">
@@ -313,6 +314,12 @@ function renderCheckTab() {
             <span class="path-desc">You have the participants' xpubs and want to recalculate the address to confirm everything adds up.</span>
             <span class="path-cta">Recalculate →</span>
           </button>
+          <button class="path-card" id="ctrl-xpub">
+            <span class="path-icon">🔑</span>
+            <span class="path-title">A public key only</span>
+            <span class="path-desc">You have the xpub, ypub or zpub of an account and want to see its addresses and change addresses — without typing any secret word.</span>
+            <span class="path-cta">Check →</span>
+          </button>
         </div>
       </div>
     </section>`;
@@ -323,6 +330,7 @@ function wireCheck() {
   document.getElementById('ctrl-shamir')?.addEventListener('click', () => { ctrlPath = 'shamir'; shamirMode = null; renderApp(); });
   document.getElementById('ctrl-slip')?.addEventListener('click', () => { ctrlPath = 'slip'; renderApp(); });
   document.getElementById('ctrl-multisig')?.addEventListener('click', () => { ctrlPath = 'multisig'; renderApp(); });
+  document.getElementById('ctrl-xpub')?.addEventListener('click', () => { ctrlPath = 'xpub'; xp = null; renderApp(); });
 }
 
 /* ── Shamir backup section: two paths ── */
@@ -536,10 +544,7 @@ function renderCsAddresses() {
                 <div class="addr-copy-row"><code class="detail-value addr-value">${escapeHtml(e.address)}</code>
                   <button class="btn btn-icon btn-copy-addr" data-addr="${escapeHtml(e.address)}" title="Copy">📋</button></div>
               </div>
-              <details class="adv"><summary>Technical details</summary>
-                <div class="detail-row" style="margin-top:8px"><span class="detail-label">Derivation Path</span>
-                  <code class="detail-value path-value">${escapeHtml(e.path)}</code></div>
-              </details>
+              <div class="detail-row"><span class="detail-label">Derivation path</span><code class="detail-value path-value">${escapeHtml(e.path)}</code></div>
             </div>
           </div>`).join('')}
       </div>
@@ -607,6 +612,118 @@ function wireCtrlMultisig() {
     });
     try { document.getElementById('cm-qr').innerHTML = `<img src="${await generateQR(res.address, 170)}" style="border-radius:8px;border:4px solid #fff">`; } catch (_) {}
   });
+}
+
+/* ════════════════════════════════════════════════════════════════
+   CHECK WITH A PUBLIC KEY — xpub / ypub / zpub, no words typed
+   ════════════════════════════════════════════════════════════════ */
+const XP_AS = [
+  ...Object.values(BTC_FORMATS).map(f => ({ id: f.id, label: `${f.label} (${f.tag})` })),
+  { id: 'eth', label: 'Ethereum (0x…)' },
+  { id: 'trx', label: 'TRON (T…)' },
+];
+
+function renderCtrlXpub() {
+  return `
+    <section>
+      <div class="card">
+        <div class="card-header"><span class="step-badge">🔑</span><h2>Check with a public key only</h2></div>
+        <p style="margin-bottom:14px">Paste the <strong>account public key</strong> your wallet shows — an <strong>xpub</strong>, <strong>ypub</strong> or <strong>zpub</strong>. It gives all the addresses of that account, to receive and to follow the balance, but it <strong>cannot spend</strong>: no secret word is typed here.</p>
+        <p class="hint" style="margin-bottom:14px">You find it in the wallet's account details: Sparrow (Settings → Keystore), Electrum (Wallet → Information), Trezor Suite and Ledger Live (account details, “show public key”).</p>
+        <label class="config-label">The public key</label>
+        <textarea id="xp-key" class="inp" rows="3" placeholder="xpub6… / ypub6… / zpub6…" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false"></textarea>
+        <button class="btn btn-primary" id="xp-go" style="margin-top:14px">Show the addresses</button>
+        <div id="xp-err" style="margin-top:10px"></div>
+        <div class="ov-row" style="margin-top:14px">
+          <button class="btn btn-ghost btn-small" id="xp-back">← Back to choices</button>
+        </div>
+      </div>
+      <div id="xp-results"></div>
+    </section>`;
+}
+
+function publicKeyError(err) {
+  switch (err && err.code) {
+    case 'PRIVATE': return '⛔ This is a <strong>private</strong> key (xprv, yprv or zprv): whoever has it can spend the funds. It is not needed here — only the public key is (xpub, ypub or zpub).';
+    case 'TESTNET': return 'This key belongs to the Bitcoin <strong>test</strong> network, not to the real one.';
+    case 'MULTISIG_KEY': return 'This is a key for a <strong>multisig</strong> vault (Ypub or Zpub). Use <strong>A multisig vault</strong> in the Check tab, with the keys of all participants.';
+    default: return 'This is not a valid public key: check that it was pasted in full, without spaces or broken lines. It starts with xpub, ypub or zpub.';
+  }
+}
+
+function computeXp(count) {
+  xp.list = addressesFromXpub(xp.info.xpub, xp.as, xp.change, 0, count);
+}
+
+function renderXpResults() {
+  const box = document.getElementById('xp-results');
+  if (!box) return;
+  if (!xp) { box.innerHTML = ''; return; }
+  const btc = !!BTC_FORMATS[xp.as];
+  const label = xp.info.kind;
+  const note = xp.info.format
+    ? `This ${label} is labelled for <strong>${escapeHtml(BTC_FORMATS[xp.info.format].label)}</strong> addresses, so that format is selected. You can still try the others.`
+    : 'An <strong>xpub</strong> does not say which kind of address your wallet made with it: Legacy and Taproot both use xpub, and some wallets use it for every format. Pick one below and compare with an address you know.';
+  box.innerHTML = `
+    <div class="card">
+      <div class="card-header"><span class="step-badge">✓</span><h2>Addresses of this key</h2></div>
+      <p class="hint" style="margin-bottom:10px">${note}</p>
+      ${xp.info.depth !== 3 ? `<div class="note-box" style="margin-bottom:10px">This key is at depth ${xp.info.depth}, not at the level of an account (depth 3). The addresses below are those of <code>key/0/n</code>, which may not be the ones your wallet shows.</div>` : ''}
+      <label class="config-label">Show the addresses as</label>
+      <div class="seg xp-as" id="xp-as" style="flex-wrap:wrap">
+        ${XP_AS.map(a => `<button class="seg-btn ${xp.as === a.id ? 'seg-active' : ''}" data-as="${a.id}">${escapeHtml(a.label)}</button>`).join('')}
+      </div>
+      ${btc ? `
+        <div class="seg" id="xp-branch" style="margin-top:12px">
+          <button class="seg-btn ${xp.change ? '' : 'seg-active'}" data-c="0">Receiving</button>
+          <button class="seg-btn ${xp.change ? 'seg-active' : ''}" data-c="1">Change</button>
+        </div>
+        ${xp.change ? '<p class="hint" style="margin-top:6px">When you send a payment, what is left comes back to a <strong>change address</strong>. If you have ever spent from this account, part of the funds is usually here.</p>' : ''}
+      ` : '<p class="hint" style="margin-top:10px">For Ethereum and TRON, a key exported at <code>m/44\'/60\'/0\'</code> (or <code>m/44\'/195\'/0\'</code>) gives the addresses of Account 1, 2, 3… of MetaMask-style wallets, in order.</p>'}
+      <div class="more-list" style="margin-top:10px">
+        ${xp.list.map(a => `
+          <div class="more-row">
+            <span class="more-idx">#${a.index}</span>
+            <code class="more-addr">${escapeHtml(a.address)}<br><span class="path-value" style="font-size:10px">key/${btc ? xp.change : 0}/${a.index}</span></code>
+            ${copyButton(a.address)}
+          </div>`).join('')}
+      </div>
+      <div class="ov-row" style="margin-top:10px">
+        <button class="btn btn-ghost btn-small" id="xp-more">Show 10 more</button>
+      </div>
+      ${btc ? `
+        <div class="watch-box">
+          <div class="watch-head">👁️ Descriptor for a watch-only wallet</div>
+          <p class="hint" style="margin-bottom:12px">Paste it into <strong>Sparrow</strong> or <strong>Electrum</strong> to follow the balance without being able to spend.</p>
+          <div class="addr-copy-row"><code class="detail-value" style="font-size:10.5px">${escapeHtml(xpubDescriptor(xp.info.xpub, xp.as))}</code>
+            ${copyButton(xpubDescriptor(xp.info.xpub, xp.as))}</div>
+        </div>` : ''}
+    </div>`;
+  wireCopyButtons(box);
+  box.querySelectorAll('#xp-as .seg-btn').forEach(b => b.addEventListener('click', () => {
+    xp.as = b.dataset.as;
+    if (!BTC_FORMATS[xp.as]) xp.change = 0;
+    computeXp(xp.list.length); renderXpResults();
+  }));
+  box.querySelectorAll('#xp-branch .seg-btn').forEach(b => b.addEventListener('click', () => {
+    xp.change = +b.dataset.c; computeXp(xp.list.length); renderXpResults();
+  }));
+  document.getElementById('xp-more')?.addEventListener('click', () => { computeXp(xp.list.length + 10); renderXpResults(); });
+}
+
+function wireCtrlXpub() {
+  document.getElementById('xp-back')?.addEventListener('click', () => { ctrlPath = null; xp = null; renderApp(); });
+  document.getElementById('xp-go')?.addEventListener('click', () => {
+    const err = document.getElementById('xp-err');
+    let info;
+    try { info = readPublicKey(document.getElementById('xp-key').value); }
+    catch (e) { err.innerHTML = `<div class="warn-box">${publicKeyError(e)}</div>`; xp = null; renderXpResults(); return; }
+    err.innerHTML = '';
+    xp = { info, as: info.format || 'legacy', change: 0, list: [] };
+    computeXp(10);
+    renderXpResults();
+  });
+  if (xp) renderXpResults();
 }
 
 function renderGenerateTab() {
@@ -797,20 +914,6 @@ function renderVerifyTab() {
           </div>
         </div>
 
-        <div id="vf-format-box" class="btc-fmt-box">
-          <label class="config-label">Which Bitcoin format was it created with?
-            <span class="hint">If you don't know, try <strong>Native SegWit</strong>: it's the most widespread standard. If the address doesn't match the one you expect, try the others — the seed stays the same.</span>
-          </label>
-          <div class="fmt-grid" id="vf-fmt-grid">
-            ${Object.values(BTC_FORMATS).map(f => `
-              <button class="fmt-card ${f.id === vfFormat ? 'fmt-active' : ''}" data-fmt="${f.id}">
-                <span class="fmt-label">${f.label}</span>
-                <span class="fmt-tag">${f.tag}</span>
-                <span class="fmt-desc">${f.desc}</span>
-              </button>`).join('')}
-          </div>
-        </div>
-
         <button id="vf-go" class="btn btn-primary btn-large" style="margin-top:16px">Show the addresses</button>
         <p id="vf-err" style="margin-top:10px"></p>
         ${vfMnemonic ? `<button id="vf-clear" class="btn btn-ghost btn-small" style="margin-top:12px">✕ Remove from the page</button>` : ''}
@@ -824,27 +927,46 @@ function renderVerifyTab() {
 }
 
 function wireVerify() {
-  document.querySelectorAll('#vf-fmt-grid .fmt-card').forEach(b => b.addEventListener('click', () => {
-    document.querySelectorAll('#vf-fmt-grid .fmt-card').forEach(x => x.classList.remove('fmt-active'));
-    b.classList.add('fmt-active');
-    vfFormat = b.dataset.fmt;
-    if (vfSeed) runVerify(true);   // recompute immediately with the new format
-  }));
-  const syncFmt = () => {
-    const box = document.getElementById('vf-format-box');
-    if (box) box.style.display = document.getElementById('vf-chk-btc')?.checked ? 'block' : 'none';
-  };
-  document.getElementById('vf-chk-btc')?.addEventListener('change', syncFmt);
-  syncFmt();
-
   document.getElementById('vf-go')?.addEventListener('click', () => runVerify(false));
   document.getElementById('vf-back')?.addEventListener('click', () => { ctrlPath = null; renderApp(); });
   document.getElementById('vf-clear')?.addEventListener('click', () => {
-    vfSeed = null; vfMnemonic = null; vfResults = null; vfExtra = null; vfAccount = null;
+    vfSeed = null; vfMnemonic = null; vfResults = null; vfCards = newVfCards(); vfFind = null;
     renderApp();
     showToast('Seed removed from the page.', 'info');
   });
   if (vfResults) renderVfResults();
+}
+
+/* What is wrong with the typed words, in words a person can act on:
+   which position, what was typed, which list words are close to it. */
+function diagnosisHTML(d) {
+  if (!d.count) return '<div class="warn-box">Type the words of your seed.</div>';
+  const parts = [];
+  if (!d.countOk) parts.push(`You typed <strong>${d.count}</strong> ${d.count === 1 ? 'word' : 'words'}. A BIP-39 seed has 12, 15, 18, 21 or 24.`);
+  for (const u of d.unknown) {
+    parts.push(`Word <strong>${u.position}</strong>, “${escapeHtml(u.word)}”, is not in the list of BIP-39 words. ` +
+      (u.suggestions.length
+        ? `Did you mean ${u.suggestions.map(w => `<button class="btn btn-outline btn-small vf-sugg" data-pos="${u.position}" data-word="${w}">${w}</button>`).join(' ')}?`
+        : 'No list word is close to it: look at it again on your sheet.'));
+  }
+  if (d.countOk && !d.unknown.length && !d.checksumOk) {
+    parts.push(`All ${d.count} words are in the list, but they do not fit together: the last word also works as a check on all the others, and here it does not match. Usually one word is a different but similar list word, or two words are in the wrong order. Compare them one by one with your sheet.`);
+  }
+  return `<div class="warn-box">${parts.map(t => `<p style="margin:4px 0">${t}</p>`).join('')}</div>`;
+}
+
+function showDiagnosis(d) {
+  const err = document.getElementById('vf-err');
+  err.innerHTML = diagnosisHTML(d);
+  err.querySelectorAll('.vf-sugg').forEach(b => b.addEventListener('click', () => {
+    const ta = document.getElementById('vf-words');
+    const words = normalizeWords(ta.value).split(' ');
+    words[+b.dataset.pos - 1] = b.dataset.word;
+    ta.value = words.join(' ');
+    const again = diagnoseMnemonic(ta.value);
+    if (again.valid) err.innerHTML = '<div class="ok-box">✔ Now the words form a valid seed. Press <strong>Show the addresses</strong>.</div>';
+    else showDiagnosis(again);
+  }));
 }
 
 function runVerify(keepSeed) {
@@ -853,29 +975,19 @@ function runVerify(keepSeed) {
   if (!selected.length) { err.innerHTML = '<span style="color:var(--danger)">Select at least one network.</span>'; return; }
 
   if (!keepSeed) {
-    const ta = document.getElementById('vf-words');
-    const words = (ta.value || '').trim().toLowerCase().replace(/\s+/g, ' ');
-    if (!words) { err.innerHTML = '<span style="color:var(--danger)">Type the words of your seed.</span>'; return; }
-    const n = words.split(' ').length;
-    if (![12, 15, 18, 21, 24].includes(n)) {
-      err.innerHTML = `<span style="color:var(--danger)">You typed ${n} words. A BIP-39 seed has 12, 15, 18, 21 or 24.</span>`;
-      return;
-    }
-    if (!validateMnemonic(words, wordlist)) {
-      err.innerHTML = '<span style="color:var(--danger)">These words do not form a valid seed. It is usually a typo or a similar but different word: check them one by one.</span>';
-      return;
-    }
+    const d = diagnoseMnemonic(document.getElementById('vf-words').value);
+    if (!d.valid) { showDiagnosis(d); return; }
+    const words = d.words.join(' ');
     const pass = document.getElementById('vf-pass').value || '';
     vfMnemonic = words;
     vfSeed = mnemonicToSeedSync(words, pass);
+    vfCards = newVfCards(); vfFind = null;
   }
 
   err.innerHTML = '';
-  try {
-    vfResults = deriveAll(vfSeed, selected, vfFormat);
-    vfExtra = null;
-    vfAccount = selected.includes('btc') ? btcAccountInfo(vfSeed, vfFormat) : null;
-  } catch (e) {
+  vfSelected = selected;
+  try { computeVf(); }
+  catch (e) {
     err.innerHTML = '<span style="color:var(--danger)">Error: ' + escapeHtml(e.message) + '</span>';
     return;
   }
@@ -883,85 +995,242 @@ function runVerify(keepSeed) {
   if (!keepSeed) showToast('Valid seed. Compare the addresses with the ones you expect.', 'success');
 }
 
+let vfSelected = ['btc'];
+/* One card per network, each with its own account, derivation and list. */
+function newVfCards() {
+  return {
+    btc: { acct: 0, der: 'native', extra: null, change: 0 },
+    eth: { acct: 0, der: 'std' },
+    trx: { acct: 0, der: 'std' },
+    sol: { acct: 0, der: 'std' },
+  };
+}
+let vfCards = newVfCards();
+let vfFind = null;        // { text, running, progress, result, error }
+
+function computeVf() {
+  vfResults = Object.fromEntries(vfSelected.map(id => [id, computeVfCard(id)]));
+}
+
+function computeVfCard(id) {
+  const c = vfCards[id];
+  // A derivation that gives the same path as an earlier one for this account
+  // has no button of its own: select that one (the address is the same).
+  if (!derivationChoices(id, c.acct).some(x => x.id === c.der)) {
+    const mine = deriveWith(vfSeed, id, c.der, c.acct).path;
+    const twin = derivationChoices(id, c.acct).find(x => !x.derivation.cross && deriveWith(vfSeed, id, x.id, c.acct).path === mine);
+    if (twin) c.der = twin.id;
+  }
+  const r = deriveWith(vfSeed, id, c.der, c.acct);
+  const d = r.derivation;
+  if (id === 'btc' && d.fmt) {
+    const master = HDKey.fromMasterSeed(new Uint8Array(vfSeed));
+    if (c.extra) c.extra = deriveBTCMany(master, d.fmt, 0, c.extra.length, c.change, c.acct);
+    r.watch = btcAccountInfo(vfSeed, d.fmt, c.acct);
+  } else if (id === 'btc') c.extra = null;
+  return r;
+}
+
+function copyButton(text) {
+  return `<button class="btn btn-icon btn-copy-addr" data-addr="${escapeHtml(text)}" title="Copy">📋</button>`;
+}
+
+function wireCopyButtons(root) {
+  root.querySelectorAll('.btn-copy-addr').forEach(b => b.addEventListener('click', async (ev) => {
+    try { await copyToClipboard(ev.currentTarget.dataset.addr); showToast('Address copied.', 'success'); } catch (_) {}
+  }));
+}
+
+function vfCardHTML(id) {
+  const chain = CHAINS.find(c => c.id === id);
+  const c = vfCards[id];
+  const r = vfResults[id];
+  const d = r.derivation;
+  const single = !hasAccounts(d);
+  const head = `
+    <div class="address-header"><span class="addr-icon">${chain.icon}</span>
+      <div class="address-header-text"><strong>${escapeHtml(chain.name)}</strong>
+        ${id === 'eth' ? `<div class="evm-tags">${['Ethereum', 'BSC', 'Polygon', 'Arbitrum', 'Avalanche', 'Optimism', 'Base'].map(n => `<span class="evm-tag">${n}</span>`).join('')}</div>` : ''}
+      </div>
+    </div>
+    <div class="acct-bar">
+      <span class="acct-label">Account</span>
+      <button class="btn btn-outline acct-btn" data-acct="-1" ${single || c.acct === 0 ? 'disabled' : ''} aria-label="Previous account">−</button>
+      <strong class="acct-num">${single ? '—' : c.acct + 1}</strong>
+      <button class="btn btn-outline acct-btn" data-acct="1" ${single ? 'disabled' : ''} aria-label="Next account">+</button>
+    </div>
+    ${single ? '<p class="hint" style="text-align:center;margin-top:4px">This derivation gives a single address: it has no accounts.</p>' : ''}
+    <div class="seg der-seg${id === 'btc' ? '' : ' der-paths'}">
+      ${derivationChoices(id, c.acct).map(x => `<button class="seg-btn ${x.id === c.der ? 'seg-active' : ''}" data-der="${x.id}">${escapeHtml(x.label)}</button>`).join('')}
+    </div>
+    ${d.used ? `<p class="hint" style="margin:8px 0 4px">${escapeHtml(d.used)}</p>` : '<div style="height:8px"></div>'}`;
+
+  if (d.cross) {
+    return head + r.cross.map(x => `
+      <div class="ap-row">
+        <div class="ap-top"><span class="detail-label">Derivation path</span><code class="path-value">${escapeHtml(x.path)}</code></div>
+        <div class="hint">${escapeHtml(x.used)}</div>
+        ${x.addresses.map(a => `
+          <div class="more-row"><span class="ap-fmt">${escapeHtml(BTC_FORMATS[a.format].label)}</span>
+            <code class="more-addr">${escapeHtml(a.address)}</code>${copyButton(a.address)}</div>`).join('')}
+      </div>`).join('');
+  }
+
+  const btcList = id === 'btc' ? `
+    <div class="btc-more">
+      ${c.extra ? `
+        <div class="seg vf-branch" style="margin-bottom:8px">
+          <button class="seg-btn ${c.change ? '' : 'seg-active'}" data-c="0">Receiving</button>
+          <button class="seg-btn ${c.change ? 'seg-active' : ''}" data-c="1">Change</button>
+        </div>
+        <p class="hint" style="margin-bottom:8px">${c.change
+          ? 'When you send a payment, what is left comes back to a <strong>change address</strong> of the same wallet. If you have ever spent from this wallet, part of the funds is usually here.'
+          : 'The addresses you give out to receive, in order.'}</p>
+        <div class="more-list">
+          ${c.extra.map(a => `
+            <div class="more-row">
+              <span class="more-idx">#${a.index}</span>
+              <code class="more-addr">${escapeHtml(a.address)}<br><span class="path-value" style="font-size:10px">${escapeHtml(a.path)}</span></code>
+              ${copyButton(a.address)}
+            </div>`).join('')}
+        </div>
+        <div class="ov-row" style="margin-top:10px">
+          <button class="btn btn-ghost btn-small vf-more2">Show 10 more</button>
+        </div>
+      ` : `
+        <button class="btn btn-outline btn-small vf-more">➕ More addresses, and change</button>
+        <p class="hint" style="margin-top:8px">Useful if the funds you're looking for are on an address after the first, or on a change address.</p>
+      `}
+    </div>
+    <div class="watch-box">
+      <div class="watch-head">👁️ Check the balance with no risk (watch-only)</div>
+      <p class="hint" style="margin-bottom:12px">Paste this code into <strong>Sparrow</strong> or <strong>Electrum</strong> to see balance and movements of this account <strong>without being able to spend</strong> and without bringing the seed onto a connected device. Whoever holds it sees all the movements of this account, but cannot spend.</p>
+      <div class="detail-label">Descriptor</div>
+      <div class="addr-copy-row"><code class="detail-value" style="font-size:10.5px">${escapeHtml(r.watch.descriptor)}</code>${copyButton(r.watch.descriptor)}</div>
+    </div>` : '';
+
+  return head + `
+    <div class="address-details">
+      <div class="detail-row"><span class="detail-label">Address</span>
+        <div class="addr-copy-row"><code class="detail-value addr-value">${escapeHtml(r.address)}</code>${copyButton(r.address)}</div>
+      </div>
+      <div class="detail-row"><span class="detail-label">Derivation path</span><code class="detail-value path-value">${r.path === null ? 'none — first 32 bytes of the seed' : escapeHtml(r.path)}</code></div>
+    </div>
+    <div class="address-qr" id="vfqr-${id}"><div class="qr-loading">Generating the QR…</div></div>
+    ${btcList}`;
+}
+
+function renderVfCard(id) {
+  const el = document.getElementById('vfc-' + id);
+  if (!el) return;
+  el.innerHTML = vfCardHTML(id);
+  const r = vfResults[id];
+  const c = vfCards[id];
+  if (!r.cross) {
+    (async () => {
+      const q = document.getElementById('vfqr-' + id);
+      try { if (q) q.innerHTML = `<img src="${await generateQR(r.address)}" alt="QR" />`; }
+      catch (_) { if (q) q.innerHTML = '<span class="qr-error">QR error</span>'; }
+    })();
+  }
+  wireCopyButtons(el);
+  const redo = () => {
+    try { vfResults[id] = computeVfCard(id); } catch (e) { showToast('Error: ' + e.message, 'error'); return; }
+    renderVfCard(id);
+  };
+  el.querySelectorAll('.acct-btn').forEach(b => b.addEventListener('click', () => {
+    c.acct = Math.max(0, c.acct + Number(b.dataset.acct)); redo();
+  }));
+  el.querySelectorAll('.der-seg .seg-btn').forEach(b => b.addEventListener('click', () => {
+    c.der = b.dataset.der; redo();
+  }));
+  const fmt = r.derivation.fmt;
+  const master = () => HDKey.fromMasterSeed(new Uint8Array(vfSeed));
+  el.querySelector('.vf-more')?.addEventListener('click', () => {
+    c.extra = deriveBTCMany(master(), fmt, 0, 10, c.change, c.acct); renderVfCard(id);
+  });
+  el.querySelector('.vf-more2')?.addEventListener('click', () => {
+    c.extra = c.extra.concat(deriveBTCMany(master(), fmt, c.extra.length, 10, c.change, c.acct)); renderVfCard(id);
+  });
+  el.querySelectorAll('.vf-branch .seg-btn').forEach(b => b.addEventListener('click', () => {
+    c.change = +b.dataset.c;
+    c.extra = deriveBTCMany(master(), fmt, 0, Math.max(10, c.extra ? c.extra.length : 10), c.change, c.acct);
+    renderVfCard(id);
+  }));
+}
+
+function findHTML() {
+  const f = vfFind || {};
+  let out = '';
+  if (f.error) out = `<div class="warn-box">${f.error}</div>`;
+  else if (f.running) out = `<div class="progress"><div class="progress-fill" style="width:${Math.round((f.progress || 0) * 100)}%"></div></div><p class="hint" style="text-align:center">Searching…</p>`;
+  else if (f.result) {
+    const r = f.result;
+    const net = CHAINS.find(c => c.id === r.chain).name + (r.format ? ` — ${BTC_FORMATS[r.format].label}` : '');
+    const parts = [];
+    if (Number.isInteger(r.account)) parts.push(`account ${r.account + 1}`);
+    if (Number.isInteger(r.change)) parts.push(r.change ? 'change address' : 'receiving address');
+    if (Number.isInteger(r.index)) parts.push(`address #${r.index}`);
+    out = `<div class="ok-box">✔ <strong>Found.</strong> It is a ${escapeHtml(net)} address of these words${parts.length ? ': ' + parts.join(', ') : ''}.<br>
+      Derivation path: <code class="path-value">${r.path === null ? 'none' : escapeHtml(r.path)}</code>${r.note ? `<br><span class="hint">${escapeHtml(r.note)}</span>` : ''}</div>`;
+  } else if (f.done) {
+    out = `<div class="warn-box"><strong>Not found</strong> among the ${f.checked.toLocaleString('en')} addresses checked on this network: every derivation of the cards above, accounts 1 to 10${f.chain === 'btc' ? ', the first 50 receiving and change addresses of each' : ''}. Check the passphrase — with a different one, every address changes — or that the address really comes from these words.</div>`;
+  }
+  return `
+    <div class="card" style="margin-top:16px">
+      <div class="card-header"><span class="step-badge">🔎</span><h2>Find the path of an address</h2></div>
+      <p class="hint" style="margin-bottom:10px">Paste an address you know — Bitcoin, Ethereum, TRON or Solana — that comes from <strong>the seed typed above</strong> (with its passphrase, if it has one). The page looks for it among the addresses of that seed and tells you on which account and derivation path it is. An address of a different seed will not be found.</p>
+      <input id="vf-find" class="inp" placeholder="bc1… / 0x… / T… / Solana address" value="${escapeHtml(f.text || '')}" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false">
+      <button class="btn btn-outline" id="vf-find-go" style="margin-top:10px" ${f.running ? 'disabled' : ''}>Find it</button>
+      <div id="vf-find-out" style="margin-top:10px">${out}</div>
+    </div>`;
+}
+
+function renderFind() {
+  const box = document.getElementById('vf-find-box');
+  if (!box) return;
+  box.innerHTML = findHTML();
+  document.getElementById('vf-find-go')?.addEventListener('click', () => {
+    const text = document.getElementById('vf-find').value.trim();
+    const kind = addressKind(text);
+    if (!kind) { vfFind = { text, error: 'This is not an address of Bitcoin, Ethereum, TRON or Solana: check that it was pasted in full.' }; renderFind(); return; }
+    const it = findAddress(vfSeed, text);
+    const seedAtStart = vfSeed;
+    vfFind = { text, running: true, progress: 0, chain: kind.chain };
+    renderFind();
+    const step = () => {
+      if (vfSeed !== seedAtStart || !vfFind || !vfFind.running) return;   // the words changed or were removed
+      let r;
+      try { r = it.next(); } catch (e) { vfFind = { text, error: 'Error: ' + escapeHtml(e.message) }; renderFind(); return; }
+      if (r.done) {
+        vfFind = r.value ? { text, result: r.value } : { text, done: true, checked: vfFind.checked || 0, chain: kind.chain };
+        renderFind();
+        return;
+      }
+      vfFind.progress = r.value.checked / r.value.total;
+      vfFind.checked = r.value.total;
+      const fill = document.querySelector('#vf-find-out .progress-fill');
+      if (fill) fill.style.width = Math.round(vfFind.progress * 100) + '%';
+      setTimeout(step, 0);
+    };
+    setTimeout(step, 30);
+  });
+}
+
 function renderVfResults() {
   const box = document.getElementById('vf-results');
-  const entries = Object.values(vfResults || {});
-  if (!entries.length) { if (box) box.innerHTML = ''; return; }
+  if (!vfResults) { if (box) box.innerHTML = ''; return; }
   box.innerHTML = `
     <div class="card">
       <div class="card-header"><span class="step-badge">✓</span><h2>Addresses of this seed</h2></div>
-      <p class="hint" style="margin-bottom:16px">If they match the ones you expected, the backup is correct. If not, check the passphrase and — for Bitcoin — the format selected above.</p>
+      <p class="hint" style="margin-bottom:16px">If they match the ones you expected, the backup is correct. If not, check the passphrase, then try another <strong>account</strong> (− and +) or another <strong>derivation</strong> on that network: wallets do not all follow the same path. Or paste the address below and let the page find it.</p>
       <div class="addresses-list">
-        ${entries.map(e => `
-          <div class="address-item">
-            <div class="address-header"><span class="addr-icon">${escapeHtml(e.icon)}</span>
-              <div class="address-header-text"><strong>${escapeHtml(e.name)}</strong>
-                ${e.evmChains ? `<div class="evm-tags">${e.evmChains.map(c => `<span class="evm-tag">${escapeHtml(c)}</span>`).join('')}</div>` : ''}
-              </div>
-            </div>
-            <div class="address-details">
-              <details class="adv"><summary>Technical details</summary>
-                <div class="detail-row" style="margin-top:8px"><span class="detail-label">Derivation Path</span><code class="detail-value path-value">${escapeHtml(e.path)}</code></div>
-              </details>
-              <div class="detail-row"><span class="detail-label">Address</span>
-                <div class="addr-copy-row"><code class="detail-value addr-value">${escapeHtml(e.address)}</code>
-                  <button class="btn btn-icon btn-copy-addr" data-addr="${escapeHtml(e.address)}" title="Copy">📋</button>
-                </div>
-              </div>
-            </div>
-            <div class="address-qr" id="vfqr-${e.id}"><div class="qr-loading">Generating the QR…</div></div>
-            ${e.id === 'btc' ? `
-              <div class="btc-more">
-                ${vfExtra ? `
-                  <div class="more-head">Receiving addresses, in order</div>
-                  <div class="more-list">
-                    ${vfExtra.map(a => `
-                      <div class="more-row">
-                        <span class="more-idx">#${a.index}</span>
-                        <code class="more-addr">${escapeHtml(a.address)}</code>
-                        <button class="btn btn-icon btn-copy-addr" data-addr="${escapeHtml(a.address)}" title="Copy">📋</button>
-                      </div>`).join('')}
-                  </div>
-                  <div class="ov-row" style="margin-top:10px">
-                    <button class="btn btn-ghost btn-small" id="vf-more2">Show 10 more</button>
-                  </div>
-                ` : `
-                  <button class="btn btn-outline btn-small" id="vf-more">➕ Show more Bitcoin addresses</button>
-                  <p class="hint" style="margin-top:8px">Useful if the funds you're looking for are on an address after the first. On the other networks you <strong>always use the same address</strong>.</p>
-                `}
-              </div>` : ''}
-          </div>`).join('')}
+        ${vfSelected.map(id => `<div class="address-item" id="vfc-${id}"></div>`).join('')}
       </div>
-      ${vfAccount ? `
-        <div class="watch-box">
-          <div class="watch-head">👁️ Check the balance with no risk (watch-only)</div>
-          <p class="hint" style="margin-bottom:12px">Paste this code into <strong>Sparrow</strong> or <strong>Electrum</strong> to see balance and movements <strong>without being able to spend</strong> and without bringing the seed onto a connected device.</p>
-          <div class="detail-label">Descriptor</div>
-          <div class="addr-copy-row"><code class="detail-value" style="font-size:10.5px">${escapeHtml(vfAccount.descriptor)}</code>
-            <button class="btn btn-icon" id="vf-copy-desc" title="Copy">📋</button></div>
-          <div class="note-box" style="margin-top:10px">💡 Whoever holds this code sees all your Bitcoin movements, present and future. They cannot spend, but it is like showing a bank statement.</div>
-        </div>` : ''}
-    </div>`;
-
-  entries.forEach(async (e) => {
-    const c = document.getElementById(`vfqr-${e.id}`);
-    if (!c) return;
-    try { c.innerHTML = `<img src="${await generateQR(e.address)}" alt="QR ${escapeHtml(e.symbol)}" />`; }
-    catch (_) { c.innerHTML = '<span class="qr-error">QR error</span>'; }
-  });
-  document.querySelectorAll('#vf-results .btn-copy-addr').forEach(b => b.addEventListener('click', async (ev) => {
-    try { await copyToClipboard(ev.currentTarget.dataset.addr); showToast('Address copied.', 'success'); } catch (_) {}
-  }));
-  document.getElementById('vf-copy-desc')?.addEventListener('click', async () => {
-    try { await copyToClipboard(vfAccount.descriptor); showToast('Descriptor copied.', 'success'); } catch (_) {}
-  });
-  const master = () => HDKey.fromMasterSeed(new Uint8Array(vfSeed));
-  document.getElementById('vf-more')?.addEventListener('click', () => {
-    vfExtra = deriveBTCMany(master(), vfFormat, 0, 10); renderVfResults();
-  });
-  document.getElementById('vf-more2')?.addEventListener('click', () => {
-    vfExtra = vfExtra.concat(deriveBTCMany(master(), vfFormat, vfExtra.length, 10)); renderVfResults();
-  });
+    </div>
+    <div id="vf-find-box"></div>`;
+  vfSelected.forEach(renderVfCard);
+  renderFind();
 }
 
 /* ══════════════════════════════════════════════════════════════
@@ -1980,7 +2249,8 @@ function resetWalletState() {
    page — the wallet, the Check tab, the multisig keys, the print windows. */
 function clearEverything() {
   resetWalletState();
-  vfSeed = null; vfMnemonic = null; vfResults = null; vfExtra = null; vfAccount = null; csResults = null;
+  vfSeed = null; vfMnemonic = null; vfResults = null; csResults = null;
+  vfCards = newVfCards(); vfFind = null; xp = null;
   msMyXpub = null; msSoloSeeds = null; msSoloVault = null; msSoloRevealed = []; msSoloConfig = null;
   recParts = [{}, {}, {}];
   while (printWindows.length) { try { printWindows.pop().close(); } catch (_) {} }
@@ -2063,9 +2333,7 @@ function renderResults() {
               </div>
             </div>
             <div class="address-details">
-              <details class="adv"><summary>Technical details</summary>
-                <div class="detail-row" style="margin-top:8px"><span class="detail-label">Derivation Path</span><code class="detail-value path-value">${escapeHtml(e.path)}</code></div>
-              </details>
+              <div class="detail-row"><span class="detail-label">Derivation path</span><code class="detail-value path-value">${escapeHtml(e.path)}</code></div>
               <div class="detail-row"><span class="detail-label">Address</span>
                 <div class="addr-copy-row"><code class="detail-value addr-value">${escapeHtml(e.address)}</code>
                   <button class="btn btn-icon btn-copy-addr" data-addr="${escapeHtml(e.address)}" title="Copy address">📋</button>
@@ -3389,7 +3657,7 @@ function renderGuideFaq() {
           <p>Bitcoin has changed address format several times over the years. From the <strong>same seed</strong> you can generate all four: they are not different wallets, they are different ways of writing the same ownership.</p>
           <p><strong>Native SegWit</strong> (<em>bc1q…</em>) — Today's standard, and the default choice: low fees and accepted practically everywhere.</p>
           <p><strong>Taproot</strong> (<em>bc1p…</em>) — The most recent: even lower fees and greater privacy. Some older services don't accept it yet.</p>
-          <p><strong>SegWit compatible</strong> (<em>3…</em>) — A transitional format, accepted even by the oldest services.</p>
+          <p><strong>Nested SegWit</strong> (<em>3…</em>) — A transitional format, accepted even by the oldest services.</p>
           <p><strong>Legacy</strong> (<em>1…</em>) — The original format from 2009. It always works, but costs more in fees.</p>
           <p>Each format uses a different derivation path, so it produces different addresses. If you are recovering an old wallet and the address doesn't match, try changing format: the seed is probably right.</p>
         </div></details>
@@ -3402,7 +3670,7 @@ function renderGuideFaq() {
             <code class="pd-full">m / 84' / 0' / 0' / 0 / 0</code>
             <div class="pd-legend">
               <div class="pd-row"><code>m</code><span>The root: the seed itself. Everything starts here.</span></div>
-              <div class="pd-row"><code>84'</code><span><strong>Purpose</strong> — what kind of address you want. 44 Legacy, 49 SegWit compatible, 84 Native SegWit, 86 Taproot, 48 multisig.</span></div>
+              <div class="pd-row"><code>84'</code><span><strong>Purpose</strong> — what kind of address you want. 44 Legacy, 49 Nested SegWit, 84 Native SegWit, 86 Taproot, 48 multisig.</span></div>
               <div class="pd-row"><code>0'</code><span><strong>Coin</strong> — which network. 0 Bitcoin, 60 Ethereum, 195 TRON, 501 Solana. The numbers are assigned by the SLIP-44 standard.</span></div>
               <div class="pd-row"><code>0'</code><span><strong>Account</strong> — separate accounts inside the same wallet. The first is 0, the second 1, and so on.</span></div>
               <div class="pd-row"><code>0</code><span><strong>Chain</strong> — 0 for the public addresses you give others to receive, 1 for those used for change, generated by the wallet.</span></div>
@@ -3412,6 +3680,8 @@ function renderGuideFaq() {
           <p style="margin-top:14px"><strong>How many addresses can you have?</strong> Each level of the path allows around two billion possible values. This applies both to accounts and to addresses: you can have billions of different accounts and, inside each account, billions of different addresses.</p>
           <p><strong>What does the apostrophe mean?</strong> It indicates a <em>hardened</em> derivation, that is a reinforced one. Without it, anyone holding an extended public key and a single child private key could work back to the parent key. The apostrophe closes that road. That's why the first three levels always have it.</p>
           <p><strong>Why it concerns you.</strong> If you import the seed elsewhere and the addresses don't match (particularly with Bitcoin, which has several formats), it is almost always the path that differs — not the seed. It's the reason why a Legacy wallet and a Native SegWit one, though born from the same words, show completely different addresses: they simply sit on different branches of the same tree.</p>
+          <p><strong>Not every wallet counts accounts the same way.</strong> “Account 2” in MetaMask is the second address of the first branch (<code>m/44'/60'/0'/0/1</code>); in Ledger Live it is a branch of its own (<code>m/44'/60'/1'/0/0</code>). Same words, different addresses.</p>
+          <p><strong>How to find a missing address.</strong> In <em>Check wallet</em>, every network has its own account number (− and +) and a button for each derivation path that gives a different address — for Bitcoin the four formats, and also Bitcoin addresses on the paths of Ethereum and TRON. Bitcoin also shows its change addresses. Or paste the address into <em>Find the path of an address</em>: the page looks for it among the addresses of your words and tells you its account and path. If you only have the account's public key (xpub, ypub or zpub), <em>A public key only</em> shows its addresses without typing any secret word.</p>
         </div></details>
 
         <details class="faq" id="g-networks"><summary>📬 Why does Bitcoin have many addresses and the other networks only one?</summary><div class="faq-body">
