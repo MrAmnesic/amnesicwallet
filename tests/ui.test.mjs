@@ -265,6 +265,8 @@ async function run(browser, engine, device) {
 
     step = 'Check wallet: accounts, one network at a time';
     const card = (id) => page.locator('#vfc-' + id);
+    check(await card('eth').locator('.der-seg .seg-btn').count() === 2, 'Ethereum, account 1: two different paths, no duplicate');
+    check((await card('eth').locator('.der-seg .seg-btn').first().innerText()) === "m/44'/60'/0'/0/0", 'the buttons show the path itself');
     await press(card('eth').locator('.acct-btn[data-acct="1"]'));
     check((await card('eth').locator('.acct-num').innerText()) === '2', 'Ethereum on account 2');
     check((await card('btc').locator('.acct-num').innerText()) === '1', 'Bitcoin stays on account 1');

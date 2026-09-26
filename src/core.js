@@ -334,7 +334,7 @@ export const BTC_FORMATS = {
              desc: "Today's standard: low fees and full compatibility." },
   taproot: { id: 'taproot', label: 'Taproot',           tag: 'bc1p…', purpose: 86, std: 'BIP-86',
              desc: 'The most recent: more privacy and even lower fees.' },
-  p2sh:    { id: 'p2sh',    label: 'SegWit compatible', tag: '3…',    purpose: 49, std: 'BIP-49',
+  p2sh:    { id: 'p2sh',    label: 'Nested SegWit', tag: '3…',    purpose: 49, std: 'BIP-49',
              desc: 'Accepted everywhere, even by older services.' },
   legacy:  { id: 'legacy',  label: 'Legacy',            tag: '1…',    purpose: 44, std: 'BIP-44',
              desc: 'The original format from 2009. Higher fees.' },
@@ -589,13 +589,13 @@ function secpAddress(pubkey, chain, btcFormat) {
 /* The derivations offered for each network, as the check shows them:
    one button each. {n} is the account chosen on screen (0 = "Account 1").
    A derivation without {n} gives a single address.
-   Sources for the wallets named: the wallets' own documentation (Phantom
-   lists every Solana and Ethereum path it supports); BIP-44/49/84/86. */
+   Sources: BIP-44/49/84/86, and the wallets' own documentation (Phantom
+   lists the Solana and Ethereum paths it supports). */
 export const DERIVATIONS = {
   btc: [
     { id: 'native',  label: 'Native SegWit',     fmt: 'native',  path: "m/84'/0'/{n}'/0/0", used: 'BIP-84 — most wallets today' },
     { id: 'taproot', label: 'Taproot',           fmt: 'taproot', path: "m/86'/0'/{n}'/0/0", used: 'BIP-86' },
-    { id: 'p2sh',    label: 'SegWit compatible', fmt: 'p2sh',    path: "m/49'/0'/{n}'/0/0", used: 'BIP-49' },
+    { id: 'p2sh',    label: 'Nested SegWit', fmt: 'p2sh',    path: "m/49'/0'/{n}'/0/0", used: 'BIP-49' },
     { id: 'legacy',  label: 'Legacy',            fmt: 'legacy',  path: "m/44'/0'/{n}'/0/0", used: 'BIP-44' },
     { id: 'cross',   label: 'ETH / TRON paths',  cross: [
       { path: "m/44'/60'/0'/0/{n}",  used: "Ethereum's path" },
@@ -603,26 +603,43 @@ export const DERIVATIONS = {
     ], used: 'Bitcoin addresses made on the paths of Ethereum and TRON, where funds can end up when a wallet mixes up networks' },
   ],
   eth: [
-    { id: 'std',     label: 'MetaMask · Trust · Exodus', path: "m/44'/60'/0'/0/{n}", used: 'MetaMask, Trezor, Trust Wallet, Rabby, Exodus, Phantom — “Account N” is the N-th address' },
-    { id: 'live',    label: 'Ledger Live',               path: "m/44'/60'/{n}'/0/0", used: 'Ledger Live — each account is its own branch' },
-    { id: 'legacy',  label: 'Ledger legacy',             path: "m/44'/60'/0'/{n}",   used: 'Ledger legacy path (MyEtherWallet, MyCrypto)' },
+    { id: 'std',     path: "m/44'/60'/0'/0/{n}" },
+    { id: 'live',    path: "m/44'/60'/{n}'/0/0" },
+    { id: 'legacy',  path: "m/44'/60'/0'/{n}" },
   ],
   trx: [
-    { id: 'std',     label: 'Trust · TronLink',          path: "m/44'/195'/0'/0/{n}", used: 'Trust Wallet and most wallets — “Account N” is the N-th address' },
-    { id: 'live',    label: 'Ledger Live',               path: "m/44'/195'/{n}'/0/0", used: 'Ledger Live — each account is its own branch' },
-    { id: 'eth',     label: "Ethereum's path",           path: "m/44'/60'/0'/0/{n}",  used: 'The key of the Ethereum address, shown as a TRON address' },
+    { id: 'std',     path: "m/44'/195'/0'/0/{n}" },
+    { id: 'live',    path: "m/44'/195'/{n}'/0/0" },
+    { id: 'eth',     path: "m/44'/60'/0'/0/{n}", used: "Ethereum's path: the key of the Ethereum address, shown as a TRON address" },
   ],
   sol: [
-    { id: 'std',     label: 'Phantom · Solflare · Exodus', path: "m/44'/501'/{n}'/0'", used: 'Phantom, Solflare, Backpack, Exodus, MetaMask — “Account N”' },
-    { id: 'ledger',  label: 'Ledger · Trust',            path: "m/44'/501'/{n}'",    used: 'Ledger Live, Trust Wallet, and Phantom with a Ledger' },
-    { id: 'root',    label: 'Ledger root',               path: "m/44'/501'",         used: 'A single address: Ledger root level, and solana-keygen with this path' },
-    { id: 'none',    label: 'solana-keygen',             path: null,                 used: 'A single address: solana-keygen default, the first 32 bytes of the seed, no path' },
-    { id: 'sollet',  label: 'Sollet (old)',              path: "m/501'/{n}'/0/0",    used: 'The old Sollet wallet (Phantom calls it “deprecated”): a Bitcoin-style path, whose key becomes the Solana key' },
+    { id: 'std',     path: "m/44'/501'/{n}'/0'" },
+    { id: 'ledger',  path: "m/44'/501'/{n}'" },
+    { id: 'root',    path: "m/44'/501'" },
+    { id: 'none',    path: null, label: 'No path', used: 'No derivation: the key is the first 32 bytes of the seed' },
+    { id: 'sollet',  path: "m/501'/{n}'/0/0", used: 'A Bitcoin-style (secp256k1) derivation, whose key becomes the Solana key' },
   ],
 };
 
 export const fillPath = (tpl, account) => (tpl === null ? null : tpl.replace(/\{n\}/g, String(account)));
 export const hasAccounts = (d) => (d.cross ? true : d.path !== null && d.path.includes('{n}'));
+
+/* The derivation buttons of a network for one account. Without a name of
+   their own, they are labelled with the path itself; two derivations that
+   give the same path for this account (for Ethereum, m/44'/60'/0'/0/0 is
+   both the first address and the first Ledger Live account) are shown once. */
+export function derivationChoices(chain, account = 0) {
+  const seen = new Set();
+  const out = [];
+  for (const d of DERIVATIONS[chain] || []) {
+    const path = d.cross ? null : fillPath(d.path, hasAccounts(d) ? account : 0);
+    const key = d.cross ? d.id : (path === null ? 'none' : path);
+    if (seen.has(key)) continue;
+    seen.add(key);
+    out.push({ id: d.id, label: d.label || path, derivation: d });
+  }
+  return out;
+}
 
 /* Solana keys on the old Sollet path: BIP-32 (secp256k1) derivation, whose
    private key is used as the ed25519 secret. */
@@ -841,7 +858,7 @@ export function diagnoseMnemonic(text) {
    ════════════════════════════════════════════════════════════════ */
 
 /* Reads a single-signature account key as shared by wallets: xpub,
-   ypub (SegWit compatible) or zpub (Native SegWit). The result is the
+   ypub (Nested SegWit) or zpub (Native SegWit). The result is the
    key re-labelled as a plain xpub, with the format its label suggests.
    An xpub does not say which format it was used with (Legacy and
    Taproot both use it): the format is then left for the person to pick. */

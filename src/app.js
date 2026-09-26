@@ -28,7 +28,7 @@ import {
   diceRollsNeeded, diceBytesFrom, shamirSplit, shamirCombine, verificationCode, classicSplit,
   deriveAll, deriveBTC, deriveBTCMany, btcAccountInfo, btcPath, deriveMultisigXpub, multisigAddress, KeyError,
   slip39Create, slip39Recover, isSlip39Passphrase, metalRows, normalizeWords,
-  DERIVATIONS, deriveWith, hasAccounts, addressKind, findAddress, diagnoseMnemonic, readPublicKey, addressesFromXpub, xpubDescriptor,
+  DERIVATIONS, deriveWith, hasAccounts, derivationChoices, addressKind, findAddress, diagnoseMnemonic, readPublicKey, addressesFromXpub, xpubDescriptor,
   entropyToMnemonic, mnemonicToEntropy, mnemonicToSeedSync, validateMnemonic, wordlist, HDKey,
 } from './core.js';
 import QRCode from 'qrcode';
@@ -1014,6 +1014,13 @@ function computeVf() {
 
 function computeVfCard(id) {
   const c = vfCards[id];
+  // A derivation that gives the same path as an earlier one for this account
+  // has no button of its own: select that one (the address is the same).
+  if (!derivationChoices(id, c.acct).some(x => x.id === c.der)) {
+    const mine = deriveWith(vfSeed, id, c.der, c.acct).path;
+    const twin = derivationChoices(id, c.acct).find(x => !x.derivation.cross && deriveWith(vfSeed, id, x.id, c.acct).path === mine);
+    if (twin) c.der = twin.id;
+  }
   const r = deriveWith(vfSeed, id, c.der, c.acct);
   const d = r.derivation;
   if (id === 'btc' && d.fmt) {
@@ -1053,10 +1060,10 @@ function vfCardHTML(id) {
       <button class="btn btn-outline acct-btn" data-acct="1" ${single ? 'disabled' : ''} aria-label="Next account">+</button>
     </div>
     ${single ? '<p class="hint" style="text-align:center;margin-top:4px">This derivation gives a single address: it has no accounts.</p>' : ''}
-    <div class="seg der-seg">
-      ${DERIVATIONS[id].map(x => `<button class="seg-btn ${x.id === c.der ? 'seg-active' : ''}" data-der="${x.id}">${escapeHtml(x.label)}</button>`).join('')}
+    <div class="seg der-seg${id === 'btc' ? '' : ' der-paths'}">
+      ${derivationChoices(id, c.acct).map(x => `<button class="seg-btn ${x.id === c.der ? 'seg-active' : ''}" data-der="${x.id}">${escapeHtml(x.label)}</button>`).join('')}
     </div>
-    <p class="hint" style="margin:8px 0 4px">${escapeHtml(d.used)}</p>`;
+    ${d.used ? `<p class="hint" style="margin:8px 0 4px">${escapeHtml(d.used)}</p>` : '<div style="height:8px"></div>'}`;
 
   if (d.cross) {
     return head + r.cross.map(x => `
@@ -1167,12 +1174,12 @@ function findHTML() {
     out = `<div class="ok-box">✔ <strong>Found.</strong> It is a ${escapeHtml(net)} address of these words${parts.length ? ': ' + parts.join(', ') : ''}.<br>
       Derivation path: <code class="path-value">${r.path === null ? 'none' : escapeHtml(r.path)}</code>${r.note ? `<br><span class="hint">${escapeHtml(r.note)}</span>` : ''}</div>`;
   } else if (f.done) {
-    out = `<div class="warn-box"><strong>Not found</strong> among the ${f.checked.toLocaleString('en')} addresses checked on this network: every derivation above, accounts 1 to 10${f.chain === 'btc' ? ', the first 50 receiving and change addresses of each' : ''}. Check the passphrase — with a different one, every address changes — or that the address really comes from these words.</div>`;
+    out = `<div class="warn-box"><strong>Not found</strong> among the ${f.checked.toLocaleString('en')} addresses checked on this network: every derivation of the cards above, accounts 1 to 10${f.chain === 'btc' ? ', the first 50 receiving and change addresses of each' : ''}. Check the passphrase — with a different one, every address changes — or that the address really comes from these words.</div>`;
   }
   return `
     <div class="card" style="margin-top:16px">
       <div class="card-header"><span class="step-badge">🔎</span><h2>Find the path of an address</h2></div>
-      <p class="hint" style="margin-bottom:10px">Paste an address you know — Bitcoin, Ethereum, TRON or Solana. The page looks for it among the addresses of these words and tells you on which account and derivation path it is.</p>
+      <p class="hint" style="margin-bottom:10px">Paste an address you know — Bitcoin, Ethereum, TRON or Solana — that comes from <strong>the seed typed above</strong> (with its passphrase, if it has one). The page looks for it among the addresses of that seed and tells you on which account and derivation path it is. An address of a different seed will not be found.</p>
       <input id="vf-find" class="inp" placeholder="bc1… / 0x… / T… / Solana address" value="${escapeHtml(f.text || '')}" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false">
       <button class="btn btn-outline" id="vf-find-go" style="margin-top:10px" ${f.running ? 'disabled' : ''}>Find it</button>
       <div id="vf-find-out" style="margin-top:10px">${out}</div>
@@ -3650,7 +3657,7 @@ function renderGuideFaq() {
           <p>Bitcoin has changed address format several times over the years. From the <strong>same seed</strong> you can generate all four: they are not different wallets, they are different ways of writing the same ownership.</p>
           <p><strong>Native SegWit</strong> (<em>bc1q…</em>) — Today's standard, and the default choice: low fees and accepted practically everywhere.</p>
           <p><strong>Taproot</strong> (<em>bc1p…</em>) — The most recent: even lower fees and greater privacy. Some older services don't accept it yet.</p>
-          <p><strong>SegWit compatible</strong> (<em>3…</em>) — A transitional format, accepted even by the oldest services.</p>
+          <p><strong>Nested SegWit</strong> (<em>3…</em>) — A transitional format, accepted even by the oldest services.</p>
           <p><strong>Legacy</strong> (<em>1…</em>) — The original format from 2009. It always works, but costs more in fees.</p>
           <p>Each format uses a different derivation path, so it produces different addresses. If you are recovering an old wallet and the address doesn't match, try changing format: the seed is probably right.</p>
         </div></details>
@@ -3663,7 +3670,7 @@ function renderGuideFaq() {
             <code class="pd-full">m / 84' / 0' / 0' / 0 / 0</code>
             <div class="pd-legend">
               <div class="pd-row"><code>m</code><span>The root: the seed itself. Everything starts here.</span></div>
-              <div class="pd-row"><code>84'</code><span><strong>Purpose</strong> — what kind of address you want. 44 Legacy, 49 SegWit compatible, 84 Native SegWit, 86 Taproot, 48 multisig.</span></div>
+              <div class="pd-row"><code>84'</code><span><strong>Purpose</strong> — what kind of address you want. 44 Legacy, 49 Nested SegWit, 84 Native SegWit, 86 Taproot, 48 multisig.</span></div>
               <div class="pd-row"><code>0'</code><span><strong>Coin</strong> — which network. 0 Bitcoin, 60 Ethereum, 195 TRON, 501 Solana. The numbers are assigned by the SLIP-44 standard.</span></div>
               <div class="pd-row"><code>0'</code><span><strong>Account</strong> — separate accounts inside the same wallet. The first is 0, the second 1, and so on.</span></div>
               <div class="pd-row"><code>0</code><span><strong>Chain</strong> — 0 for the public addresses you give others to receive, 1 for those used for change, generated by the wallet.</span></div>
@@ -3674,7 +3681,7 @@ function renderGuideFaq() {
           <p><strong>What does the apostrophe mean?</strong> It indicates a <em>hardened</em> derivation, that is a reinforced one. Without it, anyone holding an extended public key and a single child private key could work back to the parent key. The apostrophe closes that road. That's why the first three levels always have it.</p>
           <p><strong>Why it concerns you.</strong> If you import the seed elsewhere and the addresses don't match (particularly with Bitcoin, which has several formats), it is almost always the path that differs — not the seed. It's the reason why a Legacy wallet and a Native SegWit one, though born from the same words, show completely different addresses: they simply sit on different branches of the same tree.</p>
           <p><strong>Not every wallet counts accounts the same way.</strong> “Account 2” in MetaMask is the second address of the first branch (<code>m/44'/60'/0'/0/1</code>); in Ledger Live it is a branch of its own (<code>m/44'/60'/1'/0/0</code>). Same words, different addresses.</p>
-          <p><strong>How to find a missing address.</strong> In <em>Check wallet</em>, every network has its own account number (− and +) and buttons for the derivations of the best-known wallets — for Bitcoin the four formats, and also Bitcoin addresses on the paths of Ethereum and TRON. Bitcoin also shows its change addresses. Or paste the address into <em>Find the path of an address</em>: the page looks for it among the addresses of your words and tells you its account and path. If you only have the account's public key (xpub, ypub or zpub), <em>A public key only</em> shows its addresses without typing any secret word.</p>
+          <p><strong>How to find a missing address.</strong> In <em>Check wallet</em>, every network has its own account number (− and +) and a button for each derivation path that gives a different address — for Bitcoin the four formats, and also Bitcoin addresses on the paths of Ethereum and TRON. Bitcoin also shows its change addresses. Or paste the address into <em>Find the path of an address</em>: the page looks for it among the addresses of your words and tells you its account and path. If you only have the account's public key (xpub, ypub or zpub), <em>A public key only</em> shows its addresses without typing any secret word.</p>
         </div></details>
 
         <details class="faq" id="g-networks"><summary>📬 Why does Bitcoin have many addresses and the other networks only one?</summary><div class="faq-body">

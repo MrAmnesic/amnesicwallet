@@ -26,7 +26,7 @@ import {
   toChecksumAddress, deriveAll, slip10Ed25519, deriveMultisigXpub, normalizeXpub,
   multisigAddress, isSlip39Passphrase, slip39Create, slip39Recover, metalRows,
   entropyToMnemonic, mnemonicToEntropy, mnemonicToSeedSync, validateMnemonic, wordlist, HDKey,
-  parsePath, addressAtPath, DERIVATIONS, deriveWith, hasAccounts, fillPath, addressKind, findAddress, suggestWords, diagnoseMnemonic,
+  parsePath, addressAtPath, DERIVATIONS, deriveWith, derivationChoices, hasAccounts, fillPath, addressKind, findAddress, suggestWords, diagnoseMnemonic,
   readPublicKey, addressesFromXpub, xpubDescriptor, KeyError,
 } from '../src/core.js';
 import { sha256 } from '@noble/hashes/sha2.js';
@@ -498,6 +498,11 @@ group('Derivation paths — every known path, account and network (bip_utils / e
         }
       }
     }
+    eq(derivationChoices('eth', 0).map(x => x.label).join(' '), "m/44'/60'/0'/0/0 m/44'/60'/0'/0", 'Ethereum, account 1: two different paths');
+    eq(derivationChoices('eth', 1).map(x => x.label).join(' '), "m/44'/60'/0'/0/1 m/44'/60'/1'/0/0 m/44'/60'/0'/1", 'Ethereum, account 2: three different paths');
+    eq(derivationChoices('trx', 0).length, 2, 'TRON, account 1: two different paths');
+    eq(derivationChoices('sol', 0).map(x => x.label).join(' '), "m/44'/501'/0'/0' m/44'/501'/0' m/44'/501' No path m/501'/0'/0/0", 'Solana: every path, by its path');
+    eq(derivationChoices('btc', 2).map(x => x.label).join(', '), 'Native SegWit, Taproot, Nested SegWit, Legacy, ETH / TRON paths', 'Bitcoin: the formats by name');
     check(!hasAccounts(DERIVATIONS.sol.find(d => d.id === 'root')) && !hasAccounts(DERIVATIONS.sol.find(d => d.id === 'none')), 'single-address derivations have no accounts');
     throws(() => deriveWith(seed, 'eth', 'nope', 0), 'an unknown derivation is refused');
 
