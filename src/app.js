@@ -126,7 +126,7 @@ function printHTML(html) {
    ════════════════════════════════════════════════════════════════ */
 let currentTheme = 'light';       // 'dark' | 'light' — never persisted to disk
 let activeTab = 'generate';           // generate | check | guide
-let genPath = null;                 // null | 'classic' | 'multisig'
+let genPath = null;                 // null | 'classic' | 'shamir' | 'slip39' | 'multisig'
 let ctrlPath = null;
 let shamirMode = null;              // null | 'restore' | 'convert'
 let currentMnemonic = null;
@@ -135,7 +135,8 @@ let currentEntropy = null;
 let generatedAddresses = {};
 let btcFormat = 'native';
 let entropyMode = 'classic';       // 'classic' | 'dice' — kept in state, not only as a CSS class
-let seedStandard = 'bip39';        // 'bip39' | 'slip39'
+let walletKind = null;             // kind of the wallet on screen: 'classic' | 'shamir'
+let shamirConfig = null;           // {n, m} for a Shamir wallet being created
 let slipConfig = null;             // {n, m} for SLIP-39
 let slipShares = null;             // the generated shares
 let slipRevealed = [];
@@ -249,27 +250,45 @@ function wireTabs() {
 /* ════════════════════════════════════════════════════════════════
    GENERATE TAB — configuration → entropy → seed → check → addresses
    ════════════════════════════════════════════════════════════════ */
+/* The four kinds of wallet, chosen once, on the first screen. */
+const WALLET_KINDS = [
+  { id: 'classic', icon: '🪪', title: 'Classic wallet',
+    desc: 'One BIP-39 phrase of 12 to 24 words, and your addresses on Bitcoin, Ethereum, TRON and Solana.',
+    recover: 'any wallet' },
+  { id: 'shamir', icon: '🧩', title: 'Shamir wallet',
+    desc: 'A BIP-39 seed created already split into parts: you choose how many, and how many bring it back.',
+    recover: 'this program — then the seed works in any wallet' },
+  { id: 'slip39', icon: '📄', title: 'SLIP-39 wallet',
+    desc: 'Sheets of 20 words with a threshold, from a public standard. The complete phrase never exists.',
+    recover: 'Trezor, Sparrow, Electrum, Keystone…' },
+  { id: 'multisig', icon: '🔐', title: 'Multisig vault',
+    desc: 'A Bitcoin address that needs several keys to spend, for example 2 of 3.',
+    recover: 'Sparrow, Electrum or hardware wallets, with the descriptor' },
+];
+
 function renderGenChooser() {
   return `
     <section>
       <div class="card hero-card">
-        <h2>What would you like to create today?</h2>
-        <p class="card-desc">Two paths, both guided step by step.</p>
+        <h2>What would you like to create?</h2>
+        <p class="card-desc">Four kinds of wallet, from the simplest to the most specific. Each is guided step by step.</p>
         <div class="path-grid">
-          <button class="path-card" id="gen-classic">
-            <span class="path-icon">🪪</span>
-            <span class="path-title">A personal wallet</span>
-            <span class="path-desc">Your seed, your addresses on four networks. The right choice for most people.</span>
-            <span class="path-cta">Start →</span>
-          </button>
-          <button class="path-card" id="gen-multisig">
-            <span class="path-icon">🔐</span>
-            <span class="path-title">A multisig vault</span>
-            <span class="path-desc">Several keys to open it: the protection that holds even if one key is lost or stolen.</span>
-            <span class="path-cta">Start →</span>
-          </button>
+          ${WALLET_KINDS.map(k => `
+            <button class="path-card" id="gen-${k.id}">
+              <span class="path-icon">${k.icon}</span>
+              <span class="path-title">${k.title}</span>
+              <span class="path-desc">${k.desc}</span>
+              <span class="path-recover">Recover with: <strong>${k.recover}</strong></span>
+              <span class="path-cta">Start →</span>
+            </button>`).join('')}
         </div>
-        <p class="hint" style="margin-top:16px">Already have a wallet and just want to check it? You'll find everything under <strong>🔍 Check wallet</strong>.</p>
+        <div class="note-box" style="margin-top:16px;text-align:left">
+          <strong>Not sure?</strong> A <strong>Classic wallet</strong> suits most people: one phrase that every wallet reads.
+          <strong>Shamir</strong> and <strong>SLIP-39</strong> split the backup from the first moment, so that no single sheet opens the wallet:
+          SLIP-39 is a public standard read by other programs, while a Shamir wallet, once reassembled here, is an ordinary seed.
+          A <strong>multisig vault</strong> spreads the control of Bitcoin over several keys.${helpLink('g-backup', 'Compare them in the guide')}
+        </div>
+        <p class="hint" style="margin-top:14px">Already have a wallet and just want to check it? You'll find everything under <strong>🔍 Check wallet</strong>.</p>
       </div>
     </section>`;
 }
@@ -386,12 +405,17 @@ function renderConvertShamir() {
         </label>
         <textarea id="cv-words" class="inp" rows="3" placeholder="word1 word2 word3 …" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false"></textarea>
 
+        <div class="config-row" style="margin-top:14px">
+          <label class="config-label">Into how many parts, and how many to recover?</label>
+          ${thresholdConfigHTML('cv', 'parts')}
+        </div>
+
         <div class="note-box" style="margin-top:12px">
           <strong>Were you using a passphrase?</strong> There's no need to enter it here: the parts rebuild the <em>words</em>, and the passphrase remains a separate protection. Keep looking after it on its own, otherwise the wallet stays out of reach.
         </div>
 
         <div style="margin-top:18px">
-          <button class="btn btn-primary btn-large" id="cv-go">Continue</button>
+          <button class="btn btn-primary btn-large" id="cv-go">Create the parts</button>
         </div>
         <p id="cv-err" style="margin-top:10px"></p>
         <div class="ov-row" style="margin-top:14px">
@@ -402,6 +426,7 @@ function renderConvertShamir() {
 }
 
 function wireConvertShamir() {
+  wireThresholdConfig('cv', 'parts');
   document.getElementById('cv-back')?.addEventListener('click', () => { shamirMode = null; renderApp(); });
   document.getElementById('cv-go')?.addEventListener('click', () => {
     const ta = document.getElementById('cv-words');
@@ -417,17 +442,20 @@ function wireConvertShamir() {
       err.innerHTML = '<span style="color:var(--danger)">These words do not form a valid seed. It is usually a typo or a similar but different word: check them one by one.</span>';
       return;
     }
+    const { n: parts, m: needed } = readThreshold('cv');
     try {
       resetWalletState();
       currentMnemonic = words;
       currentEntropy = mnemonicToEntropy(words, wordlist);
       currentSeed = mnemonicToSeedSync(words, '');
       pendingConfig = { words: n, passphrase: '' };
+      walletKind = 'shamir';
+      makeShamirParts(parts, needed);
       ta.value = '';
-      activeTab = 'generate'; genPath = 'classic';
+      activeTab = 'generate'; genPath = 'shamir';
       ctrlPath = null; shamirMode = null;
       renderApp();
-      showShamirIntro();
+      showToast(`${parts} parts created. ${needed} of them are enough to get the seed back.`, 'success');
     } catch (e) { err.innerHTML = '<span style="color:var(--danger)">Error: ' + escapeHtml(e.message) + '</span>'; }
   });
 }
@@ -726,19 +754,69 @@ function wireCtrlXpub() {
   if (xp) renderXpResults();
 }
 
+const KIND_INTRO = {
+  classic: { title: 'Classic wallet', desc: 'You are about to generate the words of a BIP-39 seed. They won\'t appear on screen unless you ask: you can copy or print them away from prying eyes.' },
+  shamir: { title: 'Shamir wallet', desc: 'You are about to generate a BIP-39 seed that is shown to you already split into parts. The complete words stay hidden: some of the parts bring them back, in this program.' },
+  slip39: { title: 'SLIP-39 wallet', desc: 'You are about to generate SLIP-39 sheets. The complete phrase never exists: only the sheets, and enough of them open the wallet in Trezor, Sparrow, Electrum and other programs.' },
+};
+
+/* Parts (or sheets) to create and how many are needed, with the sentence
+   that says what it means. Same limits as always: 3–7 parts, threshold 2–n. */
+function thresholdConfigHTML(prefix, what, n = 5, m = 3) {
+  return `
+    <div class="ov-grid2" style="max-width:420px">
+      <div><label class="config-label">${what === 'sheets' ? 'Sheets to create' : 'Parts to create'}</label>
+        <select id="${prefix}-n" class="inp">${[3, 4, 5, 6, 7].map(v => `<option value="${v}" ${v === n ? 'selected' : ''}>${v}</option>`).join('')}</select></div>
+      <div><label class="config-label">How many are needed</label>
+        <select id="${prefix}-m" class="inp">${shamirThresholdOptions(n, m)}</select></div>
+    </div>
+    <p class="hint" id="${prefix}-summary" style="margin-top:8px"></p>`;
+}
+
+function wireThresholdConfig(prefix, what) {
+  const nEl = document.getElementById(`${prefix}-n`);
+  const mEl = document.getElementById(`${prefix}-m`);
+  if (!nEl || !mEl) return;
+  const upd = () => {
+    const n = parseInt(nEl.value);
+    const m = Math.min(parseInt(mEl.value), n);
+    const noun = what === 'sheets' ? 'sheets of 20 words' : 'parts';
+    document.getElementById(`${prefix}-summary`).innerHTML =
+      `You will create <strong>${n} ${noun}</strong> and <strong>${m}</strong> of them will be enough to recover everything.` +
+      (n > m ? ` You can lose up to <strong>${n - m}</strong> with no consequences.` : ' Since all of them are needed, losing one means losing the wallet.');
+  };
+  nEl.addEventListener('change', () => { mEl.innerHTML = shamirThresholdOptions(parseInt(nEl.value), parseInt(mEl.value)); upd(); });
+  mEl.addEventListener('change', upd);
+  upd();
+}
+
+function readThreshold(prefix) {
+  const n = parseInt(document.getElementById(`${prefix}-n`)?.value || '5');
+  const m = Math.min(parseInt(document.getElementById(`${prefix}-m`)?.value || '3'), n);
+  return { n, m };
+}
+
 function renderGenerateTab() {
   if (slipShares) return renderSlipView();
   if (currentMnemonic) return renderWalletView();
   if (genPath === 'multisig') return renderMultisigTab();
-  if (genPath === null) return renderGenChooser();
+  if (!KIND_INTRO[genPath]) return renderGenChooser();
+  const intro = KIND_INTRO[genPath];
+  const wordsRow = `
+          <div class="config-row">
+            <label class="config-label">How many words will your seed have?${help('words')}</label>
+            <div class="seg" id="seg-words">
+              ${WORD_OPTIONS.map(w => `<button class="seg-btn ${w === 12 ? 'seg-active' : ''}" data-w="${w}">${w}</button>`).join('')}
+            </div>
+          </div>`;
   return `
     <section>
       <div class="card hero-card">
         <div class="card-icon">
           <svg viewBox="0 0 48 48" width="56" height="56"><circle cx="24" cy="24" r="20" fill="none" stroke="var(--accent)" stroke-width="2" stroke-dasharray="6 4"/><path d="M24 12v24M12 24h24" stroke="var(--accent)" stroke-width="2.5" stroke-linecap="round"/></svg>
         </div>
-        <h2>Generate a new wallet</h2>
-        <p class="card-desc">You are about to generate the secret words that will give life to your wallet. They won't appear on screen unless you ask: you can copy or print them away from prying eyes.</p>
+        <h2>${intro.title}</h2>
+        <p class="card-desc">${intro.desc}</p>
 
         ${!SECURE_RANDOM_OK ? `<div class="rng-warning">⚠ This device does not offer a cryptographic-quality random number generator (CSPRNG). Everything has been stopped: better no wallet than a predictable one. Try again with an up-to-date browser.</div>` : ''}
 
@@ -758,43 +836,19 @@ function renderGenerateTab() {
               </button>
             </div>
           </div>
-
+          ${genPath !== 'slip39' ? wordsRow : ''}
+          ${genPath === 'shamir' ? `
           <div class="config-row">
-            <label class="config-label">What kind of backup do you want?${help('standard')}</label>
-            <div class="std-grid">
-              <button class="std-card ${seedStandard === 'bip39' ? 'std-active' : ''}" data-std="bip39">
-                <span class="std-name">BIP-39</span>
-                <span class="std-sub">A single phrase &middot; 12–24 words</span>
-                <span class="std-desc">The universal standard since 2013: <strong>every wallet accepts it</strong>, today and twenty years from now. You can import the phrase anywhere.</span>
-                <span class="std-note">Choose this if you want total freedom. It's the right choice for most people, even for significant amounts, provided you look after that sheet well. You can always split it later with Shamir.</span>
-              </button>
-              <button class="std-card ${seedStandard === 'slip39' ? 'std-active' : ''}" data-std="slip39">
-                <span class="std-name">SLIP-39</span>
-                <span class="std-sub">Several sheets with a threshold &middot; 20 words each</span>
-                <span class="std-desc">The backup <strong>is born already split</strong>: several sheets, of which only some are needed. The complete phrase never exists.</span>
-                <span class="std-note">Choose this if your main fear is that someone finds the backup. By distributing the sheets, no single discovery exposes the funds and you can lose one without consequence. In exchange, fewer programs read it: Trezor, Sparrow, Electrum, Rabby.</span>
-              </button>
-            </div>
-            <p class="hint" style="margin-top:8px">Want to understand the difference better?${helpLink('g-standard', 'Learn more about BIP-39 and SLIP-39')}</p>
-          </div>
-
-          <div class="config-row" id="row-words" ${seedStandard !== 'bip39' ? 'style="display:none"' : ''}>
-            <label class="config-label">How many words will your seed have?${help('words')}</label>
-            <div class="seg" id="seg-words">
-              ${WORD_OPTIONS.map(w => `<button class="seg-btn ${w === 12 ? 'seg-active' : ''}" data-w="${w}">${w}</button>`).join('')}
-            </div>
-          </div>
-
-          <div id="slip-config" ${seedStandard !== 'slip39' ? 'style="display:none"' : ''}>
-
-            <div class="ov-grid2" style="max-width:420px">
-              <div><label class="config-label">Sheets to create</label>
-                <select id="slip-n" class="inp">${[3,4,5,6,7].map(v => `<option value="${v}" ${v===5?'selected':''}>${v}</option>`).join('')}</select></div>
-              <div><label class="config-label">How many are needed</label>
-                <select id="slip-m" class="inp">${shamirThresholdOptions(5, 3)}</select></div>
-            </div>
-            <p class="hint" id="slip-summary" style="margin-top:8px"></p>
-          </div>
+            <label class="config-label">Into how many parts, and how many to recover?</label>
+            ${thresholdConfigHTML('sh', 'parts')}
+            <p class="hint" style="margin-top:8px">Each part looks like a seed of the same length but is only a fragment; the parts are put back together in <em>Check wallet → Shamir backup</em>.${helpLink('g-shamir', 'How a Shamir wallet works')}</p>
+          </div>` : ''}
+          ${genPath === 'slip39' ? `
+          <div class="config-row">
+            <label class="config-label">How many sheets, and how many to recover?</label>
+            ${thresholdConfigHTML('slip', 'sheets')}
+            <p class="hint" style="margin-top:8px">128-bit secret, one group of sheets.${helpLink('g-standard', 'How SLIP-39 works')}</p>
+          </div>` : ''}
         </div>
 
         <button id="btn-generate" class="btn btn-primary btn-large" ${!SECURE_RANDOM_OK ? 'disabled' : ''}>Start</button>
@@ -807,39 +861,16 @@ function renderGenerateTab() {
 }
 
 function wireGenera() {
-  document.getElementById('gen-classic')?.addEventListener('click', () => { genPath = 'classic'; renderApp(); });
-  document.getElementById('gen-multisig')?.addEventListener('click', () => { genPath = 'multisig'; msMode = null; renderApp(); });
+  WALLET_KINDS.forEach(k => document.getElementById('gen-' + k.id)?.addEventListener('click', () => {
+    genPath = k.id; msMode = null; renderApp();
+  }));
   document.querySelectorAll('.mode-card').forEach(b => b.addEventListener('click', () => {
     document.querySelectorAll('.mode-card').forEach(x => x.classList.remove('mode-active'));
     b.classList.add('mode-active');
     entropyMode = b.dataset.mode;          // survives a re-render
   }));
-  document.querySelectorAll('.std-card').forEach(b => b.addEventListener('click', () => {
-    document.querySelectorAll('.std-card').forEach(x => x.classList.remove('std-active'));
-    b.classList.add('std-active');
-    seedStandard = b.dataset.std;
-    document.getElementById('row-words').style.display = seedStandard === 'bip39' ? '' : 'none';
-    document.getElementById('slip-config').style.display = seedStandard === 'slip39' ? '' : 'none';
-    updSlipSummary();
-  }));
-  const updSlipSummary = () => {
-    const el = document.getElementById('slip-summary');
-    if (!el) return;
-    const n = parseInt(document.getElementById('slip-n')?.value || '5');
-    const m = Math.min(parseInt(document.getElementById('slip-m')?.value || '3'), n);
-    const lost = n - m;
-    el.innerHTML = `You will create <strong>${n} sheets</strong> of 20 words and <strong>${m}</strong> of them will be enough to recover everything.` +
-      (lost > 0 ? ` You can lose up to <strong>${lost}</strong> with no consequences.` : ' Since all of them are needed, losing one means losing the wallet.');
-  };
-  document.getElementById('slip-n')?.addEventListener('change', () => {
-    const n = parseInt(document.getElementById('slip-n').value);
-    const sel = document.getElementById('slip-m');
-    const cur = parseInt(sel.value);
-    sel.innerHTML = shamirThresholdOptions(n, cur);
-    updSlipSummary();
-  });
-  document.getElementById('slip-m')?.addEventListener('change', updSlipSummary);
-  updSlipSummary();
+  wireThresholdConfig('sh', 'parts');
+  wireThresholdConfig('slip', 'sheets');
   document.querySelectorAll('#seg-words .seg-btn').forEach(b => b.addEventListener('click', () => {
     document.querySelectorAll('#seg-words .seg-btn').forEach(x => x.classList.remove('seg-active'));
     b.classList.add('seg-active');
@@ -856,15 +887,14 @@ function selectedWords() {
 
 function startGeneration() {
   if (!SECURE_RANDOM_OK) return;
-  const mode = entropyMode;
-  if (seedStandard === 'slip39') {
-    const n = parseInt(document.getElementById('slip-n')?.value || '5');
-    const m = Math.min(parseInt(document.getElementById('slip-m')?.value || '3'), n);
-    slipConfig = { n, m };
-    pendingConfig = { words: 12, passphrase: '', useDice: mode === 'dice' };  // 128 bits of entropy
+  const useDice = entropyMode === 'dice';
+  slipConfig = null; shamirConfig = null;
+  if (genPath === 'slip39') {
+    slipConfig = readThreshold('slip');
+    pendingConfig = { kind: 'slip39', words: 12, passphrase: '', useDice };  // 128 bits of entropy
   } else {
-    slipConfig = null;
-    pendingConfig = { words: selectedWords(), passphrase: '', useDice: mode === 'dice' };
+    if (genPath === 'shamir') shamirConfig = readThreshold('sh');
+    pendingConfig = { kind: genPath, words: selectedWords(), passphrase: '', useDice };
   }
   entropyPurpose = 'wallet';
   showPassphraseStep();
@@ -1398,11 +1428,6 @@ const HELP = {
     d: '12 words are the standard used by almost every wallet and are already unbreakable with any known technology. 24 double the length of the secret number, in exchange for more words to write down and keep.',
     g: 'g-seed',
   },
-  standard: {
-    t: 'BIP-39 or SLIP-39',
-    d: 'BIP-39 produces a single phrase, accepted by any wallet. SLIP-39 produces several sheets with a threshold — only some are needed — and the whole phrase never exists, but fewer programs read it (Trezor, Sparrow, Electrum and a few others).',
-    g: 'g-standard',
-  },
   passphrase: {
     t: 'The passphrase',
     d: 'One extra word or phrase, chosen by you, that enters the calculation together with the seed. Anyone finding your sheet would open an empty wallet. But if you forget it there is no recovery: the words alone are no longer enough.',
@@ -1412,11 +1437,6 @@ const HELP = {
     t: 'Why the dice',
     d: 'A rolling die obeys physics, not software: it is the only source born completely outside the computer. Use real physical dice, never apps or sites that simulate them.',
     g: 'g-entropy',
-  },
-  backup: {
-    t: 'How to keep the seed',
-    d: 'A single sheet is the simplest route. Splitting it into parts removes the single weak point: whoever finds one piece gets nothing. With Shamir you can even lose some of them and still recover.',
-    g: 'g-backup',
   },
   btcformat: {
     t: 'The Bitcoin formats',
@@ -1522,54 +1542,14 @@ if (!window.__helpWired) {
   });
 }
 
-/* ── BACKUP METHOD CHOICE (right after generation) ──
-   Before showing the seed, the user decides how to keep it.      */
-function showBackupChoice() {
-  const nw = currentMnemonic.split(' ').length;
-  overlayRoot().innerHTML = `
-    <div class="ov"><div class="ov-card">
-      <div class="ov-badge">Wallet created &middot; ${nw} words</div>
-      <h3>🎉 Your wallet is ready. How do you want to keep it?</h3>
-      <p>Choose how to keep the words.${help('backup')} You can change your mind later.</p>
-
-      <div class="split-choice" id="bk-classic">
-        <div class="split-head">📄 A single backup </div>
-        <p class="split-desc">You write down or print the ${nw} words on a single sheet and keep it somewhere safe.</p>
-        <div class="split-pro">✔ Immediate: no extra steps, no complications.<br>✔ Recoverable anywhere, in any wallet, without needing any program.</div>
-        <div class="split-con">Worth knowing: if that sheet burns, gets wet or is stolen, you have lost everything.</div>
-      </div>
-
-      <div class="split-choice" id="bk-seq">
-        <div class="split-head">✂️ Split sequentially </div>
-        <p class="split-desc">The words are cut into consecutive groups, to be kept in different places. With 3 parts: the first ${Math.ceil(nw / 3)} words, then the next ones, then the last ones.</p>
-        <div class="split-pro">✔ A thief who finds a single group gets nowhere.<br>✔ It is reassembled by hand by putting the groups in order: no software required, ever.</div>
-        <div class="split-con">Worth knowing: <strong>all</strong> the parts are needed: losing one means losing the wallet.</div>
-      </div>
-
-      <div class="split-choice" id="bk-shamir">
-        <div class="split-head">🔐 Threshold — Shamir</div>
-        <p class="split-desc">Your ${nw} words <strong>are never written down anywhere</strong>. In their place the program creates several parts — five, for example — and you decide how many are needed to get them back: with 3 of 5, any three sheets bring back the original seed, identical.</p>
-        <div class="split-pro">✔ You can <strong>lose some of them</strong> and still recover everything.<br>✔ Below the threshold the parts reveal <strong>nothing</strong>: that's a theorem, not an estimate of difficulty.</div>
-        <div class="split-con">Worth knowing: each part looks like a ${nw}-word seed, but <strong>it is not a wallet</strong> — it is a fragment. And putting them back together needs this program, so keep a copy of the file together with the parts.</div>
-      </div>
-
-      <p class="hint" style="margin-top:12px">Can't decide? <strong>A single backup</strong> is perfectly fine to start with, or for small amounts. You'll move to splitting it when the sum starts to weigh.</p>
-    </div></div>`;
-  document.getElementById('bk-classic').addEventListener('click', () => {
-    closeOverlay();
-    renderApp();
-    showToast('Wallet created. Now save your words somewhere safe.', 'success');
-  });
-  document.getElementById('bk-seq').addEventListener('click', () => { renderApp(); showClassicSplitSetup(); });
-  document.getElementById('bk-shamir').addEventListener('click', () => { renderApp(); showShamirIntro(); });
-}
-
 /* ── PASSPHRASE STEP — always asked explicitly ── */
 function showPassphraseStep() {
-  const modeLabel = pendingConfig.useDice ? '🎲 With real dice' : '🖱️ Classic';
-  const stdLabel = seedStandard === 'slip39'
+  const modeLabel = pendingConfig.useDice ? '🎲 Four sources, with dice' : '🖱️ Three sources';
+  const stdLabel = pendingConfig.kind === 'slip39'
     ? `SLIP-39 &middot; ${slipConfig.n} sheets, ${slipConfig.m} needed`
-    : `BIP-39 &middot; ${pendingConfig.words} words`;
+    : pendingConfig.kind === 'shamir'
+      ? `Shamir &middot; ${pendingConfig.words} words, ${shamirConfig.n} parts, ${shamirConfig.m} needed`
+      : `Classic &middot; ${pendingConfig.words} words`;
   overlayRoot().innerHTML = `
     <div class="ov"><div class="ov-card">
       <div class="ov-badge">${modeLabel} &middot; ${stdLabel}</div>
@@ -1602,8 +1582,8 @@ function showPassphraseInput() {
       <label class="chk-row" style="margin-top:12px">
         <input type="checkbox" id="pp-show"><span>Show what I type</span>
       </label>
-      ${seedStandard === 'slip39' ? `<p class="hint" style="margin-top:10px">${SLIP39_PASS_MSG}</p>` : ''}
-      <div class="note-box" style="margin-top:12px">Keep it somewhere <strong>different</strong> from ${seedStandard === 'slip39' ? 'the sheets' : `the ${pendingConfig.words} words`}: that separation is what makes it useful. If you lose it, the funds are unrecoverable.</div>
+      ${pendingConfig.kind === 'slip39' ? `<p class="hint" style="margin-top:10px">${SLIP39_PASS_MSG}</p>` : ''}
+      <div class="note-box" style="margin-top:12px">The passphrase is not part of ${pendingConfig.kind === 'slip39' ? 'the sheets' : pendingConfig.kind === 'shamir' ? 'the parts' : `the ${pendingConfig.words} words`}: whoever has only those does not reach the funds, and whoever loses the passphrase loses access to them.</div>
       <div class="ov-row" style="margin-top:16px">
         <button class="btn btn-primary" id="pp-confirm">Confirm and continue →</button>
         <button class="btn btn-ghost btn-small" id="pp-back2">← Back</button>
@@ -1623,7 +1603,7 @@ function showPassphraseInput() {
     if (!p1) { err.innerHTML = '<span style="color:var(--danger)">The field is empty. Type a passphrase, or go back and continue without one.</span>'; return; }
     if (p1 !== p2) { err.innerHTML = "<span style=\"color:var(--danger)\">The two passphrases don't match. Please check.</span>"; return; }
     if (p1 !== p1.trim()) { err.innerHTML = '<span style="color:var(--danger)">The passphrase begins or ends with a space. A space is invisible on paper and easy to forget: remove it, or put it between two words.</span>'; return; }
-    if (seedStandard === 'slip39' && !isSlip39Passphrase(p1)) { err.innerHTML = `<span style="color:var(--danger)">${SLIP39_PASS_MSG}</span>`; return; }
+    if (pendingConfig.kind === 'slip39' && !isSlip39Passphrase(p1)) { err.innerHTML = `<span style="color:var(--danger)">${SLIP39_PASS_MSG}</span>`; return; }
     pendingConfig.passphrase = p1;
     afterPassphrase();
   });
@@ -1894,14 +1874,20 @@ function finishGeneration(diceBytes, typeBytes) {
       return;
     }
 
-    if (seedStandard === 'slip39') { finishSlip39(entropy); return; }
+    if (pendingConfig.kind === 'slip39') { finishSlip39(entropy); return; }
 
     currentEntropy = entropy;
     currentMnemonic = entropyToMnemonic(entropy, wordlist);
     currentSeed = mnemonicToSeedSync(currentMnemonic, pendingConfig.passphrase || '');
     generatedAddresses = {};
     shamirParts = null; shamirMeta = null;
-    showBackupChoice();
+    walletKind = pendingConfig.kind === 'shamir' ? 'shamir' : 'classic';
+    if (walletKind === 'shamir') makeShamirParts(shamirConfig.n, shamirConfig.m);
+    closeOverlay();
+    renderApp();
+    showToast(walletKind === 'shamir'
+      ? `Wallet created in ${shamirConfig.n} parts: ${shamirConfig.m} of them bring it back.`
+      : 'Wallet created.', 'success');
   } catch (err) {
     closeOverlay();
     if (String(err.message).startsWith('RNG_ANOMALY')) {
@@ -2064,10 +2050,13 @@ function wirePartsCard() {
 
 function renderWalletView() {
   const nWords = currentMnemonic.split(' ').length;
-  const split = !!shamirParts;              // the seed has been split: the parts take precedence
+  // A Shamir wallet, or a Classic one split into groups: the parts come first
+  // and the complete words stay locked until asked for.
+  const split = !!shamirParts || walletKind === 'shamir';
   return `
     <section class="wallet-section">
-      ${split ? renderPartsCard() : ''}
+      ${shamirParts ? renderPartsCard() : ''}
+      ${walletKind === 'shamir' && !shamirParts ? '<div class="note-box" style="margin-bottom:16px">The parts have been removed from this page. The wallet is unchanged; the complete seed below is still hidden.</div>' : ''}
 
       <div class="card seed-card">
         <div class="card-header">
@@ -2084,7 +2073,7 @@ function renderWalletView() {
         ${(split && !seedUnlocked) ? `
           <div class="seed-locked">
             <div class="sl-icon">🔒</div>
-            <div class="sl-text">The complete seed is hidden because you split it into parts.</div>
+            <div class="sl-text">${walletKind === 'shamir' ? 'The complete seed stays hidden: this wallet is kept as parts.' : 'The complete seed is hidden because you split it into groups.'}</div>
             <button class="btn btn-outline" id="btn-unlock-seed">🔓 Reveal the original seed</button>
           </div>
         ` : `
@@ -2098,7 +2087,7 @@ function renderWalletView() {
           <button id="btn-print-seed" class="btn btn-outline">🖨️ Print the Seed Card</button>
           <button id="btn-metal" class="btn btn-outline">🔢 Powers-of-2 backup</button>
           <button id="btn-verify-backup" class="btn btn-outline">✅ Check the seed again</button>
-          <button id="btn-split-seed" class="btn btn-outline">🧩 Split into several parts</button>
+          ${walletKind === 'classic' && !shamirParts ? '<button id="btn-split-seed" class="btn btn-outline">✂️ Split into groups</button>' : ''}
         </div>
         <!-- Actions that never expose the seed stay available even while it is locked. -->
         <div class="seed-actions seed-actions-2">
@@ -2107,6 +2096,7 @@ function renderWalletView() {
         </div>
         <div id="watch-panel"></div>
         ${pendingConfig && pendingConfig.passphrase ? `<p class="seed-warning">🔑 You set a passphrase: it is as important as the words themselves. Without it this wallet cannot be recovered.</p>` : ''}
+        ${walletKind === 'classic' ? '<p class="hint" style="margin-top:10px">For a threshold backup of an existing seed: <button class="link-btn" id="go-convert">Check wallet → Shamir backup</button></p>' : ''}
         <p class="seed-warning">⚠ Whoever holds these words holds your funds. Whoever loses them loses access, with no way back.</p>
       </div>
 
@@ -2170,7 +2160,10 @@ function wireWalletView() {
   });
 
   document.getElementById('btn-verify-backup')?.addEventListener('click', () => showVerifyBackup());
-  document.getElementById('btn-split-seed')?.addEventListener('click', showSplitChooser);
+  document.getElementById('btn-split-seed')?.addEventListener('click', showClassicSplitSetup);
+  document.getElementById('go-convert')?.addEventListener('click', () => {
+    activeTab = 'check'; ctrlPath = 'shamir'; shamirMode = 'convert'; renderApp();
+  });
   document.getElementById('btn-unlock-seed')?.addEventListener('click', () => {
     seedUnlocked = true; seedRevealed = false; renderApp();
   });
@@ -2243,6 +2236,7 @@ function resetWalletState() {
   watchRevealed = false; watchInPrint = false;
   slipShares = null; slipSecret = null; slipConfig = null; slipRevealed = [];
   pendingConfig = null; pendingDice = null;
+  walletKind = null; shamirConfig = null;
 }
 
 /* "Generate a new wallet": nothing secret from this session stays in the
@@ -2618,38 +2612,6 @@ function showVerifyBackup(targetMnemonic, label) {
 /* ════════════════════════════════════════════════════════════════
    SEED SPLITTING — guided choice screen
    ════════════════════════════════════════════════════════════════ */
-function showSplitChooser() {
-  const nw = currentMnemonic.split(' ').length;
-  overlayRoot().innerHTML = `
-    <div class="ov"><div class="ov-card">
-      <h3>🧩 A single sheet is a single weak point</h3>
-      <p>By splitting the ${nw} words into several parts kept in different places, no single hiding place becomes fatal. There are <strong>two ways</strong> to do it: the guarantees differ, so choose according to what worries you most.</p>
-
-      <div class="split-choice" id="split-classic">
-        <div class="split-head">✂️ Sequential split <span class="split-tag tag-easy">within anyone's reach</span></div>
-        <p class="split-desc">The ${nw} words are cut into consecutive groups. With 3 parts: the first ${Math.ceil(nw/3)}, then the next ones, then the last ones.</p>
-        <div class="split-pro">✔ Transparent and without magic: to get back to the seed you just put the groups in order, by hand, on a sheet of paper. It will still work twenty years from now, without this program.</div>
-        <div class="split-con">Worth knowing: <strong>all</strong> the parts are needed: losing one means losing the wallet.<br>Worth knowing: anyone who puts two of three together has few words left to guess.</div>
-      </div>
-
-      <div class="split-choice" id="split-shamir">
-        <div class="split-head">🔐 Threshold splitting — Shamir <span class="split-tag tag-strong">mathematical guarantee</span></div>
-        <p class="split-desc">Not a cut but a transformation: the seed becomes several parts, each as long as the original. You choose the threshold.</p>
-        <div class="split-pro">✔ You can <strong>lose some of them</strong> and still recover everything: a fire or a mislaid box won't stop you.<br>✔ Below the threshold, the parts reveal <strong>nothing</strong>.</div>
-        <div class="split-con">Worth knowing: each part is as long as the whole seed, so there is more to write down.<br>Worth knowing: to reassemble it you need <strong>this program</strong>.</div>
-      </div>
-
-      <p class="hint" style="margin-top:12px"><strong>Not sure?</strong> Choose <strong>Shamir</strong> if your fear is losing a part or being robbed. Choose <strong>sequential splitting</strong> if your fear is depending on software many years from now.</p>
-
-      <div class="ov-row" style="margin-top:14px">
-        <button class="btn btn-ghost btn-small" id="split-cancel">← Back to wallet</button>
-      </div>
-    </div></div>`;
-  document.getElementById('split-classic').addEventListener('click', showClassicSplitSetup);
-  document.getElementById('split-shamir').addEventListener('click', showShamirIntro);
-  document.getElementById('split-cancel').addEventListener('click', closeOverlay);
-}
-
 /* How much is left to guess for someone holding every part but one.
    Each missing word is 11 bits; the BIP-39 checksum (words/3 bits) lets an
    attacker discard wrong candidates, so it is subtracted. Every candidate
@@ -2694,7 +2656,7 @@ function showClassicSplitSetup() {
     upd();
   }));
   upd();
-  document.getElementById('cs-back').addEventListener('click', showSplitChooser);
+  document.getElementById('cs-back').addEventListener('click', closeOverlay);
   document.getElementById('cs-go').addEventListener('click', () => {
     const n = parseInt(document.querySelector('#cs-n .seg-active').dataset.n);
     shamirParts = classicSplit(words, n).map(p => ({ ...p, classic: true }));
@@ -2718,66 +2680,14 @@ function shamirThresholdOptions(n, selected) {
     .map(v => `<option value="${v}" ${v === sel ? 'selected' : ''}>${v}</option>`).join('');
 }
 
-function showShamirIntro() {
-  overlayRoot().innerHTML = `
-    <div class="ov"><div class="ov-card">
-      <h3>🔐 Threshold splitting — Shamir</h3>
-      <p>You will <strong>write the original seed nowhere</strong>. In its place you will keep several sheets, and just some of them will bring it back.</p>
-
-      <div class="note-box" style="margin-bottom:12px">
-        <strong>How it works, in three steps.</strong><br><br>
-        <strong>1.</strong> You choose how many parts to split into and how many are needed: with <strong>5 parts and a threshold of 3</strong>, any three sheets are enough.<br>
-        <strong>2.</strong> You keep the parts in different places. Anyone who finds two gets <em>nothing</em>, and you can lose two with no consequences.<br>
-        <strong>3.</strong> When you need the wallet, open this program under <em>Check wallet → Shamir backup</em>, enter three parts and you get back <strong>exactly the same words as today</strong>. From there you use them wherever you like: Sparrow, Electrum, MetaMask, Ledger.
-      </div>
-
-      <div class="note-box" style="margin-bottom:12px">
-        <strong>Two things to keep in mind.</strong><br><br>
-        &bull; Each part is made of words and <em>looks like</em> a seed, but <strong>it is not a wallet</strong>: it is a fragment. Do not send funds to it and do not try to import it into a wallet.<br>
-        &bull; Putting the parts back together needs <strong>this program</strong> (or one compatible with the same scheme). Keep a copy of this HTML file together with the sheets: the parts without the tool are words without a lock.
-      </div>
-      <div class="ov-grid2" style="margin-top:14px">
-        <div><label class="config-label">Parts to create</label>
-          <select id="sh-n" class="inp">${[3,4,5,6,7].map(v => `<option value="${v}" ${v===5?'selected':''}>${v}</option>`).join('')}</select></div>
-        <div><label class="config-label">Threshold to recover</label>
-          <select id="sh-m" class="inp">${shamirThresholdOptions(5, 3)}</select></div>
-      </div>
-      <p class="hint" id="sh-summary" style="margin-top:8px"></p>
-      <div class="ov-row" style="margin-top:14px">
-        <button class="btn btn-primary" id="sh-go">Create the parts</button>
-        <button class="btn btn-ghost btn-small" id="sh-cancel">← Back</button>
-      </div>
-    </div></div>`;
-  const upd = () => {
-    const n = parseInt(document.getElementById('sh-n').value);
-    const m = parseInt(document.getElementById('sh-m').value);
-    document.getElementById('sh-summary').textContent = m === n
-      ? `${n} parts in total, and all ${n} will be needed: losing one means losing the seed.`
-      : `${n} parts in total: any ${m} of them will be enough to get the seed back, and you can lose up to ${n - m}.`;
-  };
-  document.getElementById('sh-n').addEventListener('change', () => {
-    const sel = document.getElementById('sh-m');
-    sel.innerHTML = shamirThresholdOptions(parseInt(document.getElementById('sh-n').value), parseInt(sel.value) || 3);
-    upd();
-  });
-  document.getElementById('sh-m').addEventListener('change', upd);
-  upd();
-  document.getElementById('sh-cancel').addEventListener('click', showSplitChooser);
-  document.getElementById('sh-go').addEventListener('click', () => {
-    const n = parseInt(document.getElementById('sh-n').value);
-    const m = parseInt(document.getElementById('sh-m').value);
-    if (m > n) { showToast('The threshold cannot exceed the number of parts.', 'error'); return; }
-    try {
-      const shares = shamirSplit(currentEntropy, n, m);
-      shamirParts = shares.map((y, i) => ({ x: i + 1, words: entropyToMnemonic(y, wordlist) }));
-      shamirMeta = { n, m, code: verificationCode(currentEntropy) };
-      shamirRevealed = shamirParts.map(() => false);
-      seedUnlocked = false;
-      closeOverlay();
-      renderApp();
-      showToast(`${n} parts created. ${m} of them are enough to get the seed back.`, 'success');
-    } catch (err) { showToast('Error: ' + err.message, 'error'); }
-  });
+/* The parts of a Shamir wallet, from the entropy of its seed: the same
+   split as always (format frozen, see tests/vectors/shamir-compat.json). */
+function makeShamirParts(n, m) {
+  const shares = shamirSplit(currentEntropy, n, m);
+  shamirParts = shares.map((y, i) => ({ x: i + 1, words: entropyToMnemonic(y, wordlist) }));
+  shamirMeta = { n, m, code: verificationCode(currentEntropy) };
+  shamirRevealed = shamirParts.map(() => false);
+  seedUnlocked = false;
 }
 
 /* One printed sheet per part. Besides the words, it carries what is needed
@@ -2916,6 +2826,7 @@ function wireRecover() {
       currentMnemonic = mnemonic;
       currentSeed = mnemonicToSeedSync(mnemonic, '');
       pendingConfig = { words: mnemonic.split(' ').length, passphrase: '' };
+      walletKind = 'classic';
       rows.forEach(r => { r.querySelector('.rec-words').value = ''; });   // the parts need not stay on screen
       showRecResult(`
         ${code
@@ -3526,35 +3437,36 @@ function renderGuideTab() {
 function renderGuideSteps() {
   return `
     <div class="card">
-      <div class="card-header"><span class="step-badge">1</span><h2>Creating a personal wallet</h2></div>
+      <div class="card-header"><span class="step-badge">1</span><h2>Choosing the kind of wallet</h2></div>
+      <p style="margin-bottom:12px">The first screen of <strong>Generate wallet</strong> asks you once, before anything else, what you want to create. There are four kinds, from the simplest to the most specific.</p>
       <div class="steps-box">
-        <div class="step-line"><span class="sl-n">1</span><span class="sl-t"><strong>Disconnect the device from the internet.</strong> For maximum protection, do it in a secure environment such as a Tails system, a clean virtual machine or a dedicated PC.</span></div>
-        <div class="step-line"><span class="sl-n">2</span><span class="sl-t"><strong>Generate wallet → A personal wallet.</strong></span></div>
-        <div class="step-line"><span class="sl-n">3</span><span class="sl-t"><strong>Choose where the randomness comes from:</strong> three sources (browser, keyboard, mouse) or four, adding real physical dice.</span></div>
-        <div class="step-line"><span class="sl-n">4</span><span class="sl-t"><strong>Choose the type of backup:</strong> BIP-39 (a single phrase) or SLIP-39 (several sheets with a threshold). If you're undecided, BIP-39 with 12 words is fine in almost every case.</span></div>
-        <div class="step-line"><span class="sl-n">5</span><span class="sl-t"><strong>Decide about the passphrase.</strong> The program asks you explicitly. It protects you if someone finds the words, but it must be kept as carefully as they are: forget it and the funds are lost. If you are unsure, carry on without. Keep in mind that it cannot be added to this wallet later: the same words with a passphrase open a different wallet, to which you would have to move the funds.</span></div>
-        <div class="step-line"><span class="sl-n">6</span><span class="sl-t"><strong>Fill the entropy bars:</strong> type any keys freely and at random, then move the mouse — or, on a phone, drag your finger inside the box. If you chose the dice, enter the rolls first.</span></div>
-        <div class="step-line"><span class="sl-n">7</span><span class="sl-t"><strong>Choose how to keep the seed:</strong> a single sheet, split sequentially, or with a Shamir threshold.</span></div>
-        <div class="step-line"><span class="sl-n">8</span><span class="sl-t"><strong>Save the backup</strong>, then use <em>Check the seed again</em> to confirm you transcribed it correctly. You can write the words in plain text, exactly as they appear on screen. Or, for greater privacy, you can save them in a format that shows no words at all: click <em>Powers-of-2 backup</em> and you get a grid of dots. Anyone finding it sees only marked boxes, without being able to read the seed.<br><br>To read the grid back you need the numbered BIP-39 dictionary. You can download it from AmnesicWallet or find it elsewhere: what matters is that the numbering starts at <strong>1</strong> and not at 0, otherwise every word is shifted by one position and the conversion comes out wrong.</span></div>
-        <div class="step-line"><span class="sl-n">9</span><span class="sl-t"><strong>Select the networks</strong> and calculate the addresses. Those are public: you can share them without risk in order to receive.</span></div>
-        <div class="step-line"><span class="sl-n">10</span><span class="sl-t"><strong>Verify in a second program, still offline.</strong> On the same disconnected device, restore the words in another program — Sparrow or Electrum, for example — check that the first address matches, then delete that wallet from the program. Two independent tools that agree are worth more than any promise; typing the words into a program on a connected device would undo the care taken so far.</span></div>
+        <div class="step-line"><span class="sl-n">🪪</span><span class="sl-t"><strong>Classic wallet.</strong> One BIP-39 phrase of 12 to 24 words and your addresses on Bitcoin, Ethereum, TRON and Solana. Recovered with any wallet. If you like, the words can later be split into consecutive groups (<em>Split into groups</em>).</span></div>
+        <div class="step-line"><span class="sl-n">🧩</span><span class="sl-t"><strong>Shamir wallet.</strong> The same kind of BIP-39 seed, but created already split into parts: you choose how many parts and how many are needed to bring it back, for example 3 of 5. The parts are put back together in this program; the seed they give back works in any wallet.</span></div>
+        <div class="step-line"><span class="sl-n">📄</span><span class="sl-t"><strong>SLIP-39 wallet.</strong> Sheets of 20 words with a threshold, from a public standard: the complete phrase never exists. Recovered with Trezor, Sparrow, Electrum, Keystone and other programs.</span></div>
+        <div class="step-line"><span class="sl-n">🔐</span><span class="sl-t"><strong>Multisig vault.</strong> A Bitcoin address that needs several keys to spend, for example 2 of 3 (see chapter 3).</span></div>
       </div>
     </div>
 
     <div class="card">
-      <div class="card-header"><span class="step-badge">2</span><h2>Keeping the backup</h2></div>
-      <p style="margin-bottom:12px">After generation you have three options, and you can change your mind later using the <em>Split into several parts</em> button.</p>
+      <div class="card-header"><span class="step-badge">2</span><h2>Creating a Classic, Shamir or SLIP-39 wallet</h2></div>
       <div class="steps-box">
-        <div class="step-line"><span class="sl-n">A</span><span class="sl-t"><strong>A single backup.</strong> The words on one sheet, in a safe place. Simple and recoverable anywhere. The limit: if that sheet disappears, everything disappears.</span></div>
-        <div class="step-line"><span class="sl-n">B</span><span class="sl-t"><strong>Split sequentially.</strong> Your words are simply divided into consecutive groups, to be kept in different places. It is reassembled by hand, putting the sheets in the right order, with no software needed. All the parts are required though: if even one is missing, the seed cannot be read.</span></div>
-        <div class="step-line"><span class="sl-n">C</span><span class="sl-t"><strong>Shamir backup.</strong> The seed is split into several parts, of which a minimum number is enough to reassemble it. For example, with 3 parts generated and a threshold of 2, any 2 parts are enough to rebuild the parent seed. Even though each single part looks like a genuine seed, on its own it reveals nothing. To recombine the parts and obtain the original seed you need this program: so keep a copy of the file together with the parts, otherwise even having them all you won't be able to reopen the wallet.</span></div>
+        <div class="step-line"><span class="sl-n">1</span><span class="sl-t"><strong>Disconnect the device from the internet.</strong> For maximum protection, do it in a secure environment such as a Tails system, a clean virtual machine or a dedicated PC.</span></div>
+        <div class="step-line"><span class="sl-n">2</span><span class="sl-t"><strong>Generate wallet → choose the kind</strong> of wallet (chapter 1).</span></div>
+        <div class="step-line"><span class="sl-n">3</span><span class="sl-t"><strong>Choose where the randomness comes from:</strong> three sources (browser, keyboard, mouse) or four, adding real physical dice.</span></div>
+        <div class="step-line"><span class="sl-n">4</span><span class="sl-t"><strong>Set it up.</strong> Classic: how many words. Shamir: how many words, how many parts and how many are needed. SLIP-39: how many sheets and how many are needed. If you are undecided, 12 words are fine in almost every case.</span></div>
+        <div class="step-line"><span class="sl-n">5</span><span class="sl-t"><strong>Decide about the passphrase.</strong> The program asks you explicitly. It protects you if someone finds the words, but it is as necessary as they are: without it the funds cannot be reached. If you are unsure, carry on without. It cannot be added to this wallet later: the same words with a passphrase open a different wallet, to which you would have to move the funds.</span></div>
+        <div class="step-line"><span class="sl-n">6</span><span class="sl-t"><strong>Fill the entropy bars:</strong> type any keys freely and at random, then move the mouse — or, on a phone, drag your finger inside the box. If you chose the dice, enter the rolls first.</span></div>
+        <div class="step-line"><span class="sl-n">7</span><span class="sl-t"><strong>Save the backup.</strong> A Classic wallet shows its words; a Shamir wallet shows its parts and their verification code first; a SLIP-39 wallet shows its sheets. Use <em>Check again</em> to confirm each one was transcribed correctly. For a Classic wallet you can also use the <em>Powers-of-2 backup</em>: a grid of dots that records the seed without any readable word. To read the grid back you need the numbered BIP-39 dictionary, numbered from <strong>1</strong> and not from 0, otherwise every word is shifted by one position.</span></div>
+        <div class="step-line"><span class="sl-n">8</span><span class="sl-t"><strong>Select the networks</strong> and calculate the addresses. Those are public: you can share them without risk in order to receive.</span></div>
+        <div class="step-line"><span class="sl-n">9</span><span class="sl-t"><strong>Verify in a second program, still offline.</strong> On the same disconnected device, restore the words (or the SLIP-39 sheets) in another program — Sparrow or Electrum, for example — check that the first address matches, then delete that wallet from the program. Two independent tools that agree are worth more than any promise.</span></div>
       </div>
+      <p class="hint" style="margin-top:12px">A seed you already own — even one made elsewhere — can also be turned into Shamir parts: <em>Check wallet → Shamir backup → I have a seed, I want to split it</em>.</p>
     </div>
 
     <div class="card">
       <div class="card-header"><span class="step-badge">3</span><h2>Creating a multisig vault</h2></div>
       <div class="steps-box">
-        <div class="step-line"><span class="sl-n">1</span><span class="sl-t"><strong>Generate wallet → A multisig vault.</strong></span></div>
+        <div class="step-line"><span class="sl-n">1</span><span class="sl-t"><strong>Generate wallet → Multisig vault.</strong></span></div>
         <div class="step-line"><span class="sl-n">2</span><span class="sl-t"><strong>All the keys mine</strong> if you create it alone, <strong>Shared vault</strong> if each participant generates their own key on their own device.</span></div>
         <div class="step-line"><span class="sl-n">3</span><span class="sl-t"><strong>Choose how many keys and how many signatures.</strong> 2 of 3 is the most used configuration: you tolerate the loss of one key and resist the theft of one.</span></div>
         <div class="step-line"><span class="sl-n">4</span><span class="sl-t"><strong>Save each key separately</strong> and also keep the <em>descriptor</em>: without it, rebuilding the vault is much harder.</span></div>
@@ -3564,12 +3476,13 @@ function renderGuideSteps() {
 
     <div class="card">
       <div class="card-header"><span class="step-badge">4</span><h2>Checking an existing wallet</h2></div>
-      <p style="margin-bottom:12px">The <strong>Check wallet</strong> section has four paths.</p>
+      <p style="margin-bottom:12px">The <strong>Check wallet</strong> section has five paths.</p>
       <div class="steps-box">
         <div class="step-line"><span class="sl-n">◆</span><span class="sl-t"><strong>A complete seed.</strong> Enter your words and see which addresses they generate.</span></div>
         <div class="step-line"><span class="sl-n">◆</span><span class="sl-t"><strong>Shamir backup.</strong> Reassemble the parts to get the seed back, or turn an existing seed into a Shamir backup.</span></div>
         <div class="step-line"><span class="sl-n">◆</span><span class="sl-t"><strong>SLIP-39 sheets.</strong> Enter the 20-word sheets, including ones generated by a Trezor, and get the addresses.</span></div>
         <div class="step-line"><span class="sl-n">◆</span><span class="sl-t"><strong>Multisig vault.</strong> Paste the xpubs and the threshold to recalculate the address and confirm the configuration.</span></div>
+        <div class="step-line"><span class="sl-n">◆</span><span class="sl-t"><strong>A public key only.</strong> Paste an account xpub, ypub or zpub to see its addresses, without typing any secret word.</span></div>
       </div>
     </div>
 
@@ -3619,26 +3532,26 @@ function renderGuideFaq() {
           <p>You can copy or print it without ever seeing it, or press <strong>Reveal the words</strong> when you're sure you're alone — useful for writing it down by hand. The same applies to the parts of a split backup.</p>
         </div></details>
 
-        <details class="faq" id="g-backup"><summary>🧩 Splitting the seed: three routes</summary><div class="faq-body">
-          <p>Right after creating the wallet, the program asks you <strong>how you want to keep it</strong>: a single backup, split sequentially, or with a Shamir threshold. You can change your mind at any time using the <em>Split into several parts</em> button.</p>
-          <p><strong>📄 A single backup.</strong> The words on one sheet only. It's the right choice to start with and for small amounts: immediate, recoverable anywhere. The limit is obvious: if that sheet disappears, everything disappears.</p>
-          <p><strong>✂️ Sequential splitting.</strong> The words are cut into consecutive groups: with 12 words and 3 parts you get 1-4, 5-8, 9-12. To reassemble you simply put them back in order without any software. In exchange <strong>all</strong> the parts are needed, and anyone finding two out of three would have few words left to guess.</p>
-          <p><strong>🔐 Shamir backup.</strong> Named after the cryptographer Adi Shamir. It doesn't cut the seed, it <em>transforms</em> it into parts that are worth something only together. You choose the threshold — 3 parts, 2 are enough — so you can lose some without consequence. And below the threshold the parts reveal <strong>nothing</strong> about the seed: not "almost nothing", zero, by theorem. (The short verification code printed on them is only a fingerprint for checking the result.)</p>
-          <p><strong>How to choose:</strong> Shamir if you fear theft or loss; sequential if you fear depending on software many years from now.</p>
+        <details class="faq" id="g-backup"><summary>🧩 Classic, Shamir, SLIP-39: which one?</summary><div class="faq-body">
+          <p>The kind of wallet is chosen <strong>once, on the first screen</strong>, before the words are generated.</p>
+          <p><strong>🪪 Classic wallet.</strong> One phrase of 12 to 24 words, readable by every wallet: immediate and recoverable anywhere. Whoever holds the phrase holds the funds; whoever loses it loses access. The words can be <strong>split into consecutive groups</strong> (<em>Split into groups</em>): with 12 words and 3 groups you get 1-4, 5-8, 9-12, put back in order by hand with no software. In exchange <strong>all</strong> the groups are needed, and anyone holding all but one has few words left to guess — the program tells you how many.</p>
+          <p><strong>🧩 Shamir wallet.</strong> Named after the cryptographer Adi Shamir. The seed is created and shown to you as <em>parts</em>, of which a threshold is enough — 5 parts, 3 needed — so some can be lost. Below the threshold the parts reveal <strong>nothing</strong> about the seed: not "almost nothing", zero, by theorem. Putting them back together needs this program; what comes out is an ordinary BIP-39 seed.</p>
+          <p><strong>📄 SLIP-39 wallet.</strong> The same idea — sheets with a threshold — but as a public standard, read by Trezor, Sparrow, Electrum and others. The complete phrase never exists.</p>
+          <p><strong>In short:</strong> Classic for one phrase that works everywhere; Shamir for a split backup that becomes an ordinary seed again; SLIP-39 for a split backup under a public standard. A seed you already own can be turned into Shamir parts under <em>Check wallet → Shamir backup</em>.</p>
         </div></details>
 
         <details class="faq" id="g-standard"><summary>📄 SLIP-39: the backup born already split</summary><div class="faq-body">
-          <p>When you create a wallet you can choose between two backup standards. <strong>BIP-39</strong> gives you a single phrase of 12 or 24 words. <strong>SLIP-39</strong> gives you instead several sheets of 20 words each, and some of them — for example 3 of 5 — are enough to reopen the wallet.</p>
+          <p>The <strong>Classic</strong> and <strong>Shamir</strong> wallets use <strong>BIP-39</strong>, a phrase of 12 to 24 words. A <strong>SLIP-39 wallet</strong> gives you instead several sheets of 20 words each, and some of them — for example 3 of 5 — are enough to reopen the wallet.</p>
           <p><strong>The difference that matters.</strong> With BIP-39 the complete phrase exists: you see it, you write it, and from that moment it is your weak point. With SLIP-39 <strong>the whole phrase never exists at any moment</strong>, not even on screen while you create it. Only the sheets exist, and each one alone reveals nothing.</p>
           <p><strong>How to recognise the sheets.</strong> They have 20 words (or 33 for 256-bit backups) and the <strong>first three words are identical</strong> on every sheet of the same backup: they exist precisely to let you see at a glance whether you are mixing sheets from different sets. The words come from a dedicated dictionary of 1024 entries, different from the BIP-39 one.</p>
           <p><strong>Where it is used.</strong> It is the standard that <strong>Trezor</strong> adopts as the default backup on recent models. It is also read by <strong>Sparrow</strong> (from version 2.0), <strong>Electrum</strong>, <strong>Rabby</strong>, <strong>BlueWallet</strong>, <strong>Wasabi</strong> and <strong>Keystone</strong>. So you are not tied to AmnesicWallet: unlike the Shamir backup, this is a public standard.</p>
         </div></details>
 
-        <details class="faq"><summary>🔐 Shamir backup explained properly: what it does and what it doesn't</summary><div class="faq-body">
+        <details class="faq" id="g-shamir"><summary>🔐 Shamir backup explained properly: what it does and what it doesn't</summary><div class="faq-body">
           <p><strong>What happens when you use it.</strong> The original seed is transformed into several parts — for example 5 — and you decide how many are needed to get it back, for example 3. You keep them in different places. When you need the wallet you enter three of them under <em>🔍 Check wallet → Shamir backup → I have the parts, I want the seed</em> and you get <strong>the original seed</strong>. From there you use it wherever you like — Sparrow, Electrum, MetaMask, a Ledger — and none of those programs will ever know you used Shamir, because they don't need to.</p>
           <p><strong>You can use it at two different moments, and this is what most often escapes people.</strong></p>
-          <p><strong>1. While creating a new wallet.</strong> Right after generation, when the program asks how to keep the seed, choose <em>Shamir backup</em>. The complete phrase is never written out: you start with the backup already split.</p>
-          <p><strong>2. On a seed you already own</strong>, even one created years ago with another program. Go to <em>🔍 Check wallet → Shamir backup → I have a seed, I want to split it</em>, enter your words and choose the threshold and number of parts. The wallet does not change: same addresses, funds in place. Only the way you keep it changes. From that moment you can destroy the sheet with the whole phrase and keep only the parts.</p>
+          <p><strong>1. While creating a new wallet.</strong> Choose <em>Shamir wallet</em> on the first screen: the seed is shown to you as parts from the start, and the complete words stay hidden unless you ask for them.</p>
+          <p><strong>2. On a seed you already own</strong>, even one created years ago with another program. Go to <em>🔍 Check wallet → Shamir backup → I have a seed, I want to split it</em>, enter your words and choose the threshold and number of parts. The wallet does not change: same addresses, funds in place. Only the form of the backup changes.</p>
           <p>Here is the advantage over a classic seed: with the traditional phrase, whoever finds that sheet has everything. With this system, whoever finds one part has nothing. Several fragments are needed together, someone has to realise they belong together, know this backup exists and have the right program. The difference is this: a normal seed is a single weak point. With Shamir, your funds stay safe even if some piece ends up where it shouldn't.</p>
           <p><strong>A useful way to see it:</strong> the parts are a form of encryption of the backup, where the key is "holding enough parts". With one advantage over a password: there is nothing to remember. And below the threshold no attempt will do — it isn't hard to guess, it's mathematically impossible. The 4-character verification code printed on the sheets is only a short fingerprint used to confirm the result: it leaves an attacker with at least 2¹¹² possibilities, far beyond any computer.</p>
           <p><strong>The parts are not wallets.</strong> Each one is made of words and looks every bit like a seed, but it is a fragment. Don't send funds to it and don't import it into a wallet expecting to find something there. On its own, below the threshold, it is worth nothing — and that is exactly what makes it safe.</p>

@@ -1,46 +1,46 @@
 # AmnesicWallet — Step-by-step guide
 
-## Creating a personal wallet
+## Choosing the kind of wallet
 
-**1.** **Disconnect the device from the internet.** For maximum protection, do it in a secure environment such as a Tails system, a clean virtual machine or a dedicated PC.
+The first screen of **Generate wallet** asks you once, before anything else, what you want to create. There are four kinds, from the simplest to the most specific.
 
-**2.** **Generate wallet → A personal wallet.**
+**🪪.** **Classic wallet.** One BIP-39 phrase of 12 to 24 words and your addresses on Bitcoin, Ethereum, TRON and Solana. Recovered with any wallet. If you like, the words can later be split into consecutive groups (*Split into groups*).
 
-**3.** **Choose where the randomness comes from:** three sources (browser, keyboard, mouse) or four, adding real physical dice.
+**🧩.** **Shamir wallet.** The same kind of BIP-39 seed, but created already split into parts: you choose how many parts and how many are needed to bring it back, for example 3 of 5. The parts are put back together in this program; the seed they give back works in any wallet.
 
-**4.** **Choose the type of backup:** BIP-39 (a single phrase) or SLIP-39 (several sheets with a threshold). If you're undecided, BIP-39 with 12 words is fine in almost every case.
+**📄.** **SLIP-39 wallet.** Sheets of 20 words with a threshold, from a public standard: the complete phrase never exists. Recovered with Trezor, Sparrow, Electrum, Keystone and other programs.
 
-**5.** **Decide about the passphrase.** The program asks you explicitly. It protects you if someone finds the words, but it must be kept as carefully as they are: forget it and the funds are lost. If you are unsure, carry on without. Keep in mind that it cannot be added to this wallet later: the same words with a passphrase open a different wallet, to which you would have to move the funds.
-
-**6.** **Fill the entropy bars:** type any keys freely and at random, then move the mouse — or, on a phone, drag your finger inside the box. If you chose the dice, enter the rolls first.
-
-**7.** **Choose how to keep the seed:** a single sheet, split sequentially, or with a Shamir threshold.
-
-**8.** **Save the backup**, then use *Check the seed again* to confirm you transcribed it correctly. You can write the words in plain text, exactly as they appear on screen. Or, for greater privacy, you can save them in a format that shows no words at all: click *Powers-of-2 backup* and you get a grid of dots. Anyone finding it sees only marked boxes, without being able to read the seed.
-
-To read the grid back you need the numbered BIP-39 dictionary. You can download it from AmnesicWallet or find it elsewhere: what matters is that the numbering starts at **1** and not at 0, otherwise every word is shifted by one position and the conversion comes out wrong.
-
-**9.** **Select the networks** and calculate the addresses. Those are public: you can share them without risk in order to receive.
-
-**10.** **Verify in a second program, still offline.** On the same disconnected device, restore the words in another program — Sparrow or Electrum, for example — check that the first address matches, then delete that wallet from the program. Two independent tools that agree are worth more than any promise; typing the words into a program on a connected device would undo the care taken so far.
+**🔐.** **Multisig vault.** A Bitcoin address that needs several keys to spend, for example 2 of 3 (see chapter 3).
 
 ---
 
-## Keeping the backup
+## Creating a Classic, Shamir or SLIP-39 wallet
 
-After generation you have three options, and you can change your mind later using the *Split into several parts* button.
+**1.** **Disconnect the device from the internet.** For maximum protection, do it in a secure environment such as a Tails system, a clean virtual machine or a dedicated PC.
 
-**A.** **A single backup.** The words on one sheet, in a safe place. Simple and recoverable anywhere. The limit: if that sheet disappears, everything disappears.
+**2.** **Generate wallet → choose the kind** of wallet (chapter 1).
 
-**B.** **Split sequentially.** Your words are simply divided into consecutive groups, to be kept in different places. It is reassembled by hand, putting the sheets in the right order, with no software needed. All the parts are required though: if even one is missing, the seed cannot be read.
+**3.** **Choose where the randomness comes from:** three sources (browser, keyboard, mouse) or four, adding real physical dice.
 
-**C.** **Shamir backup.** The seed is split into several parts, of which a minimum number is enough to reassemble it. For example, with 3 parts generated and a threshold of 2, any 2 parts are enough to rebuild the parent seed. Even though each single part looks like a genuine seed, on its own it reveals nothing. To recombine the parts and obtain the original seed you need this program: so keep a copy of the file together with the parts, otherwise even having them all you won't be able to reopen the wallet.
+**4.** **Set it up.** Classic: how many words. Shamir: how many words, how many parts and how many are needed. SLIP-39: how many sheets and how many are needed. If you are undecided, 12 words are fine in almost every case.
+
+**5.** **Decide about the passphrase.** The program asks you explicitly. It protects you if someone finds the words, but it is as necessary as they are: without it the funds cannot be reached. If you are unsure, carry on without. It cannot be added to this wallet later: the same words with a passphrase open a different wallet, to which you would have to move the funds.
+
+**6.** **Fill the entropy bars:** type any keys freely and at random, then move the mouse — or, on a phone, drag your finger inside the box. If you chose the dice, enter the rolls first.
+
+**7.** **Save the backup.** A Classic wallet shows its words; a Shamir wallet shows its parts and their verification code first; a SLIP-39 wallet shows its sheets. Use *Check again* to confirm each one was transcribed correctly. For a Classic wallet you can also use the *Powers-of-2 backup*: a grid of dots that records the seed without any readable word. To read the grid back you need the numbered BIP-39 dictionary, numbered from **1** and not from 0, otherwise every word is shifted by one position.
+
+**8.** **Select the networks** and calculate the addresses. Those are public: you can share them without risk in order to receive.
+
+**9.** **Verify in a second program, still offline.** On the same disconnected device, restore the words (or the SLIP-39 sheets) in another program — Sparrow or Electrum, for example — check that the first address matches, then delete that wallet from the program. Two independent tools that agree are worth more than any promise.
+
+A seed you already own — even one made elsewhere — can also be turned into Shamir parts: *Check wallet → Shamir backup → I have a seed, I want to split it*.
 
 ---
 
 ## Creating a multisig vault
 
-**1.** **Generate wallet → A multisig vault.**
+**1.** **Generate wallet → Multisig vault.**
 
 **2.** **All the keys mine** if you create it alone, **Shared vault** if each participant generates their own key on their own device.
 
@@ -54,7 +54,7 @@ After generation you have three options, and you can change your mind later usin
 
 ## Checking an existing wallet
 
-The **Check wallet** section has four paths.
+The **Check wallet** section has five paths.
 
 **◆.** **A complete seed.** Enter your words and see which addresses they generate.
 
@@ -63,6 +63,8 @@ The **Check wallet** section has four paths.
 **◆.** **SLIP-39 sheets.** Enter the 20-word sheets, including ones generated by a Trezor, and get the addresses.
 
 **◆.** **Multisig vault.** Paste the xpubs and the threshold to recalculate the address and confirm the configuration.
+
+**◆.** **A public key only.** Paste an account xpub, ypub or zpub to see its addresses, without typing any secret word.
 
 ---
 

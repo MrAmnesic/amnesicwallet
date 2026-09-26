@@ -5,6 +5,28 @@ Notable changes are recorded here, one entry per published version.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.0] — 2026-09
+
+### Added
+- **The kind of wallet is chosen first, once.** Generate wallet opens on four
+  cards, from the simplest to the most specific — Classic wallet, Shamir
+  wallet, SLIP-39 wallet, Multisig vault — each saying what you get and what
+  it is recovered with.
+- **Shamir wallet**: a BIP-39 seed created already split into N parts, M of
+  which are needed. The wallet opens on the parts and their verification code.
+- **Split into groups**, on a Classic wallet, divides the words into numbered
+  groups. A threshold backup of an existing seed is made from Check wallet →
+  Shamir backup, which now also asks for the number of parts.
+- Check wallet: Solana on `m/44'/501'/n'/0/0`, the path Exodus documents.
+- Releases carry GitHub's signed certificate of origin (build provenance).
+
+### Changed
+- After the words are drawn, there is no longer a choice between BIP-39 and
+  SLIP-39 nor an offer to split: both follow from the kind chosen at the start.
+- Only the interface changed: with the same randomness, the words, the Shamir
+  parts, the SLIP-39 sheets and the addresses are exactly those of 1.1.3, and
+  every backup format is the same.
+
 ## [1.1.3] — 2026-09
 
 ### Added

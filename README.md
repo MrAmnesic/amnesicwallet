@@ -19,7 +19,14 @@ Bitcoin · Ethereum/EVM · TRON · Solana
 
 AmnesicWallet creates cryptocurrency wallets **entirely on your device and entirely offline**. The whole program is **one HTML file**: you download it, check its fingerprint, disconnect from the internet and open it in a browser. Nothing is installed, nothing is sent, nothing is saved.
 
-It generates a **BIP-39** phrase (12–24 words) or a set of **SLIP-39** sheets, and derives the public addresses for four networks. It can also split a seed into threshold parts, build Bitcoin multisig vaults, and check backups you already own.
+The kind of wallet is chosen once, on the first screen, from four:
+
+1. **Classic wallet** — one BIP-39 phrase (12–24 words), read by any wallet.
+2. **Shamir wallet** — a BIP-39 seed created already split into N parts, M of which are needed; the reassembled seed works in any wallet.
+3. **SLIP-39 wallet** — N sheets of 20 words, M of which are needed; read by Trezor, Sparrow, Electrum, Keystone and others.
+4. **Multisig vault** — a Bitcoin address that needs M of N keys to spend.
+
+It derives the public addresses for four networks and checks backups you already own.
 
 ## Features
 
@@ -28,7 +35,7 @@ It generates a **BIP-39** phrase (12–24 words) or a set of **SLIP-39** sheets,
 - **Randomness from several sources** — the system CSPRNG, always, mixed with typing rhythm, pointer or finger movement and, optionally, real dice.
 - **Visual privacy** — words stay covered until you ask; you can copy or print them without showing them.
 - **Four networks** — Bitcoin in four address formats, Ethereum and EVM chains, TRON, Solana.
-- **Threshold backups** — **SLIP-39** (read by Trezor, Sparrow, Electrum, Keystone and others) and a Shamir scheme that works on any existing BIP-39 seed.
+- **Threshold backups** — **SLIP-39** (read by Trezor, Sparrow, Electrum, Keystone and others) and a Shamir scheme over BIP-39, chosen when the wallet is created or applied later to any existing BIP-39 seed from Check wallet.
 - **Bitcoin multisig** — P2WSH `sortedmulti` vaults, with a checksummed descriptor carrying key origins, ready for Sparrow.
 - **Watch-only** — account xpub and descriptor (with BIP-380 checksum) to follow a wallet without exposing it.
 - **Powers-of-2 backup** — a grid of dots that records the seed with no readable word.
