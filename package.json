@@ -1,6 +1,6 @@
 {
   "name": "amnesicwallet",
-  "version": "1.1.2",
+  "version": "1.1.3",
   "description": "Offline, single-file wallet generator: BIP-39 and SLIP-39 seeds, Shamir backups, multisig vaults (Bitcoin, Ethereum/EVM, TRON, Solana).",
   "homepage": "https://amnesicwallet.com",
   "repository": {
@@ -36,7 +36,8 @@
     "hash": "node scripts/hash.js",
     "docs": "node scripts/extract-docs.js",
     "release": "npm test && npm run build && npm run hash",
-    "test:ui": "node tests/ui.test.mjs"
+    "test:ui": "node tests/ui.test.mjs",
+    "pdf": "node scripts/render-pdf.mjs"
   },
   "dependencies": {
     "@noble/curves": "2.4.0",
@@ -49,6 +50,7 @@
   },
   "devDependencies": {
     "esbuild": "0.28.2",
+    "marked": "18.0.14",
     "playwright": "1.63.0"
   },
   "engines": {

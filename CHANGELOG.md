@@ -5,6 +5,32 @@ Notable changes are recorded here, one entry per published version.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.3] — 2026-09
+
+### Added
+- **Check wallet finds what does not match.**
+  - **A mistyped word** is named with its position, with up to three list
+    words close to it; pressing one corrects it. When every word exists but
+    the checksum fails, the page says so plainly.
+  - **Accounts and derivations, per network.** Each network has its own
+    account (Account 1, 2, 3…) and a button for each derivation path that
+    gives a different address: for Bitcoin the four formats and Bitcoin
+    addresses on the paths of Ethereum and TRON; for Ethereum, TRON and
+    Solana every path in use, labelled with the path itself.
+  - **Bitcoin change addresses**, next to the receiving ones.
+  - **Find the path of an address**: paste an address of the seed being
+    checked, and the page tells its account and derivation path.
+- **Check with a public key only**: an account xpub, ypub or zpub shows its
+  receiving and change addresses (Bitcoin in any format, Ethereum, TRON) and
+  a watch-only descriptor, without typing any secret word.
+
+### Changed
+- Derivation paths are always shown next to the addresses.
+- "SegWit compatible" is now called **Nested SegWit**.
+- Addresses and seeds are unchanged: Account 1 on the standard paths gives
+  exactly the addresses of earlier versions, and every backup format is the
+  same.
+
 ## [1.1.2] — 2026-09
 
 ### Added

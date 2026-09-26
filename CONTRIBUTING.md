@@ -23,6 +23,7 @@ npm run test:ui       # use the built page in Chromium, Firefox and WebKit,
                       # npx playwright install chromium firefox webkit)
 npm run hash          # write its SHA-256 to SHA256SUMS and site/index.html
 npm run docs          # regenerate docs/STEP-BY-STEP.md and docs/FAQ.md from the app
+npm run pdf           # render docs/Technical-Documentation.pdf from docs/TECHNICAL.md
 ```
 
 All cryptography lives in `src/core.js`, which has no interface code; the

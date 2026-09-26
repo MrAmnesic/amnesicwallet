@@ -2,7 +2,7 @@
 
 **Implementation specification, security model and declared limits**
 
-Document version: 1.4 — describes AmnesicWallet 1.1.2
+Document version: 1.5 — describes AmnesicWallet 1.1.3
 
 Reference: `amnesicwallet.html` — SHA-256 hash published with every release, in `SHA256SUMS` and on the official website, [amnesicwallet.com](https://amnesicwallet.com)
 
@@ -214,17 +214,32 @@ Only the English dictionary is used: localised dictionaries have uneven support 
 |---|---|---|
 | Bitcoin — Native SegWit | `m/84'/0'/0'/0/i` | BIP-84 |
 | Bitcoin — Taproot | `m/86'/0'/0'/0/i` | BIP-86 |
-| Bitcoin — P2SH-SegWit | `m/49'/0'/0'/0/i` | BIP-49 |
+| Bitcoin — Nested SegWit (P2SH-P2WPKH) | `m/49'/0'/0'/0/i` | BIP-49 |
 | Bitcoin — Legacy | `m/44'/0'/0'/0/i` | BIP-44 |
 | Bitcoin — P2WSH multisig | `m/48'/0'/0'/2'` | BIP-48 |
 | Ethereum and EVM networks | `m/44'/60'/0'/0/0` | BIP-44 |
 | TRON | `m/44'/195'/0'/0/0` | SLIP-44 |
 | Solana | `m/44'/501'/0'/0'` | SLIP-10 (ed25519, hardened only) |
 
+These are the paths used when a wallet is **generated**; they do not change.
+
+**Checking a seed.** The check shows the same paths for Account 1 and lets each network be checked separately on other accounts and derivations, because wallets do not all follow the same path. `n` is the account number minus one; every derivation that gives a different address has its own button:
+
+| Network | Derivations offered |
+|---|---|
+| Bitcoin | `m/84'/0'/n'/…`, `m/86'/0'/n'/…`, `m/49'/0'/n'/…`, `m/44'/0'/n'/…`, each with its receiving (`/0/i`) and change (`/1/i`) addresses; and Bitcoin addresses, in the four formats, on Ethereum's `m/44'/60'/0'/0/n` and TRON's `m/44'/195'/0'/0/n` |
+| Ethereum | `m/44'/60'/0'/0/n`, `m/44'/60'/n'/0/0`, `m/44'/60'/0'/n` |
+| TRON | `m/44'/195'/0'/0/n`, `m/44'/195'/n'/0/0`, and Ethereum's `m/44'/60'/0'/0/n` |
+| Solana | `m/44'/501'/n'/0'`, `m/44'/501'/n'`, `m/44'/501'`, no path (the first 32 bytes of the seed as the ed25519 secret, as `solana-keygen` does by default), and `m/501'/n'/0/0` derived with BIP-32 on secp256k1, whose private key becomes the ed25519 secret (the old Sollet derivation) |
+
+Two derivations that give the same path for the account shown (for Account 1, `m/44'/60'/0'/0/0` twice) appear once.
+
+**Finding an address.** Given an address of the seed being checked, the program recognises its network and format from its encoding and checksum, and recomputes addresses until it finds it: every derivation above for accounts 1–10 (Solana, Ethereum and TRON: up to 50 accounts or addresses per derivation), and for Bitcoin the first 50 receiving and change addresses of every account in all four purposes, plus the Ethereum and TRON paths, `m/0'/0/i`, `m/0'/1/i` and `m/0'/0'/i'` — about 4,250 addresses. An address outside this range is reported as not found.
+
 ### 4.3 Address construction
 
 - **Legacy (P2PKH):** Base58Check(0x00 ‖ RIPEMD160(SHA256(pubkey)))
-- **P2SH-SegWit:** redeem script `0x0014 ‖ hash160(pubkey)`, address Base58Check(0x05 ‖ hash160(redeem))
+- **Nested SegWit (P2SH-P2WPKH):** redeem script `0x0014 ‖ hash160(pubkey)`, address Base58Check(0x05 ‖ hash160(redeem))
 - **Native SegWit (P2WPKH):** bech32, witness v0, program `hash160(pubkey)`
 - **Taproot (P2TR):** internal key `P` with even Y; tweak `t = H_TapTweak(x(P))`; output key `Q = P + t·G`; bech32m, witness v1, program `x(Q)`. No script tree (BIP-86).
 - **Ethereum:** last 20 bytes of Keccak-256 of the uncompressed public key, with the EIP-55 mixed-case checksum.
@@ -242,6 +257,8 @@ The descriptor produced is `wsh(sortedmulti(m, …))#checksum`, where every key 
 ### 4.5 Watch-only descriptors
 
 For a single-signature wallet, the account xpub and a descriptor are offered for monitoring without spending ability, e.g. `wpkh([fingerprint/84h/0h/0h]xpub…/0/*)#checksum` (respectively `tr(…)`, `sh(wpkh(…))`, `pkh(…)` for the other formats). The checksum follows BIP-380; the implementation is tested against the specification's example and against embit.
+
+**Check with a public key only.** An account key shared by a wallet — `xpub`, `ypub` (Nested SegWit) or `zpub` (Native SegWit) — is read, re-labelled as a plain `xpub` and derived at `/0/i` (receiving) and `/1/i` (change), in any of the four Bitcoin formats or as Ethereum and TRON addresses. An `xpub` does not say which format it was used with, so the format is chosen on screen. A watch-only descriptor without key origin is produced. Private keys (`xprv`, `yprv`, `zprv`…), testnet keys and multisig keys (`Ypub`, `Zpub`) are refused, each with its reason.
 
 ---
 
@@ -377,7 +394,7 @@ Continuous integration performs exactly this on every change (with dependency in
 npm test
 ```
 
-`scripts/test.js` bundles `tests/core.test.js` together with `src/core.js`, using the build's own esbuild options and adapters, and runs it. About 1,400 checks, all with expected values from outside the project:
+`scripts/test.js` bundles `tests/core.test.js` together with `src/core.js`, using the build's own esbuild options and adapters, and runs it. About 3,400 checks, all with expected values from outside the project:
 
 | Area | Source of the expected values |
 |---|---|
@@ -385,6 +402,8 @@ npm test
 | Bitcoin addresses | Published examples of BIP-44, BIP-49, BIP-84, BIP-86 |
 | Addresses of every format and network, account xpubs, fingerprints, BIP-48 xpubs, Zpub handling | Computed with **bip_utils** and **embit** (Python) for 5 mnemonics × 2 passphrases |
 | Multisig vaults (addresses at indexes 0 and 5, key order, descriptor checksum) and every refusal | embit; constructed invalid keys |
+| Every derivation offered by the check, for accounts 1, 2 and 5; change branches; the address search; addresses and descriptors from account xpubs, ypubs and zpubs, and every refusal | Computed with **bip_utils**, **embit** and PyNaCl for 3 mnemonics (`tests/vectors/paths.py`); Bitcoin cross-checked between the two libraries |
+| Diagnosis of a mistyped seed (position, suggestions, checksum) | Official BIP-39 word list and vectors; constructed mistakes |
 | Ethereum checksum | EIP-55 examples |
 | Solana derivation | SLIP-10 ed25519 official vectors |
 | Descriptor checksum | BIP-380 example |
@@ -402,13 +421,13 @@ Canonical mnemonic `abandon × 11 + about`, no passphrase:
 |---|---|
 | Bitcoin Native SegWit | `bc1qcr8te4kr609gcawutmrza0j4xv80jy8z306fyu` |
 | Bitcoin Taproot | `bc1p5cyxnuxmeuwuvkwfem96lqzszd02n6xdcjrs20cac6yqjjwudpxqkedrcr` |
-| Bitcoin P2SH-SegWit | `37VucYSaXLCAsxYyAPfbSi9eh4iEcbShgf` |
+| Bitcoin Nested SegWit | `37VucYSaXLCAsxYyAPfbSi9eh4iEcbShgf` |
 | Bitcoin Legacy | `1LqBGSKuX5yYUonjxT5qGfpUsXKYYWeabA` |
 | Ethereum | `0x9858EfFD232B4033E47d90003D41EC34EcaEda94` |
 | TRON | `TUEZSdKsoDHQMeZwihtdoBiN46zxhGWYdH` |
 | Solana | `HAgk14JpMQLgt6rVgv7cBQFJWFto5Dqxi472uT3DKpqk` |
 
-`npm run test:ui` then uses the built file itself, in the three browser engines (Chromium, Firefox, WebKit), on a computer screen and on two phone sizes. It creates a wallet from start to finish and checks that the words form a valid seed and that the addresses shown are the ones that seed gives; it checks known seeds in Check wallet against the independent values above; and it fails on any page error, any network request, or any screen wider than the display. Continuous integration runs it on every change.
+`npm run test:ui` then uses the built file itself, in the three browser engines (Chromium, Firefox, WebKit), on a computer screen and on two phone sizes. It creates a wallet from start to finish and checks that the words form a valid seed and that the addresses shown are the ones that seed gives; it checks known seeds in Check wallet against the independent values above, together with a mistyped word, each network's accounts and derivations, change addresses, the address search and the check with a public key only; and it fails on any page error, any network request, or any screen wider than the display. Continuous integration runs it on every change.
 
 ### 8.4 Verifying the absence of network traffic
 
@@ -442,6 +461,8 @@ All cryptography is in `src/core.js`, about 650 lines. Elements verifiable by di
 **Dependence on the program for Shamir parts.** See 5.2. SLIP-39 does not have this limitation.
 
 **Dependence on the execution environment.** See 6.3.
+
+**Reach of the address search.** The search in Check wallet covers the derivations and ranges listed in 4.2. An address further along (for example the 60th address of an account, or account 11) is not found by the search, but can still be reached with the account buttons and the list of addresses.
 
 For significant amounts, hardware devices and multisig configurations with keys generated by different tools are the stronger choice.
 
