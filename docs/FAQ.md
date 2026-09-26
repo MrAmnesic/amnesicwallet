@@ -48,23 +48,23 @@ You can copy or print it without ever seeing it, or press **Reveal the words** w
 
 ---
 
-## 🧩 Splitting the seed: three routes
+## 🧩 Classic, Shamir, SLIP-39: which one?
 
-Right after creating the wallet, the program asks you **how you want to keep it**: a single backup, split sequentially, or with a Shamir threshold. You can change your mind at any time using the *Split into several parts* button.
+The kind of wallet is chosen **once, on the first screen**, before the words are generated.
 
-**📄 A single backup.** The words on one sheet only. It's the right choice to start with and for small amounts: immediate, recoverable anywhere. The limit is obvious: if that sheet disappears, everything disappears.
+**🪪 Classic wallet.** One phrase of 12 to 24 words, readable by every wallet: immediate and recoverable anywhere. Whoever holds the phrase holds the funds; whoever loses it loses access. The words can be **split into consecutive groups** (*Split into groups*): with 12 words and 3 groups you get 1-4, 5-8, 9-12, put back in order by hand with no software. In exchange **all** the groups are needed, and anyone holding all but one has few words left to guess — the program tells you how many.
 
-**✂️ Sequential splitting.** The words are cut into consecutive groups: with 12 words and 3 parts you get 1-4, 5-8, 9-12. To reassemble you simply put them back in order without any software. In exchange **all** the parts are needed, and anyone finding two out of three would have few words left to guess.
+**🧩 Shamir wallet.** Named after the cryptographer Adi Shamir. The seed is created and shown to you as *parts*, of which a threshold is enough — 5 parts, 3 needed — so some can be lost. Below the threshold the parts reveal **nothing** about the seed: not "almost nothing", zero, by theorem. Putting them back together needs this program; what comes out is an ordinary BIP-39 seed.
 
-**🔐 Shamir backup.** Named after the cryptographer Adi Shamir. It doesn't cut the seed, it *transforms* it into parts that are worth something only together. You choose the threshold — 3 parts, 2 are enough — so you can lose some without consequence. And below the threshold the parts reveal **nothing** about the seed: not "almost nothing", zero, by theorem. (The short verification code printed on them is only a fingerprint for checking the result.)
+**📄 SLIP-39 wallet.** The same idea — sheets with a threshold — but as a public standard, read by Trezor, Sparrow, Electrum and others. The complete phrase never exists.
 
-**How to choose:** Shamir if you fear theft or loss; sequential if you fear depending on software many years from now.
+**In short:** Classic for one phrase that works everywhere; Shamir for a split backup that becomes an ordinary seed again; SLIP-39 for a split backup under a public standard. A seed you already own can be turned into Shamir parts under *Check wallet → Shamir backup*.
 
 ---
 
 ## 📄 SLIP-39: the backup born already split
 
-When you create a wallet you can choose between two backup standards. **BIP-39** gives you a single phrase of 12 or 24 words. **SLIP-39** gives you instead several sheets of 20 words each, and some of them — for example 3 of 5 — are enough to reopen the wallet.
+The **Classic** and **Shamir** wallets use **BIP-39**, a phrase of 12 to 24 words. A **SLIP-39 wallet** gives you instead several sheets of 20 words each, and some of them — for example 3 of 5 — are enough to reopen the wallet.
 
 **The difference that matters.** With BIP-39 the complete phrase exists: you see it, you write it, and from that moment it is your weak point. With SLIP-39 **the whole phrase never exists at any moment**, not even on screen while you create it. Only the sheets exist, and each one alone reveals nothing.
 
@@ -80,9 +80,9 @@ When you create a wallet you can choose between two backup standards. **BIP-39**
 
 **You can use it at two different moments, and this is what most often escapes people.**
 
-**1. While creating a new wallet.** Right after generation, when the program asks how to keep the seed, choose *Shamir backup*. The complete phrase is never written out: you start with the backup already split.
+**1. While creating a new wallet.** Choose *Shamir wallet* on the first screen: the seed is shown to you as parts from the start, and the complete words stay hidden unless you ask for them.
 
-**2. On a seed you already own**, even one created years ago with another program. Go to *🔍 Check wallet → Shamir backup → I have a seed, I want to split it*, enter your words and choose the threshold and number of parts. The wallet does not change: same addresses, funds in place. Only the way you keep it changes. From that moment you can destroy the sheet with the whole phrase and keep only the parts.
+**2. On a seed you already own**, even one created years ago with another program. Go to *🔍 Check wallet → Shamir backup → I have a seed, I want to split it*, enter your words and choose the threshold and number of parts. The wallet does not change: same addresses, funds in place. Only the form of the backup changes.
 
 Here is the advantage over a classic seed: with the traditional phrase, whoever finds that sheet has everything. With this system, whoever finds one part has nothing. Several fragments are needed together, someone has to realise they belong together, know this backup exists and have the right program. The difference is this: a normal seed is a single weak point. With Shamir, your funds stay safe even if some piece ends up where it shouldn't.
 

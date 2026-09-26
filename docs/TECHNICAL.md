@@ -2,7 +2,7 @@
 
 **Implementation specification, security model and declared limits**
 
-Document version: 1.5 — describes AmnesicWallet 1.1.3
+Document version: 1.6 — describes AmnesicWallet 1.2.0
 
 Reference: `amnesicwallet.html` — SHA-256 hash published with every release, in `SHA256SUMS` and on the official website, [amnesicwallet.com](https://amnesicwallet.com)
 
@@ -36,7 +36,7 @@ AmnesicWallet is a web application contained in a single HTML file that generate
 | ed25519 curve derivation | SLIP-10 |
 | Ethereum address checksum | EIP-55 |
 | Coin identifiers | SLIP-44 |
-| Threshold backup of an existing BIP-39 seed | No standard: scheme documented in 5.2 |
+| Threshold backup over a BIP-39 seed (Shamir wallet) | No standard: scheme documented in 5.2 |
 | Binary representation of the backup | No standard: scheme documented in 5.4 |
 
 ### 1.2 Deliberately unimplemented functions
@@ -264,15 +264,26 @@ For a single-signature wallet, the account xpub and a descriptor are offered for
 
 ## 5. Backup splitting
 
+The kind of wallet is chosen once, on the first screen of Generate wallet, before any randomness is collected:
+
+| Kind | What is created | Recovered with |
+|---|---|---|
+| Classic wallet | One BIP-39 phrase, 12–24 words | Any BIP-39 wallet |
+| Shamir wallet | One BIP-39 seed, shown only as n parts of which m are needed (5.2) | This program; the reassembled seed works in any wallet |
+| SLIP-39 wallet | n SLIP-39 sheets of which m are needed (5.3) | Trezor, Sparrow, Electrum, Keystone and others |
+| Multisig vault | A Bitcoin m-of-n address (4.4) | Sparrow, Electrum or hardware wallets, with the descriptor |
+
+The choice changes only the interface. Classic and Shamir wallets draw their entropy and derive their addresses in exactly the same way; a Shamir wallet then passes the entropy to the functions of 5.2, unchanged. A Classic wallet can be divided afterwards with the sequential split of 5.1 ("Split into groups"); an existing BIP-39 seed can be given a threshold backup from Check wallet → Shamir backup.
+
 ### 5.1 Sequential split
 
-Partitioning of the word sequence into consecutive groups. No cryptographic transformation; reassembly is manual and needs no software.
+Partitioning of the word sequence into consecutive groups, offered on a Classic wallet. No cryptographic transformation; reassembly is manual and needs no software.
 
 **Property:** knowing some groups reduces the search space by the words they contain. The program states, for the chosen split, how many words someone holding every part but one would still be missing, and what that means: with 12 words in 3 parts, 4 missing words (40 bits after the checksum) are within reach of a single computer; with 24 words in 3 parts, 8 missing words are not. No verification code is attached to these parts: the words are numbered and carry the BIP-39 checksum, and a code would only help someone guessing a missing part.
 
 ### 5.2 Threshold scheme for an existing seed (Shamir)
 
-Shamir Secret Sharing applied byte by byte to the BIP-39 entropy. It works on any BIP-39 seed, including ones created elsewhere, which SLIP-39 cannot represent.
+Shamir Secret Sharing applied byte by byte to the BIP-39 entropy. It is used when a Shamir wallet is created, and from Check wallet on any existing BIP-39 seed, including ones created elsewhere, which SLIP-39 cannot represent.
 
 - Finite field GF(2⁸), irreducible polynomial `0x11b`; exponential and logarithm tables built with **generator 3**. (Generator 2 is not primitive for `0x11b`: it only reaches 51 of the 255 non-zero elements.)
 - For each byte, a polynomial of degree m − 1 whose constant term is the secret byte and whose other coefficients are drawn from the CSPRNG, **uniformly, zero included**. Uniform coefficients are what the proof of perfect secrecy requires; excluding zero (as some implementations do) would slightly bias the parts.

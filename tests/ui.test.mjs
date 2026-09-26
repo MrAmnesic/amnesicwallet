@@ -11,9 +11,11 @@
  *
  * For each browser and screen size it checks that:
  *   - the page loads with no error and asks the network for nothing;
- *   - a wallet can be created from start to finish: passphrase choice,
- *     random typing, drawing, backup choice, the words, the backup check,
- *     the addresses on all four networks;
+ *   - the first screen offers the four kinds of wallet; a Classic wallet can
+ *     be created from start to finish (passphrase choice, random typing,
+ *     drawing, the words, the backup check, the addresses on all four
+ *     networks), then a Shamir wallet (its parts and verification code) and,
+ *     on the computer screen, a SLIP-39 wallet;
  *   - the words shown are a valid BIP-39 seed and the Bitcoin and Ethereum
  *     addresses shown are the ones that seed gives (recomputed here, outside
  *     the page);
@@ -168,7 +170,13 @@ async function run(browser, engine, device) {
   await noteLayout('start');
 
   /* 1. Create a wallet */
-  step = 'choosing a personal wallet';
+  step = 'choosing the kind of wallet';
+  check(await page.locator('.path-card').count() === 4, 'four kinds of wallet on the first screen');
+  check(await page.locator('.path-recover').count() === 4, 'each kind says what it is recovered with');
+  await press(page.locator('#gen-classic'));
+  check(await page.locator('#seg-words').count() === 1 && await page.locator('#slip-n').count() === 0, 'Classic wallet: words only, no choice of standard');
+  await press(page.locator('#gen-back'));
+  check(await page.locator('.path-card').count() === 4, 'Back returns to the four kinds');
   await press(page.locator('#gen-classic'));
   await page.locator('#btn-generate').waitFor();
   await noteLayout('wallet settings');
@@ -180,11 +188,10 @@ async function run(browser, engine, device) {
   await noteLayout('drawing');
   step = 'drawing in the box';
   await draw();
-  const single = page.locator('#bk-classic');
-  await single.waitFor({ timeout: 15000 });
+  await page.locator('#seed-masked').waitFor({ timeout: 15000 });
   check(true, 'typing and drawing lead to the new wallet');
-  await noteLayout('backup choice');
-  await press(single);
+  check(await page.locator('.split-choice').count() === 0 && await page.locator('.keys-list').count() === 0, 'no backup choice: straight to the wallet');
+  check(await page.locator('#btn-split-seed').count() === 1, 'Classic wallet: "Split into groups" is offered');
   step = 'showing the words';
 
   await press(page.locator('#btn-reveal-seed'));
@@ -218,6 +225,41 @@ async function run(browser, engine, device) {
   await page.locator('#results-card .address-qr img').nth(3).waitFor();
   check(true, 'every address has its QR code');
   await noteLayout('addresses');
+
+  /* 1b. A Shamir wallet (and, on the computer, a SLIP-39 wallet) */
+  step = 'a Shamir wallet';
+  await press(page.locator('#btn-reset'));
+  await press(page.locator('#rs-yes'));
+  check(await page.locator('.path-card').count() === 4, 'Generate a new wallet: back to the four kinds');
+  await press(page.locator('#gen-shamir'));
+  await page.locator('#sh-n').selectOption('4');
+  await page.locator('#sh-m').selectOption('2');
+  check((await page.locator('#sh-summary').innerText()).includes('4 parts'), 'Shamir wallet: the summary follows the choice');
+  await noteLayout('Shamir settings');
+  await press(page.locator('#btn-generate'));
+  await press(page.locator('#pp-no'));
+  await typeRandomly();
+  await draw();
+  await page.locator('.keys-list').waitFor({ timeout: 15000 });
+  check(await page.locator('.keys-list .key-block').count() === 4, 'Shamir wallet: 4 parts, shown first');
+  check(/Verification code: [0-9A-F]{4}/i.test(await page.locator('.ok-box').first().innerText()), 'Shamir wallet: verification code');
+  check(await page.locator('.seed-locked').count() === 1 && await page.locator('#btn-split-seed').count() === 0, 'Shamir wallet: complete seed locked, no other split offered');
+  await noteLayout('Shamir wallet');
+  await press(page.locator('#btn-reset'));
+  await press(page.locator('#rs-yes'));
+  if (!device.touch) {
+    step = 'a SLIP-39 wallet';
+    await press(page.locator('#gen-slip39'));
+    check(await page.locator('#seg-words').count() === 0 && await page.locator('#slip-n').count() === 1, 'SLIP-39 wallet: sheets and threshold');
+    await press(page.locator('#btn-generate'));
+    await press(page.locator('#pp-no'));
+    await typeRandomly();
+    await draw();
+    await page.locator('.sl-reveal').first().waitFor({ timeout: 15000 });
+    check(await page.locator('.sl-reveal').count() === 5, 'SLIP-39 wallet: 5 sheets');
+    await press(page.locator('#slip-reset'));
+    await press(page.locator('#rs-yes'));
+  }
 
   /* 2. Check wallet, with seeds whose addresses were computed elsewhere */
   for (const v of [VECTORS.seeds[0], VECTORS.seeds[VECTORS.seeds.length - 1]]) {
