@@ -25,6 +25,21 @@ The value must be identical in three independent places:
 
 If they differ, **do not use the file**.
 
+### Check where it was built (certificate of origin)
+
+From version 1.1.3, every release file carries GitHub's signed certificate of
+origin (a *build provenance attestation*, signed through Sigstore). It states
+that this exact file was built by this repository's workflow, from the tagged
+commit — not uploaded by hand. With the [GitHub CLI](https://cli.github.com):
+
+```bash
+gh attestation verify amnesicwallet.html --repo MrAmnesic/amnesicwallet
+```
+
+It works on any copy of the file, including the one downloaded from the
+website. The certificate is signed by GitHub, not by the maintainer: a stolen
+maintainer password is not enough to forge it for a file built elsewhere.
+
 ---
 
 ## 2. Rebuild it from source

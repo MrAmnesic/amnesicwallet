@@ -14,6 +14,10 @@ on:
 
 permissions:
   contents: write
+  # For the certificate of origin (build provenance attestation) below.
+  id-token: write
+  attestations: write
+  artifact-metadata: write
 
 # One release at a time.
 concurrency:
@@ -66,6 +70,14 @@ jobs:
           sha256sum amnesicwallet.html > amnesicwallet.html.sha256
           cat amnesicwallet.html.sha256
 
+      # A statement signed through GitHub (Sigstore) that this exact file was
+      # built by this workflow, from this commit of this repository. Anyone can
+      # check it: gh attestation verify amnesicwallet.html --repo MrAmnesic/amnesicwallet
+      - name: Certificate of origin (build provenance)
+        uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6 # v4.2.2
+        with:
+          subject-path: dist/amnesicwallet.html
+
       - name: Create GitHub Release
         uses: softprops/action-gh-release@efb35369e0ad2afab669f228072c1b0d510eae64 # v3.0.3
         with:
@@ -88,3 +100,9 @@ jobs:
             Get-FileHash amnesicwallet.html       # Windows PowerShell
             ```
             The value must match `amnesicwallet.html.sha256` attached here, `SHA256SUMS` in the repository and the one on the website. You can also rebuild it yourself: `npm ci && npm run build` produces the same bytes.
+
+            ### Check where it was built
+            ```bash
+            gh attestation verify amnesicwallet.html --repo ${{ github.repository }}
+            ```
+            GitHub's signed certificate of origin says that this file was built by the Release workflow of this repository, from the tagged commit. It works on any copy of the file, including the one on the website.
