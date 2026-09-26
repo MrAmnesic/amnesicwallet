@@ -488,6 +488,7 @@ group('Derivation paths — every known path, account and network (bip_utils / e
           let want;
           if (d.path === null) want = v.solSeedBytes;
           else if (d.id === 'sollet') want = v.solSollet[String(acct)];
+          else if (d.id === 'secp44') want = v.solSecp44[String(acct)];
           else {
             const w = v.paths.find(x => x.chain === chain && x.template === d.path && x.account === acct);
             check(!!w, `${chain} ${d.path} has an independent value`);
@@ -501,7 +502,7 @@ group('Derivation paths — every known path, account and network (bip_utils / e
     eq(derivationChoices('eth', 0).map(x => x.label).join(' '), "m/44'/60'/0'/0/0 m/44'/60'/0'/0", 'Ethereum, account 1: two different paths');
     eq(derivationChoices('eth', 1).map(x => x.label).join(' '), "m/44'/60'/0'/0/1 m/44'/60'/1'/0/0 m/44'/60'/0'/1", 'Ethereum, account 2: three different paths');
     eq(derivationChoices('trx', 0).length, 2, 'TRON, account 1: two different paths');
-    eq(derivationChoices('sol', 0).map(x => x.label).join(' '), "m/44'/501'/0'/0' m/44'/501'/0' m/44'/501' No path m/501'/0'/0/0", 'Solana: every path, by its path');
+    eq(derivationChoices('sol', 0).map(x => x.label).join(' '), "m/44'/501'/0'/0' m/44'/501'/0' m/44'/501'/0'/0/0 m/44'/501' No path m/501'/0'/0/0", 'Solana: every path, by its path');
     eq(derivationChoices('btc', 2).map(x => x.label).join(', '), 'Native SegWit, Taproot, Nested SegWit, Legacy, ETH / TRON paths', 'Bitcoin: the formats by name');
     check(!hasAccounts(DERIVATIONS.sol.find(d => d.id === 'root')) && !hasAccounts(DERIVATIONS.sol.find(d => d.id === 'none')), 'single-address derivations have no accounts');
     throws(() => deriveWith(seed, 'eth', 'nope', 0), 'an unknown derivation is refused');
@@ -519,6 +520,7 @@ group('Derivation paths — every known path, account and network (bip_utils / e
       [v.paths.find(x => x.chain === 'trx' && x.path === "m/44'/60'/0'/0/1").address, "m/44'/60'/0'/0/1"],
       [v.paths.find(x => x.chain === 'sol' && x.path === "m/44'/501'/4'").address, "m/44'/501'/4'"],
       [v.solSollet['1'], "m/501'/1'/0/0"],
+      [v.solSecp44['4'], "m/44'/501'/4'/0/0"],
       [v.solSeedBytes, null],
     ];
     for (const [addr, path] of cases) { const r = find(addr); eq(r && r.path, path, `found ${addr.slice(0, 10)}…`); n++; }

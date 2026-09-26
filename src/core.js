@@ -615,9 +615,10 @@ export const DERIVATIONS = {
   sol: [
     { id: 'std',     path: "m/44'/501'/{n}'/0'" },
     { id: 'ledger',  path: "m/44'/501'/{n}'" },
+    { id: 'secp44',  path: "m/44'/501'/{n}'/0/0", secp: true, used: 'A Bitcoin-style (secp256k1) derivation, whose key becomes the Solana key — the path Exodus documents for Solana' },
     { id: 'root',    path: "m/44'/501'" },
     { id: 'none',    path: null, label: 'No path', used: 'No derivation: the key is the first 32 bytes of the seed' },
-    { id: 'sollet',  path: "m/501'/{n}'/0/0", used: 'A Bitcoin-style (secp256k1) derivation, whose key becomes the Solana key' },
+    { id: 'sollet',  path: "m/501'/{n}'/0/0", secp: true, used: 'A Bitcoin-style (secp256k1) derivation, whose key becomes the Solana key' },
   ],
 };
 
@@ -641,9 +642,10 @@ export function derivationChoices(chain, account = 0) {
   return out;
 }
 
-/* Solana keys on the old Sollet path: BIP-32 (secp256k1) derivation, whose
-   private key is used as the ed25519 secret. */
-function solletAddress(seed, path) {
+/* Solana keys on a path with non-hardened steps, which ed25519 (SLIP-10)
+   cannot follow: BIP-32 (secp256k1) derivation, whose private key is used
+   as the ed25519 secret (old Sollet; the path Exodus documents). */
+function secpSolAddress(seed, path) {
   const node = HDKey.fromMasterSeed(new Uint8Array(seed)).derive(path);
   return base58.encode(ed25519.getPublicKey(node.privateKey));
 }
@@ -669,7 +671,7 @@ export function deriveWith(seed, chain, derivationId, account = 0) {
   }
   const path = fillPath(d.path, acct);
   let address;
-  if (chain === 'sol' && d.id === 'sollet') address = solletAddress(seed, path);
+  if (chain === 'sol' && d.secp) address = secpSolAddress(seed, path);
   else address = addressAtPath(seed, chain, path, d.fmt || 'native');
   return { derivation: d, account: acct, path, address };
 }
@@ -785,13 +787,15 @@ export function* findAddress(seed, text) {
         return null;
       } });
     }
-    jobs.push({ size: SEARCH_INDEXES, run: () => {
-      for (let a = 0; a < SEARCH_INDEXES; a++) {
-        const path = `m/501'/${a}'/0/0`;
-        if (same(solletAddress(seed, path))) return { path, account: a, note: 'old Sollet derivation' };
-      }
-      return null;
-    } });
+    for (const [tpl, note] of [["m/44'/501'/{n}'/0/0", 'secp256k1 derivation, key used for Solana'], ["m/501'/{n}'/0/0", 'old Sollet derivation']]) {
+      jobs.push({ size: SEARCH_INDEXES, run: () => {
+        for (let a = 0; a < SEARCH_INDEXES; a++) {
+          const path = fillPath(tpl, a);
+          if (same(secpSolAddress(seed, path))) return { path, account: a, note };
+        }
+        return null;
+      } });
+    }
   }
 
   const total = jobs.reduce((s, j) => s + j.size, 0);

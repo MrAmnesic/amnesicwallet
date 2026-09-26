@@ -280,6 +280,8 @@ async function run(browser, engine, device) {
     check((await card('sol').locator('.addr-value').innerText()) === at('sol', "m/44'/501'/{n}'", 1).address, 'Solana account 2 (Ledger) matches');
     await press(card('sol').locator('.der-seg .seg-btn[data-der="sollet"]'));
     check((await card('sol').locator('.addr-value').innerText()) === v.solSollet['1'], 'Solana account 2 (old Sollet) matches');
+    await press(card('sol').locator('.der-seg .seg-btn[data-der="secp44"]'));
+    check((await card('sol').locator('.addr-value').innerText()) === v.solSecp44['1'], "Solana account 2 on m/44'/501'/1'/0/0 matches");
     await press(card('trx').locator('.der-seg .seg-btn[data-der="eth"]'));
     check((await card('trx').locator('.addr-value').innerText()) === at('trx', "m/44'/60'/0'/0/{n}", 0).address, "TRON on Ethereum's path matches");
 
