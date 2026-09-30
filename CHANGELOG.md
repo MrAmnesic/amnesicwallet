@@ -5,6 +5,15 @@ Notable changes are recorded here, one entry per published version.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.1] — 2026-10
+
+### Fixed
+- **QR codes in Tor Browser (Tails).** QR codes were drawn on a canvas and
+  then read back as an image; Tor Browser refuses that read-back to protect
+  against fingerprinting, so a blank square appeared instead of the QR. They
+  are now drawn as SVG, with no canvas, and read the same in every browser.
+  The browser tests now refuse canvas read-back, as Tor Browser does.
+
 ## [1.2.0] — 2026-09
 
 ### Added

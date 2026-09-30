@@ -153,6 +153,14 @@ async function run(browser, engine, device) {
     deviceScaleFactor: device.scale || 1,
     ...(input.touch ? { isMobile: true, hasTouch: true } : {}),
   });
+  // Like Tor Browser (the browser of Tails), refuse to read a canvas back:
+  // nothing the page shows may depend on it.
+  await context.addInitScript(() => {
+    const refuse = () => { throw new Error('canvas readback refused'); };
+    HTMLCanvasElement.prototype.toDataURL = refuse;
+    HTMLCanvasElement.prototype.toBlob = refuse;
+    CanvasRenderingContext2D.prototype.getImageData = refuse;
+  });
   const page = await context.newPage();
   const errors = [];
   const requests = [];
@@ -223,7 +231,8 @@ async function run(browser, engine, device) {
   check(shown[0] === btcNativeAddress(seed), 'the Bitcoin address is the one the seed gives');
   check(shown[1] === ethAddress(seed), 'the Ethereum address is the one the seed gives');
   await page.locator('#results-card .address-qr img').nth(3).waitFor();
-  check(true, 'every address has its QR code');
+  const qrs = await page.locator('#results-card .address-qr img').evaluateAll((els) => els.map((e) => e.getAttribute('src')));
+  check(qrs.every((s) => s.startsWith('data:image/svg+xml;base64,')), 'every address has its QR code, drawn without a canvas');
   await noteLayout('addresses');
 
   /* 1b. A Shamir wallet (and, on the computer, a SLIP-39 wallet) */
