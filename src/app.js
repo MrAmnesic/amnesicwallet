@@ -72,10 +72,14 @@ function escapeHtml(str) {
 }
 /* Short texts (addresses) get the strongest error correction; long ones
    (xpubs, descriptors) a lighter one, so the modules stay large enough for a
-   phone camera to read. */
+   phone camera to read.
+   The QR is drawn as SVG, not on a canvas: Tor Browser (and Firefox with
+   resistFingerprinting) refuses to read a canvas back, which left a blank
+   image where the QR should be. */
 async function generateQR(text, size) {
   const level = text.length <= 90 ? 'H' : text.length <= 200 ? 'M' : 'L';
-  return await QRCode.toDataURL(text, { width: size || 200, margin: 2, color: { dark: '#000000', light: '#ffffff' }, errorCorrectionLevel: level });
+  const svg = await QRCode.toString(text, { type: 'svg', width: size || 200, margin: 2, color: { dark: '#000000', light: '#ffffff' }, errorCorrectionLevel: level });
+  return 'data:image/svg+xml;base64,' + btoa(svg);
 }
 async function copyToClipboard(text) {
   try {

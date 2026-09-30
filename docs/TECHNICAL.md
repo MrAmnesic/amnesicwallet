@@ -2,7 +2,7 @@
 
 **Implementation specification, security model and declared limits**
 
-Document version: 1.6 — describes AmnesicWallet 1.2.0
+Document version: 1.7 — describes AmnesicWallet 1.2.1
 
 Reference: `amnesicwallet.html` — SHA-256 hash published with every release, in `SHA256SUMS` and on the official website, [amnesicwallet.com](https://amnesicwallet.com)
 
@@ -52,7 +52,7 @@ AmnesicWallet is a web application contained in a single HTML file that generate
 
 ### 2.1 Distribution model
 
-The product is a single self-contained HTML file. All libraries are embedded into it at build time. At runtime no external resource is requested: no CDN, no remote fonts, no external images. QR codes are drawn locally as `data:` images.
+The product is a single self-contained HTML file. All libraries are embedded into it at build time. At runtime no external resource is requested: no CDN, no remote fonts, no external images. QR codes are drawn locally as SVG `data:` images, without a canvas: Tor Browser refuses to read a canvas back, and would show a blank square.
 
 Verifiable consequence: the file behaves identically on a device that has never had connectivity.
 
@@ -438,7 +438,7 @@ Canonical mnemonic `abandon × 11 + about`, no passphrase:
 | TRON | `TUEZSdKsoDHQMeZwihtdoBiN46zxhGWYdH` |
 | Solana | `HAgk14JpMQLgt6rVgv7cBQFJWFto5Dqxi472uT3DKpqk` |
 
-`npm run test:ui` then uses the built file itself, in the three browser engines (Chromium, Firefox, WebKit), on a computer screen and on two phone sizes. It creates a wallet from start to finish and checks that the words form a valid seed and that the addresses shown are the ones that seed gives; it checks known seeds in Check wallet against the independent values above, together with a mistyped word, each network's accounts and derivations, change addresses, the address search and the check with a public key only; and it fails on any page error, any network request, or any screen wider than the display. Continuous integration runs it on every change.
+`npm run test:ui` then uses the built file itself, in the three browser engines (Chromium, Firefox, WebKit), on a computer screen and on two phone sizes. It creates a wallet from start to finish and checks that the words form a valid seed and that the addresses shown are the ones that seed gives; it checks known seeds in Check wallet against the independent values above, together with a mistyped word, each network's accounts and derivations, change addresses, the address search and the check with a public key only; and it fails on any page error, any network request, or any screen wider than the display. Canvas read-back is refused throughout, as Tor Browser does. Continuous integration runs it on every change.
 
 ### 8.4 Verifying the absence of network traffic
 
