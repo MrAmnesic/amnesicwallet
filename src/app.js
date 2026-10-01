@@ -16,8 +16,9 @@
  * with this program. If not, see <https://www.gnu.org/licenses/>.
  *
  * Bundled third-party libraries (@noble/curves, @noble/hashes, @scure/base,
- * @scure/bip32, @scure/bip39, qrcode, slip39) are distributed under the MIT
- * licence; their notices are kept in the source tree.
+ * @scure/bip32, @scure/bip39, qrcode, slip39) and the Electrum 1.x word list
+ * (electrum-old-words.js) are distributed under the MIT licence; their notices
+ * are kept in the source tree.
  *
  * This file is the user interface. All the cryptography is in core.js.
  */
@@ -29,6 +30,7 @@ import {
   deriveAll, deriveBTC, deriveBTCMany, btcAccountInfo, btcPath, deriveMultisigXpub, multisigAddress, KeyError,
   slip39Create, slip39Recover, isSlip39Passphrase, metalRows, normalizeWords,
   DERIVATIONS, deriveWith, hasAccounts, derivationChoices, addressKind, findAddress, diagnoseMnemonic, readPublicKey, addressesFromXpub, xpubDescriptor,
+  electrumSeedType, electrumWallet, electrumNormalize, findElectrumAddress, ELECTRUM_TYPES,
   entropyToMnemonic, mnemonicToEntropy, mnemonicToSeedSync, validateMnemonic, wordlist, HDKey,
 } from './core.js';
 import QRCode from 'qrcode';
@@ -150,6 +152,9 @@ let btcAccount = null;    // xpub + descriptor for watch-only
 let vfSeed = null;        // seed of the Check tab (isolated from the main wallet)
 let vfMnemonic = null;
 let vfResults = null;
+let vfElectrum = null;     // Check tab, words read as an Electrum seed: { wallet, change, list, alsoBip39, find }
+let vfAlsoElectrum = '';   // BIP-39 words that are also an Electrum seed: its type
+let vfSource = null;       // { raw, pass } as typed, to read the same words the other way
 let csResults = null;     // addresses recovered from SLIP-39 sheets (Check tab), kept apart from vf*
 let xp = null;            // Check with a public key: { info, as, change, list }
 let pendingConfig = null;            // {words, passphrase, useDice, twoDice}
@@ -928,7 +933,7 @@ function renderVerifyTab() {
         </div>
 
         <label class="config-label">Your words
-          <span class="hint">12, 15, 18, 21 or 24 words, separated by spaces. Capitals don't matter.</span>
+          <span class="hint">12, 15, 18, 21 or 24 words, separated by spaces. Capitals don't matter. Seeds made by Electrum, which has a format of its own, are recognised too.</span>
         </label>
         <textarea id="vf-words" class="inp" rows="3" placeholder="word1 word2 word3 …" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false"></textarea>
 
@@ -965,10 +970,11 @@ function wireVerify() {
   document.getElementById('vf-back')?.addEventListener('click', () => { ctrlPath = null; renderApp(); });
   document.getElementById('vf-clear')?.addEventListener('click', () => {
     vfSeed = null; vfMnemonic = null; vfResults = null; vfCards = newVfCards(); vfFind = null;
+    vfElectrum = null; vfAlsoElectrum = ''; vfSource = null;
     renderApp();
     showToast('Seed removed from the page.', 'info');
   });
-  if (vfResults) renderVfResults();
+  if (vfResults || vfElectrum) renderVfResults();
 }
 
 /* What is wrong with the typed words, in words a person can act on:
@@ -985,6 +991,7 @@ function diagnosisHTML(d) {
   }
   if (d.countOk && !d.unknown.length && !d.checksumOk) {
     parts.push(`All ${d.count} words are in the list, but they do not fit together: the last word also works as a check on all the others, and here it does not match. Usually one word is a different but similar list word, or two words are in the wrong order. Compare them one by one with your sheet.`);
+    parts.push('They are not an Electrum seed either: if they come from Electrum, one word is different there too.');
   }
   return `<div class="warn-box">${parts.map(t => `<p style="margin:4px 0">${t}</p>`).join('')}</div>`;
 }
@@ -1009,10 +1016,15 @@ function runVerify(keepSeed) {
   if (!selected.length) { err.innerHTML = '<span style="color:var(--danger)">Select at least one network.</span>'; return; }
 
   if (!keepSeed) {
-    const d = diagnoseMnemonic(document.getElementById('vf-words').value);
-    if (!d.valid) { showDiagnosis(d); return; }
-    const words = d.words.join(' ');
+    const raw = document.getElementById('vf-words').value;
     const pass = document.getElementById('vf-pass').value || '';
+    const d = diagnoseMnemonic(raw);
+    const eType = electrumSeedType(raw);
+    if (eType && !d.valid) { openElectrum(raw, pass, false); return; }
+    if (!d.valid) { showDiagnosis(d); return; }
+    vfSource = { raw, pass };
+    const words = d.words.join(' ');
+    vfElectrum = null; vfAlsoElectrum = eType;
     vfMnemonic = words;
     vfSeed = mnemonicToSeedSync(words, pass);
     vfCards = newVfCards(); vfFind = null;
@@ -1251,12 +1263,161 @@ function renderFind() {
   });
 }
 
+/* ── Electrum seeds ─────────────────────────────────────────────
+   Words that are an Electrum seed (Electrum's own format, not BIP-39)
+   are read as Electrum reads them: Bitcoin only, receiving and change
+   addresses, its master public key. */
+function openElectrum(raw, pass, alsoBip39) {
+  const err = document.getElementById('vf-err');
+  let wallet;
+  try { wallet = electrumWallet(raw, pass); }
+  catch (e) {
+    vfSeed = null; vfResults = null; vfElectrum = null; vfAlsoElectrum = ''; vfSource = null;
+    const box = document.getElementById('vf-results');
+    if (box) box.innerHTML = '';
+    err.innerHTML = e.message === 'OLD_NO_PASSPHRASE'
+      ? '<div class="warn-box">These words are a seed from <strong>Electrum 1.x</strong> (before 2014), which never had a passphrase. Empty the passphrase field and press <strong>Show the addresses</strong> again.</div>'
+      : '<span style="color:var(--danger)">Error: ' + escapeHtml(e.message) + '</span>';
+    return;
+  }
+  err.innerHTML = '';
+  vfSource = { raw, pass };
+  vfSeed = null; vfResults = null; vfFind = null; vfCards = newVfCards(); vfAlsoElectrum = '';
+  vfMnemonic = electrumNormalize(raw);
+  vfElectrum = { wallet, change: 0, list: wallet.computed === false ? null : wallet.addresses(0, 0, 10), alsoBip39, find: null };
+  renderApp();
+  showToast(`Electrum seed recognised: ${wallet.label}.`, 'success');
+}
+
+function electrumHTML() {
+  const e = vfElectrum;
+  const w = e.wallet;
+  const t = ELECTRUM_TYPES[w.type];
+  const others = vfSelectedChains().filter(id => id !== 'btc').length > 0;
+  const bip39Note = e.alsoBip39 ? `
+    <div class="note-box" style="margin-bottom:14px">These words are <strong>also a valid BIP-39 seed</strong>, which gives different addresses. Which one is yours depends on the program that made them.
+      <div style="margin-top:8px"><button class="btn btn-outline btn-small" id="el-as-bip39">Show them as a BIP-39 seed</button></div></div>` : '';
+  if (w.computed === false) {
+    return `
+    <div class="card">
+      <div class="card-header"><span class="step-badge">✓</span><h2>Electrum seed — ${escapeHtml(w.label)}</h2></div>
+      ${bip39Note}
+      <div class="warn-box">These words are an <strong>Electrum 2FA</strong> seed: a wallet that Electrum shares with the TrustedCoin service, two keys out of three. Its addresses also depend on TrustedCoin's keys, and this program does not compute them. Open the words in <strong>Electrum</strong> — on a computer without a connection, if you only want to see the addresses.</div>
+    </div>`;
+  }
+  const first = w.addresses(0, 0, 1)[0];
+  const f = e.find || {};
+  let findOut = '';
+  if (f.error) findOut = `<div class="warn-box">${f.error}</div>`;
+  else if (f.result) findOut = `<div class="ok-box">✔ <strong>Found.</strong> It is ${f.result.change ? 'change' : 'receiving'} address #${f.result.index} of this Electrum wallet.<br>Derivation path: <code class="path-value">${escapeHtml(f.result.path)}</code></div>`;
+  else if (f.done) findOut = `<div class="warn-box"><strong>Not found</strong> among the first 200 receiving and 200 change addresses of this wallet. Check the passphrase (Electrum calls it the seed extension) — with a different one, every address changes.</div>`;
+  return `
+    <div class="card">
+      <div class="card-header"><span class="step-badge">✓</span><h2>Electrum seed — ${escapeHtml(w.label)}</h2></div>
+      <p class="hint" style="margin-bottom:14px">These words are a seed in <strong>Electrum's own format</strong>, not BIP-39: they are read here as Electrum reads them. ${escapeHtml(t.note)}. An Electrum seed holds <strong>Bitcoin only</strong>${others ? ': the other networks you selected do not apply' : ''}. Other programs show these addresses only if they can read Electrum seeds.</p>
+      ${bip39Note}
+      <div class="addresses-list"><div class="address-item">
+        <div class="address-header"><span class="addr-icon">₿</span><div class="address-header-text"><strong>Bitcoin</strong></div></div>
+        <div class="address-details">
+          <div class="detail-row"><span class="detail-label">Address</span>
+            <div class="addr-copy-row"><code class="detail-value addr-value">${escapeHtml(first.address)}</code>${copyButton(first.address)}</div>
+          </div>
+          <div class="detail-row"><span class="detail-label">Derivation path</span><code class="detail-value path-value">${escapeHtml(first.path)}</code></div>
+        </div>
+        <div class="address-qr" id="el-qr"><div class="qr-loading">Generating the QR…</div></div>
+        <div class="btc-more">
+          <div class="seg el-branch" style="margin-bottom:8px">
+            <button class="seg-btn ${e.change ? '' : 'seg-active'}" data-c="0">Receiving</button>
+            <button class="seg-btn ${e.change ? 'seg-active' : ''}" data-c="1">Change</button>
+          </div>
+          <p class="hint" style="margin-bottom:8px">${e.change
+            ? 'When you send a payment, what is left comes back to a <strong>change address</strong> of the same wallet. If you have ever spent from this wallet, part of the funds is usually here.'
+            : 'The addresses you give out to receive, in order.'}</p>
+          <div class="more-list">
+            ${e.list.map(a => `
+              <div class="more-row">
+                <span class="more-idx">#${a.index}</span>
+                <code class="more-addr">${escapeHtml(a.address)}<br><span class="path-value" style="font-size:10px">${escapeHtml(a.path)}</span></code>
+                ${copyButton(a.address)}
+              </div>`).join('')}
+          </div>
+          <div class="ov-row" style="margin-top:10px"><button class="btn btn-ghost btn-small" id="el-more">Show 10 more</button></div>
+        </div>
+        <div class="watch-box">
+          <div class="watch-head">👁️ Check the balance with no risk (watch-only)</div>
+          <p class="hint" style="margin-bottom:12px">In <strong>Electrum</strong>, a new wallet made from this key (<em>Use a master key</em>) shows balance and movements <strong>without being able to spend</strong>. Whoever holds it sees all the movements of this wallet, but cannot spend.</p>
+          <div class="detail-label">${escapeHtml(w.masterKeyName)}</div>
+          <div class="addr-copy-row"><code class="detail-value" style="font-size:10.5px">${escapeHtml(w.masterKey)}</code>${copyButton(w.masterKey)}</div>
+          ${w.descriptor ? `<div class="detail-label" style="margin-top:10px">Descriptor, for Sparrow and other programs</div>
+          <div class="addr-copy-row"><code class="detail-value" style="font-size:10.5px">${escapeHtml(w.descriptor)}</code>${copyButton(w.descriptor)}</div>` : ''}
+        </div>
+      </div></div>
+    </div>
+    <div class="card" style="margin-top:16px">
+      <div class="card-header"><span class="step-badge">🔎</span><h2>Find the path of an address</h2></div>
+      <p class="hint" style="margin-bottom:10px">Paste a Bitcoin address that comes from <strong>the seed typed above</strong> (with its passphrase, if it has one). The page looks for it among the first 200 receiving and 200 change addresses of this Electrum wallet.</p>
+      <input id="el-find" class="inp" placeholder="1… / bc1…" value="${escapeHtml(f.text || '')}" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false">
+      <button class="btn btn-outline" id="el-find-go" style="margin-top:10px">Find it</button>
+      <div style="margin-top:10px">${findOut}</div>
+    </div>`;
+}
+
+function vfSelectedChains() {
+  return CHAINS.map(c => c.id).filter(id => document.getElementById('vf-chk-' + id)?.checked);
+}
+
+function renderElectrumResults(box) {
+  const e = vfElectrum;
+  box.innerHTML = electrumHTML();
+  document.getElementById('el-as-bip39')?.addEventListener('click', () => {
+    const d = diagnoseMnemonic(vfSource.raw);
+    if (!d.valid) return;
+    const words = d.words.join(' ');
+    vfElectrum = null; vfAlsoElectrum = electrumSeedType(vfSource.raw);
+    vfMnemonic = words;
+    vfSeed = mnemonicToSeedSync(words, vfSource.pass);
+    vfCards = newVfCards(); vfFind = null;
+    vfSelected = vfSelectedChains().length ? vfSelectedChains() : ['btc'];
+    computeVf();
+    renderApp();
+  });
+  if (e.wallet.computed === false) return;
+  wireCopyButtons(box);
+  (async () => {
+    const q = document.getElementById('el-qr');
+    try { if (q) q.innerHTML = `<img src="${await generateQR(e.wallet.addresses(0, 0, 1)[0].address)}" alt="QR" />`; }
+    catch (_) { if (q) q.innerHTML = '<span class="qr-error">QR error</span>'; }
+  })();
+  box.querySelectorAll('.el-branch .seg-btn').forEach(b => b.addEventListener('click', () => {
+    e.change = +b.dataset.c;
+    e.list = e.wallet.addresses(e.change, 0, Math.max(10, e.list.length));
+    renderElectrumResults(box);
+  }));
+  document.getElementById('el-more')?.addEventListener('click', () => {
+    e.list = e.list.concat(e.wallet.addresses(e.change, e.list.length, 10));
+    renderElectrumResults(box);
+  });
+  document.getElementById('el-find-go')?.addEventListener('click', () => {
+    const text = document.getElementById('el-find').value.trim();
+    const kind = addressKind(text);
+    if (!kind || kind.chain !== 'btc') e.find = { text, error: 'This is not a Bitcoin address: check that it was pasted in full.' };
+    else {
+      const result = findElectrumAddress(e.wallet, text, 200);
+      e.find = result ? { text, result } : { text, done: true };
+    }
+    renderElectrumResults(box);
+  });
+}
+
 function renderVfResults() {
   const box = document.getElementById('vf-results');
+  if (vfElectrum) { if (box) renderElectrumResults(box); return; }
   if (!vfResults) { if (box) box.innerHTML = ''; return; }
   box.innerHTML = `
     <div class="card">
       <div class="card-header"><span class="step-badge">✓</span><h2>Addresses of this seed</h2></div>
+      ${vfAlsoElectrum ? `<div class="note-box" style="margin-bottom:14px">These words are <strong>also an Electrum seed</strong> (${escapeHtml(ELECTRUM_TYPES[vfAlsoElectrum].label)}), which gives different addresses. If they were made by Electrum, look at those.
+        <div style="margin-top:8px"><button class="btn btn-outline btn-small" id="vf-as-electrum">Show them as an Electrum seed</button></div></div>` : ''}
       <p class="hint" style="margin-bottom:16px">If they match the ones you expected, the backup is correct. If not, check the passphrase, then try another <strong>account</strong> (− and +) or another <strong>derivation</strong> on that network: wallets do not all follow the same path. Or paste the address below and let the page find it.</p>
       <div class="addresses-list">
         ${vfSelected.map(id => `<div class="address-item" id="vfc-${id}"></div>`).join('')}
@@ -1265,6 +1426,7 @@ function renderVfResults() {
     <div id="vf-find-box"></div>`;
   vfSelected.forEach(renderVfCard);
   renderFind();
+  document.getElementById('vf-as-electrum')?.addEventListener('click', () => openElectrum(vfSource.raw, vfSource.pass, true));
 }
 
 /* ══════════════════════════════════════════════════════════════
@@ -2248,7 +2410,7 @@ function resetWalletState() {
 function clearEverything() {
   resetWalletState();
   vfSeed = null; vfMnemonic = null; vfResults = null; csResults = null;
-  vfCards = newVfCards(); vfFind = null; xp = null;
+  vfCards = newVfCards(); vfFind = null; xp = null; vfElectrum = null; vfAlsoElectrum = ''; vfSource = null;
   msMyXpub = null; msSoloSeeds = null; msSoloVault = null; msSoloRevealed = []; msSoloConfig = null;
   recParts = [{}, {}, {}];
   while (printWindows.length) { try { printWindows.pop().close(); } catch (_) {} }
@@ -3482,7 +3644,7 @@ function renderGuideSteps() {
       <div class="card-header"><span class="step-badge">4</span><h2>Checking an existing wallet</h2></div>
       <p style="margin-bottom:12px">The <strong>Check wallet</strong> section has five paths.</p>
       <div class="steps-box">
-        <div class="step-line"><span class="sl-n">◆</span><span class="sl-t"><strong>A complete seed.</strong> Enter your words and see which addresses they generate.</span></div>
+        <div class="step-line"><span class="sl-n">◆</span><span class="sl-t"><strong>A complete seed.</strong> Enter your words and see which addresses they generate. Seeds made by Electrum, which has a format of its own, are recognised and read as Electrum reads them.</span></div>
         <div class="step-line"><span class="sl-n">◆</span><span class="sl-t"><strong>Shamir backup.</strong> Reassemble the parts to get the seed back, or turn an existing seed into a Shamir backup.</span></div>
         <div class="step-line"><span class="sl-n">◆</span><span class="sl-t"><strong>SLIP-39 sheets.</strong> Enter the 20-word sheets, including ones generated by a Trezor, and get the addresses.</span></div>
         <div class="step-line"><span class="sl-n">◆</span><span class="sl-t"><strong>Multisig vault.</strong> Paste the xpubs and the threshold to recalculate the address and confirm the configuration.</span></div>
@@ -3618,6 +3780,17 @@ function renderGuideFaq() {
           <p>Go to <strong>🔍 Check wallet</strong> and choose <strong>A complete seed</strong>. Type the words and the program shows you which addresses they generate, without changing anything and without taking the seed onto a connected device.</p>
           <p>If the addresses match those you remember or see in a blockchain explorer, the backup is correct. If they don't match, check in this order: the <strong>passphrase</strong> (had you set one?), the <strong>Bitcoin format</strong> (try the other three), and finally the <strong>later addresses</strong> using the button that shows ten more.</p>
           <p>⚠️ Typing a seed is by far the most delicate moment: do it with the device disconnected from the internet, or better still from a Tails system or a clean virtual machine.</p>
+        </div></details>
+
+        <details class="faq" id="g-electrum"><summary>⚡ A seed made by Electrum</summary><div class="faq-body">
+          <p>Electrum, from version 2.0 (2014), makes seeds in <strong>a format of its own</strong>. The words come from the same English list as BIP-39, but they are turned into keys in another way, and the addresses follow Electrum's own paths. The same words typed into a BIP-39 wallet give other addresses, or are refused.</p>
+          <p>In <strong>🔍 Check wallet → A complete seed</strong> such words are recognised by themselves, and the page says which kind they are:</p>
+          <p>&bull; <strong>Standard</strong> — Legacy addresses (<code>1…</code>), on <code>m/0/n</code> to receive and <code>m/1/n</code> for change.<br>
+          &bull; <strong>Segwit</strong> — Native SegWit addresses (<code>bc1q…</code>), on <code>m/0'/0/n</code> and <code>m/0'/1/n</code>.<br>
+          &bull; <strong>Electrum 1.x</strong> — seeds made before 2014, with another list of words and Legacy addresses.<br>
+          &bull; <strong>2FA</strong> — wallets shared with the TrustedCoin service: they are recognised, but their addresses also need TrustedCoin's keys, so open them in Electrum.</p>
+          <p>Electrum calls the passphrase <em>seed extension</em>: type it in the passphrase field. An Electrum seed holds Bitcoin only. If Electrum was given a BIP-39 seed instead, it uses the usual paths, which the page already shows.</p>
+          <p>Very rarely, the same words are both a valid BIP-39 seed and an Electrum seed. The page then says so and lets you see both: which one is yours depends on the program that made them.</p>
         </div></details>
 
         <details class="faq" id="g-multisig"><summary>🔐 Multisig: when one key isn't enough</summary><div class="faq-body">

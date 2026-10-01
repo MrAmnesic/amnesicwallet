@@ -40,6 +40,7 @@ It derives the public addresses for four networks and checks backups you already
 - **Watch-only** — account xpub and descriptor (with BIP-380 checksum) to follow a wallet without exposing it.
 - **Powers-of-2 backup** — a grid of dots that records the seed with no readable word.
 - **Checks** — verify a seed, reassemble Shamir parts, recover SLIP-39 sheets, recalculate a multisig vault, or see an account's addresses from its public key alone (xpub, ypub, zpub).
+- **Electrum seeds** — words made by Electrum, which has a format of its own, are recognised and read as Electrum reads them: Standard, Segwit and 1.x seeds, with the seed extension; 2FA seeds are recognised.
 - **Finding a wallet** — a mistyped word is named with its position and the list words close to it; each network has its own account number (Account 1, 2, 3…) and a button for each derivation path that gives a different address (Bitcoin: the four formats and the paths of Ethereum and TRON; Ethereum, TRON and Solana: every path in use, labelled with the path itself); Bitcoin change addresses; and a search that finds the account and path of an address pasted in. Paths are always shown.
 - **Printing** — Seed Card, sheets, parts, address lists and grids, with neutral titles.
 

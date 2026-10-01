@@ -1,0 +1,259 @@
+{
+ "official": {
+  "bip32Seeds": [
+   {
+    "words": "wild father tree among universe such mobile favorite target dynamic credit identify",
+    "passphrase": "",
+    "type": "segwit",
+    "seed": "aac2a6302e48577ab4b46f23dbae0774e2e62c796f797d0a1b5faeb528301e3064342dafb79069e7c4c6b8c38ae11d7a973bec0d4f70626f8cc5184a8d0b0756"
+   },
+   {
+    "words": "wild father tree among universe such mobile favorite target dynamic credit identify",
+    "passphrase": "Did you ever hear the tragedy of Darth Plagueis the Wise?",
+    "type": "segwit",
+    "seed": "4aa29f2aeb0127efb55138ab9e7be83b36750358751906f86c662b21a1ea1370f949e6d1a12fa56d3d93cadda93038c76ac8118597364e46f5156fde6183c82f"
+   },
+   {
+    "words": "なのか ひろい しなん まなぶ つぶす さがす おしゃれ かわく おいかける けさき かいとう さたん",
+    "passphrase": "",
+    "type": "standard",
+    "seed": "d3eaf0e44ddae3a5769cb08a26918e8b308258bcb057bb704c6f69713245c0b35cb92c03df9c9ece5eff826091b4e74041e010b701d44d610976ce8bfb66a8ad"
+   },
+   {
+    "words": "なのか ひろい しなん まなぶ つぶす さがす おしゃれ かわく おいかける けさき かいとう さたん",
+    "passphrase": "₿ 😀 😈     う けたま わる w͢͢͝h͡o͢͡ ̸͢k̵͟n̴͘ǫw̸̛s͘ ̀́w͘͢ḩ̵a҉̡͢t ̧̕h́o̵r͏̵rors̡ ̶͡͠lį̶e͟͟ ̶͝in͢ ͏t̕h̷̡͟e ͟͟d̛a͜r̕͡k̢̨ ͡h̴e͏a̷̢̡rt́͏ ̴̷͠ò̵̶f̸ u̧͘ní̛͜c͢͏o̷͏d̸͢e̡͝?͞",
+    "type": "standard",
+    "seed": "251ee6b45b38ba0849e8f40794540f7e2c6d9d604c31d68d3ac50c034f8b64e4bc037c5e1e985a2fed8aad23560e690b03b120daf2e84dceb1d7857dda042457"
+   },
+   {
+    "words": "眼 悲 叛 改 节 跃 衡 响 疆 股 遂 冬",
+    "passphrase": "给我一些测试向量谷歌",
+    "type": "segwit",
+    "seed": "6c03dd0615cf59963620c0af6840b52e867468cc64f20a1f4c8155705738e87b8edb0fc8a6cee4085776cb3a629ff88bb1a38f37085efdbf11ce9ec5a7fa5f71"
+   },
+   {
+    "words": "almíbar tibio superar vencer hacha peatón príncipe matar consejo polen vehículo odisea",
+    "passphrase": "araña difícil solución término cárcel",
+    "type": "standard",
+    "seed": "363dec0e575b887cfccebee4c84fca5a3a6bed9d0e099c061fa6b85020b031f8fe3636d9af187bf432d451273c625e20f24f651ada41aae2c4ea62d87e9fa44c"
+   },
+   {
+    "words": "vidrio jabón muestra pájaro capucha eludir feliz rotar fogata pez rezar oír",
+    "type": "segwit",
+    "passphrase": "¡Viva España! repiten veinte pueblos y al hablar dan fe del ánimo español... ¡Marquen arado martillo y clarín",
+    "seed": "c274665e5453c72f82b8444e293e048d700c59bf000cacfba597629d202dcf3aab1cf9c00ba8d3456b7943428541fed714d01d8a0a4028fc3a9bb33d981cb49f"
+   }
+  ],
+  "wallets": [
+   {
+    "words": "cycle rocket west magnet parrot shuffle foot correct salt library feed song",
+    "passphrase": "",
+    "type": "standard",
+    "masterKey": "xpub661MyMwAqRbcFWohJWt7PHsFEJfZAvw9ZxwQoDa4SoMgsDDM1T7WK3u9E4edkC4ugRnZ8E4xDZRpk8Rnts3Nbt97dPwT52CwBdDWroaZf8U",
+    "receiving0": "1NNkttn1YvVGdqBW4PR6zvc3Zx3H5owKRf",
+    "change0": "1KSezYMhAJMWqFbVFB2JshYg69UpmEXR4D",
+    "receiving": [
+     "1NNkttn1YvVGdqBW4PR6zvc3Zx3H5owKRf",
+     "18KCZB4y7SKPmTGN2rDQuUsNxyVBX7CAbG",
+     "15NuNdCwazxBd3y2MZin9qevuviA3pJe65",
+     "1GRtQtCBoKmSBY88PEubsjSES2zbMVRY5D",
+     "12LSnt2bwDdTzZDh1ujQJZhwfSuWzc93zD"
+    ],
+    "change": [
+     "1KSezYMhAJMWqFbVFB2JshYg69UpmEXR4D",
+     "1GSmpT2UWuELEMEv6GmoAYZwmUY1oFsypn",
+     "1B6yGxiPdW8y8Zp8TLVSFV2jdKDiy3fDWv",
+     "19VtQ31WPk2tnD74BoEq6iYTi6Bf4QBefW",
+     "1B7epR5hhNyvaTvpGEm9TqyAFvZEHKY5tF"
+    ]
+   },
+   {
+    "words": "bitter grass shiver impose acquire brush forget axis eager alone wine silver",
+    "passphrase": "",
+    "type": "segwit",
+    "masterKey": "zpub6nsHdRuY92FsMKdbn9BfjBCG6X8pyhCibNP6uDvpnw2cyrVhecvHRMa3Ne8kdJZxjxgwnpbHLkcR4bfnhHy6auHPJyDTQ3kianeuVLdkCYQ",
+    "receiving0": "bc1q3g5tmkmlvxryhh843v4dz026avatc0zzr6h3af",
+    "change0": "bc1qdy94n2q5qcp0kg7v9yzwe6wvfkhnvyzje7nx2p",
+    "receiving": [
+     "bc1q3g5tmkmlvxryhh843v4dz026avatc0zzr6h3af",
+     "bc1q9pzjpjq4nqx5ycnywekcmycqz0wjp2nq604y2n",
+     "bc1qk8pyjanxrtv9039mz3muzjalfuk9r5xugm3803",
+     "bc1qmtrqe04d9mc4ge2k5fpdzmytkats7nkk543hy3",
+     "bc1qagy5vl025ltunf5m6xt9e445h88ws0v24n7u9e"
+    ],
+    "change": [
+     "bc1qdy94n2q5qcp0kg7v9yzwe6wvfkhnvyzje7nx2p",
+     "bc1q6xwxcw6m9ga35687tnu5tstmsvmzjwdnzktemv",
+     "bc1qgl92qp6haea2ktxe93umzsyhv9z8u32xtvk3qk",
+     "bc1q0avs3yx242pq9p5g5mm7lq9dt3pe8etyphc7ac",
+     "bc1qpxd3ph86x4ae3d4j5hsad5v87t2vgxz7gym54w"
+    ]
+   },
+   {
+    "words": "bitter grass shiver impose acquire brush forget axis eager alone wine silver",
+    "passphrase": "₿ 😀 😈     う けたま わる w͢͢͝h͡o͢͡ ̸͢k̵͟n̴͘ǫw̸̛s͘ ̀́w͘͢ḩ̵a҉̡͢t ̧̕h́o̵r͏̵rors̡ ̶͡͠lį̶e͟͟ ̶͝in͢ ͏t̕h̷̡͟e ͟͟d̛a͜r̕͡k̢̨ ͡h̴e͏a̷̢̡rt́͏ ̴̷͠ò̵̶f̸ u̧͘ní̛͜c͢͏o̷͏d̸͢e̡͝?͞",
+    "type": "segwit",
+    "masterKey": "zpub6nD7dvF6ArArjskKHZLmEL9ky8FqaSti1LN5maDWGwFrqwwGTp1b6ic4EHwciFNaYDmCXcQYxXSiF9BjcLCMPcaYkVN2nQD6QjYQ8vpSR3Z",
+    "receiving0": "bc1qx94dutas7ysn2my645cyttujrms5d9p57f6aam",
+    "change0": "bc1qcywwsy87sdp8vz5rfjh3sxdv6rt95kujdqq38g",
+    "receiving": [
+     "bc1qx94dutas7ysn2my645cyttujrms5d9p57f6aam",
+     "bc1qellexrnaltxzsuvh3fq7xaca8dhh79qxzmuhne",
+     "bc1qm20an2cptwtxr6d58ajwgjupqzhjncwxhg5ent",
+     "bc1qf9493zrxyz8h202s4ntyhve5fnzyle5nfy7xqu",
+     "bc1q2jd3h0ra483q4d27r3h9edgu2czqd7zxu3lywj"
+    ],
+    "change": [
+     "bc1qcywwsy87sdp8vz5rfjh3sxdv6rt95kujdqq38g",
+     "bc1q6f86jmwya4ktn6cz680kwe6dwzpd6kexf86n2g",
+     "bc1qnurl86p6jptmzjdfx89cqsrcmpx29g8dgkfnga",
+     "bc1q6pq3aepaamzpc2k2fa405a9sal6wy44gy27rr4",
+     "bc1qvh53spk94edt7mjtfyatpznkhcn8uf6f8sz0hx"
+    ]
+   },
+   {
+    "words": "powerful random nobody notice nothing important anyway look away hidden message over",
+    "passphrase": "",
+    "type": "old",
+    "hexSeed": "acb740e454c3134901d7c8f16497cc1c",
+    "masterKey": "e9d4b7866dd1e91c862aebf62a49548c7dbf7bcc6e4b7b8c9da820c7737968df9c09d5a3e271dc814a29981f81b3faaf2737b551ef5dcc6189cf0f8252c442b3",
+    "receiving0": "1FJEEB8ihPMbzs2SkLmr37dHyRFzakqUmo",
+    "change0": "1KRW8pH6HFHZh889VDq6fEKvmrsmApwNfe",
+    "receiving": [
+     "1FJEEB8ihPMbzs2SkLmr37dHyRFzakqUmo",
+     "1JnNwHaztEa181EnG6qur1WALRJe1f3WLn",
+     "19dmGS6TfnJuhQYCMYMMn9YxzuF8LVVgzg",
+     "1PjhwMmgCMzo1gddUpjKPzUdygpMn41Y37",
+     "1MAg2rfcGS3eG1UTZ1iv3tqwx34voMvxtm"
+    ],
+    "change": [
+     "1KRW8pH6HFHZh889VDq6fEKvmrsmApwNfe",
+     "1DWmSqT8NTK9ehmEuaAzK5pgghGXPKjEHE",
+     "1MXR9MahMk4KiuMcJBiR8qHoSvuy4EtJko",
+     "1G1z85yqiUF8LeAEnUx5tJCZds9g7LM2CN",
+     "1BmFBQ87EuS8NCaC6D3ngdwGTkEWo6F3iH"
+    ]
+   }
+  ],
+  "types": [
+   {
+    "words": "bind clever room kidney crucial sausage spy edit canvas soul liquid ribbon slam open alpha suffer gate relax voice carpet law hill woman tonight abstract",
+    "type": "2fa"
+   },
+   {
+    "words": "sibling leg cable timber patient foot occur plate travel finger chef scale radio citizen promote immune must chef fluid sea sphere common acid lab",
+    "type": "2fa"
+   },
+   {
+    "words": "kiss live scene rude gate step hip quarter bunker oxygen motor glove",
+    "type": "2fa"
+   },
+   {
+    "words": "universe topic remind silver february ranch shine worth innocent cattle enhance wise",
+    "type": "2fa_segwit"
+   }
+  ]
+ },
+ "computed": [
+  {
+   "words": "plunge bleak chase sound lesson view trial target exile admit track sting",
+   "passphrase": "",
+   "type": "standard",
+   "receiving": [
+    "1CvsF1dRnmpQdVbQW4kfjbKW74KhLskCr8",
+    "1K8t9S5tTMgo1oif9GUDfQgHECehbt4s3M",
+    "14jmNjmDn43ZjxTEQiCucSEMELZm5j1pDz",
+    "1LEQv8o8qpizszryMgSbeuTog4TCMYXAsV",
+    "1K8PAA42caJeyX7e7vGgM8Z7CRmMeVzA5L"
+   ],
+   "change": [
+    "1AuAFFxWqHi1yX4ZZsR8JLyC9TsB5znUYv",
+    "1PosahLWZnE4K5fD3wkDSsZszo11LgPpim",
+    "1LCLQUqLXwaAgJUR1jp4bhkgodzszuhZRe",
+    "16g8bBxnVXWyBQsgPzJMWYqz74SL9kLTBz",
+    "1N9X6aujj6WasAohELbW7BJeRU1pp3mC5F"
+   ]
+  },
+  {
+   "words": "wing eternal reopen flash aerobic boat north skate ice glow know figure",
+   "passphrase": "",
+   "type": "segwit",
+   "receiving": [
+    "bc1qhrszt67y73nlsw0g43xx3cge3san66sqprzxfl",
+    "bc1qmk65uzva5wraq22wlgykua0x8ur82yeraeh3tg",
+    "bc1qqcmlkxcnzyj65tclyhs7jwpr2l5rk0kqfnlw32",
+    "bc1qnjmhgjsgxd8a6y6cqhsd50ryvm9j9eww9zmhx3",
+    "bc1qm9t4hv5t7jddcqn787w2rwtmfg6nlkavlwrdm3"
+   ],
+   "change": [
+    "bc1qcnl5lxv0x5vlvk7n56tp0kug5hymr9emp4tdet",
+    "bc1qndnce46yldl4aggs9wejjdqu87asx47xu4p8kv",
+    "bc1qmlpqvaldqh9nf6ya7mjey7qh6h90hwppkkkrf2",
+    "bc1qpxm2han3v6xmusulrq2ed3uwjpussk7h4latek",
+    "bc1q2ke8swgrnna4dmfrua57gq9ncjlp8q2u0vydtq"
+   ]
+  },
+  {
+   "words": "pottery coyote net all flag outdoor exist husband adult maze chest grit",
+   "passphrase": "Électrum Ünïcode  passphrase",
+   "type": "segwit",
+   "receiving": [
+    "bc1qj56a2xk3p6zs5v5n2pulvf9mwrrmpwcdar9jdh",
+    "bc1qjyt6fcdgmpnk05ytlncs8nxxgxaraj4l7dn79p",
+    "bc1q27uczz5wskzkp7ezvj223cjrdvhlqurvxk2ztf",
+    "bc1q6gdvtg2d6c3wkqd75kss6w43tf8e7x4eutge9g",
+    "bc1qkvqzhtec5mzsw7dvf96hrppahjrjem307qc0sd"
+   ],
+   "change": [
+    "bc1qeee024kkqpctrsh5qkkldnyq3gp4kmrp90yhxz",
+    "bc1qpcrvse265835ds928wunyfc5fkytxxejyx7x6w",
+    "bc1q3uflfvfrrwz5r7hyz9x6tpcn472fqnhytvha8d",
+    "bc1qpmnpgnhc4vjq5l9xlkzjtkaecus44u0w6xc42h",
+    "bc1qcehl8cdczzf0tvzknu94mkpuvc7fyc7afy3ga2"
+   ]
+  },
+  {
+   "words": "room fat van during ridge cluster verify announce notice flock shed spin",
+   "passphrase": "x",
+   "type": "standard",
+   "receiving": [
+    "1F5mUa9AgbpsLiXr3zTBrYG3PCb4fmMbGZ",
+    "1FtEd7Ecndr1p6f1Uy1rdn5er8fg7eXv2N",
+    "1FwAbG6DF73Prr7GCwBsKZBEoxor7xcQqK",
+    "1QXQbDzK5F3WkYSk1JGBvRUitUTEQSHnH",
+    "17Qi2gxE47WNwGhu4WzjS1w73pT4G4oVBp"
+   ],
+   "change": [
+    "1NtjQNtDZuiurqrtuQBXCDSLRh2zVheTmA",
+    "1FjD968yTy9ZMdV5ykFKF982S3kP44kBX",
+    "18yZWPHK48GvossM9EmhMDyRtLB2C72UXC",
+    "1Dr8kykjyQCrrCGDEnz8tFFfdCz4iAazuR",
+    "16rz9g9hpvxp477cWAZfrftFekJrkYKMm7"
+   ]
+  },
+  {
+   "words": "jungle early jeans demand protect december name fantasy zebra sweet sad nurse",
+   "passphrase": "",
+   "type": "standard",
+   "alsoBip39": true,
+   "receiving": [
+    "1M5eqLJSoprkvibwg9qv5HTLioT5sEXVkN",
+    "1EP7AqgyTLPtpEbCSVz3uQ76m9ZpqRjDUG",
+    "1Nriwz4Df2b3XS63esYmzVBc9fLGpJSPFy",
+    "1Ac1MKGE15bxPv2RdGN1U83FRF3vhDK74D",
+    "14MGeJ3Jg4AVGJ72wuB7WCHHvGw8fSPUrJ"
+   ],
+   "change": [
+    "1LiLVLrPfMoqDFPR4UPVrHGzCiawwriYiP",
+    "1LvT5nLECFbkjtCWEAfbSBF9QeCCfmfPTd",
+    "19NLiWpebGxT2osGhfraCRD5bxknkqD7yS",
+    "1A1U56XLwoyaGJhAkZfB31pB4pCUrFFwBP",
+    "152G6FVHd6QDruJNWEKRTLtBs3zPV8zRgi"
+   ]
+  },
+  {
+   "words": "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about",
+   "type": ""
+  }
+ ]
+}
