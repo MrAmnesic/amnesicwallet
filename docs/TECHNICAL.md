@@ -2,7 +2,7 @@
 
 **Implementation specification, security model and declared limits**
 
-Document version: 1.7 — describes AmnesicWallet 1.2.1
+Document version: 1.8 — describes AmnesicWallet 1.3.0
 
 Reference: `amnesicwallet.html` — SHA-256 hash published with every release, in `SHA256SUMS` and on the official website, [amnesicwallet.com](https://amnesicwallet.com)
 
@@ -38,6 +38,7 @@ AmnesicWallet is a web application contained in a single HTML file that generate
 | Coin identifiers | SLIP-44 |
 | Threshold backup over a BIP-39 seed (Shamir wallet) | No standard: scheme documented in 5.2 |
 | Binary representation of the backup | No standard: scheme documented in 5.4 |
+| Reading seeds made by Electrum (check only) | Electrum's own format, documented in 4.6 |
 
 ### 1.2 Deliberately unimplemented functions
 
@@ -63,6 +64,7 @@ Verifiable consequence: the file behaves identically on a device that has never 
 | `src/core.js` | **All the cryptography**: entropy, BIP-39/32 derivation, addresses, descriptors, multisig, Shamir, SLIP-39, powers-of-2 grid. No DOM, no timers, no storage, no network. |
 | `src/app.js` | The interface only: screens, texts, printing. It calls `core.js` for every cryptographic operation. |
 | `src/index.html` | Structure and stylesheet. |
+| `src/electrum-old-words.js` | The 1,626 words of Electrum 1.x seeds (MIT licence, from Electrum), used only to read them (4.6). |
 | `src/crypto-shim.js`, `src/buffer-shim.js` | Adapters that let the `slip39` library run in a browser (2.5). |
 
 The separation means that the code tested by `npm test` (section 8.3) is the code that runs in the page: the test suite imports `core.js` itself, bundled with the same options.
@@ -260,6 +262,19 @@ For a single-signature wallet, the account xpub and a descriptor are offered for
 
 **Check with a public key only.** An account key shared by a wallet — `xpub`, `ypub` (Nested SegWit) or `zpub` (Native SegWit) — is read, re-labelled as a plain `xpub` and derived at `/0/i` (receiving) and `/1/i` (change), in any of the four Bitcoin formats or as Ethereum and TRON addresses. An `xpub` does not say which format it was used with, so the format is chosen on screen. A watch-only descriptor without key origin is produced. Private keys (`xprv`, `yprv`, `zprv`…), testnet keys and multisig keys (`Ypub`, `Zpub`) are refused, each with its reason.
 
+### 4.6 Seeds made by Electrum (check only)
+
+Electrum, from version 2.0, has a seed format of its own. Check wallet recognises it and reads it as Electrum does; the program never creates such seeds. Everything follows Electrum's `mnemonic.py`, `old_mnemonic.py` and `keystore.py`.
+
+- **Normalisation** (`normalize_text`): NFKD, lower case, combining marks removed (those with a non-zero combining class, as Python's `unicodedata.combining`), single spaces, no space between two CJK characters. It applies to the words and to the passphrase, which Electrum calls the *seed extension*.
+- **Type**: the hex form of HMAC-SHA512 with key `Seed version` over the normalised words starts with `01` (Standard), `100` (Segwit), `101` (2FA) or `102` (2FA Segwit). A `101` seed counts as 2FA only with 12 or at least 20 words, as in Electrum. Before that, 12 or 24 words all in the Electrum 1.x list are an Electrum 1.x seed.
+- **Seed**: PBKDF2-HMAC-SHA512, 2,048 iterations, password the normalised words, salt `electrum` followed by the normalised passphrase.
+- **Addresses**: Standard — BIP-32 from that seed, `m/0/i` (receiving) and `m/1/i` (change), P2PKH. Segwit — `m/0'/0/i` and `m/0'/1/i`, P2WPKH. The master public key is shown as Electrum shows it (an `xpub` at `m`, a `zpub` at `m/0'`), together with a descriptor with key origin.
+- **Electrum 1.x**: the words give a hex seed (three words for every 32 bits, as `mn_decode`); the hex string is stretched with 100,000 rounds of SHA-256 into the private key; the master public key is that key's uncompressed point; address *n* of branch *c* is the uncompressed P2PKH address of `mpk + SHA256d("n:c:" ‖ mpk)·G`. These seeds have no passphrase.
+- **2FA** seeds are recognised but not computed: their addresses are 2-of-3 multisig with keys of the TrustedCoin service.
+- **Both at once.** About one BIP-39 seed in 256 also has the Standard prefix (one in 4,096 the Segwit one). Words that are valid both ways are shown as BIP-39, with a note and a button to read them as Electrum; Electrum's recent versions avoid making such seeds.
+- **Finding an address** searches the first 200 receiving and 200 change addresses.
+
 ---
 
 ## 5. Backup splitting
@@ -405,7 +420,7 @@ Continuous integration performs exactly this on every change (with dependency in
 npm test
 ```
 
-`scripts/test.js` bundles `tests/core.test.js` together with `src/core.js`, using the build's own esbuild options and adapters, and runs it. About 3,400 checks, all with expected values from outside the project:
+`scripts/test.js` bundles `tests/core.test.js` together with `src/core.js`, using the build's own esbuild options and adapters, and runs it. About 3,500 checks, all with expected values from outside the project:
 
 | Area | Source of the expected values |
 |---|---|
@@ -414,6 +429,7 @@ npm test
 | Addresses of every format and network, account xpubs, fingerprints, BIP-48 xpubs, Zpub handling | Computed with **bip_utils** and **embit** (Python) for 5 mnemonics × 2 passphrases |
 | Multisig vaults (addresses at indexes 0 and 5, key order, descriptor checksum) and every refusal | embit; constructed invalid keys |
 | Every derivation offered by the check, for accounts 1, 2 and 5; change branches; the address search; addresses and descriptors from account xpubs, ypubs and zpubs, and every refusal | Computed with **bip_utils**, **embit** and PyNaCl for 3 mnemonics (`tests/vectors/paths.py`); Bitcoin cross-checked between the two libraries |
+| Electrum seeds: types, BIP-32 seeds (including Japanese, Chinese and Spanish words and Unicode passphrases), master public keys, receiving and change addresses of Standard, Segwit and 1.x seeds, the address search | Electrum's own test values (`tests/test_mnemonic.py`, `tests/test_wallet_vertical.py`); more seeds and addresses computed with Python's `hashlib` and **bip_utils**, cross-checked with bip_utils' own Electrum module (`tests/vectors/electrum.py`) |
 | Diagnosis of a mistyped seed (position, suggestions, checksum) | Official BIP-39 word list and vectors; constructed mistakes |
 | Ethereum checksum | EIP-55 examples |
 | Solana derivation | SLIP-10 ed25519 official vectors |
@@ -438,7 +454,7 @@ Canonical mnemonic `abandon × 11 + about`, no passphrase:
 | TRON | `TUEZSdKsoDHQMeZwihtdoBiN46zxhGWYdH` |
 | Solana | `HAgk14JpMQLgt6rVgv7cBQFJWFto5Dqxi472uT3DKpqk` |
 
-`npm run test:ui` then uses the built file itself, in the three browser engines (Chromium, Firefox, WebKit), on a computer screen and on two phone sizes. It creates a wallet from start to finish and checks that the words form a valid seed and that the addresses shown are the ones that seed gives; it checks known seeds in Check wallet against the independent values above, together with a mistyped word, each network's accounts and derivations, change addresses, the address search and the check with a public key only; and it fails on any page error, any network request, or any screen wider than the display. Canvas read-back is refused throughout, as Tor Browser does. Continuous integration runs it on every change.
+`npm run test:ui` then uses the built file itself, in the three browser engines (Chromium, Firefox, WebKit), on a computer screen and on two phone sizes. It creates a wallet from start to finish and checks that the words form a valid seed and that the addresses shown are the ones that seed gives; it checks known seeds in Check wallet against the independent values above, together with a mistyped word, each network's accounts and derivations, change addresses, the address search, an Electrum seed, and the check with a public key only; and it fails on any page error, any network request, or any screen wider than the display. Canvas read-back is refused throughout, as Tor Browser does. Continuous integration runs it on every change.
 
 ### 8.4 Verifying the absence of network traffic
 
@@ -473,6 +489,8 @@ All cryptography is in `src/core.js`, about 650 lines. Elements verifiable by di
 
 **Dependence on the execution environment.** See 6.3.
 
+**Electrum 2FA seeds.** They are recognised, not computed (4.6).
+
 **Reach of the address search.** The search in Check wallet covers the derivations and ranges listed in 4.2. An address further along (for example the 60th address of an account, or account 11) is not found by the search, but can still be reached with the account buttons and the list of addresses.
 
 For significant amounts, hardware devices and multisig configurations with keys generated by different tools are the stronger choice.
@@ -481,7 +499,7 @@ For significant amounts, hardware devices and multisig configurations with keys 
 
 ## 10. Licence and references
 
-The software is distributed under the GNU General Public License, version 3 or (at your option) any later version; the full text is in `LICENSE`. Anyone who distributes a modified version must release its source code under the same licence and state the changes made. The bundled libraries (@noble, @scure, qrcode, slip39) are MIT licensed, which is compatible with the GPL.
+The software is distributed under the GNU General Public License, version 3 or (at your option) any later version; the full text is in `LICENSE`. Anyone who distributes a modified version must release its source code under the same licence and state the changes made. The bundled libraries (@noble, @scure, qrcode, slip39) and the Electrum 1.x word list taken from Electrum are MIT licensed, which is compatible with the GPL.
 
 **Reference specifications**
 
@@ -497,5 +515,6 @@ The software is distributed under the GNU General Public License, version 3 or (
 - SLIP-39 — Shamir's Secret-Sharing for Mnemonic Codes
 - SLIP-44 — Registered coin types for BIP-0044
 - FIPS-197 — Advanced Encryption Standard (arithmetic in GF(2⁸))
+- Electrum — seed version system and key derivation (`electrum/mnemonic.py`, `electrum/keystore.py`)
 
 **Security reports.** Vulnerabilities should be reported following `SECURITY.md`, privately and before any public disclosure.

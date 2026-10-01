@@ -5,6 +5,31 @@ Notable changes are recorded here, one entry per published version.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.3.0] — 2026-10
+
+### Added
+- **Check wallet reads seeds made by Electrum.** Electrum has a seed format
+  of its own: the same English words, but other keys and other paths. Such
+  words are now recognised by themselves, and the page says which kind they
+  are.
+  - **Standard** (`1…` addresses, `m/0/n` and `m/1/n`) and **Segwit**
+    (`bc1q…`, `m/0'/0/n` and `m/0'/1/n`) seeds, with Electrum's passphrase
+    (the "seed extension"): receiving and change addresses, the master
+    public key as Electrum shows it, a descriptor, and the search for an
+    address.
+  - **Electrum 1.x** seeds (before 2014), with their own list of words.
+  - **2FA** seeds are recognised; their addresses also need the keys of the
+    TrustedCoin service, so the page sends you to Electrum.
+  - Words that are both a valid BIP-39 seed and an Electrum seed are shown
+    both ways.
+- The tests compare all of this with Electrum's own test values, and with
+  more seeds computed independently in Python.
+
+### Changed
+- Nothing changes for BIP-39 seeds, SLIP-39 sheets or Shamir parts: the same
+  words give the same addresses as in 1.2.1, and every backup format is the
+  same.
+
 ## [1.2.1] — 2026-10
 
 ### Fixed

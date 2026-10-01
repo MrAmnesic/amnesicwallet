@@ -56,7 +56,7 @@ A seed you already own — even one made elsewhere — can also be turned into S
 
 The **Check wallet** section has five paths.
 
-**◆.** **A complete seed.** Enter your words and see which addresses they generate.
+**◆.** **A complete seed.** Enter your words and see which addresses they generate. Seeds made by Electrum, which has a format of its own, are recognised and read as Electrum reads them.
 
 **◆.** **Shamir backup.** Reassemble the parts to get the seed back, or turn an existing seed into a Shamir backup.
 

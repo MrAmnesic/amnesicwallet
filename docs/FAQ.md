@@ -176,6 +176,26 @@ If the addresses match those you remember or see in a blockchain explorer, the b
 
 ---
 
+## ⚡ A seed made by Electrum
+
+Electrum, from version 2.0 (2014), makes seeds in **a format of its own**. The words come from the same English list as BIP-39, but they are turned into keys in another way, and the addresses follow Electrum's own paths. The same words typed into a BIP-39 wallet give other addresses, or are refused.
+
+In **🔍 Check wallet → A complete seed** such words are recognised by themselves, and the page says which kind they are:
+
+&bull; **Standard** — Legacy addresses (`1…`), on `m/0/n` to receive and `m/1/n` for change.
+
+ &bull; **Segwit** — Native SegWit addresses (`bc1q…`), on `m/0'/0/n` and `m/0'/1/n`.
+
+ &bull; **Electrum 1.x** — seeds made before 2014, with another list of words and Legacy addresses.
+
+ &bull; **2FA** — wallets shared with the TrustedCoin service: they are recognised, but their addresses also need TrustedCoin's keys, so open them in Electrum.
+
+Electrum calls the passphrase *seed extension*: type it in the passphrase field. An Electrum seed holds Bitcoin only. If Electrum was given a BIP-39 seed instead, it uses the usual paths, which the page already shows.
+
+Very rarely, the same words are both a valid BIP-39 seed and an Electrum seed. The page then says so and lets you see both: which one is yours depends on the program that made them.
+
+---
+
 ## 🔐 Multisig: when one key isn't enough
 
 A *multisig* address requires several keys to move the funds — for example 2 signatures out of 3. It is used in two very different ways:

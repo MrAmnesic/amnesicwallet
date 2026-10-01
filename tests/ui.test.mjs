@@ -26,6 +26,8 @@
  *     change addresses, the search for an address and the check with a
  *     public key (zpub, and an Ethereum account key) give the values in
  *     tests/vectors/paths.json;
+ *   - a seed made by Electrum is recognised as such and shows the addresses
+ *     Electrum's own tests give (tests/vectors/electrum.json);
  *   - no screen is wider than the display (nothing to scroll sideways).
  *
  * On a phone the test taps, and types as an on-screen keyboard does (text
@@ -56,6 +58,7 @@ const FILE = path.join(ROOT, 'dist', 'amnesicwallet.html');
 const URL = pathToFileURL(FILE).href;
 const VECTORS = JSON.parse(fs.readFileSync(path.join(ROOT, 'tests', 'vectors', 'addresses.json'), 'utf8'));
 const PATHS = JSON.parse(fs.readFileSync(path.join(ROOT, 'tests', 'vectors', 'paths.json'), 'utf8'));
+const ELECTRUM = JSON.parse(fs.readFileSync(path.join(ROOT, 'tests', 'vectors', 'electrum.json'), 'utf8'));
 
 const BROWSERS = {
   chromium: { name: 'Chromium', type: chromium, phone: 'finger' },
@@ -354,6 +357,19 @@ async function run(browser, engine, device) {
     await page.locator('#vf-find-out .ok-box, #vf-find-out .warn-box').waitFor({ timeout: 60000 });
     check((await page.locator('#vf-find-out').innerText()).includes("m/44'/60'/0'/4"), 'an address is found with its path');
     await noteLayout('check wallet, networks');
+    await press(page.locator('#vf-clear'));
+
+    step = 'Check wallet: an Electrum seed';
+    const el = ELECTRUM.official.wallets.find(w => w.type === 'segwit' && !w.passphrase);
+    await page.locator('#vf-words').fill(el.words);
+    await page.locator('#vf-pass').fill('');
+    await press(page.locator('#vf-go'));
+    await page.locator('#vf-results .addr-value').first().waitFor();
+    check((await page.locator('#vf-results h2').first().innerText()).includes('Electrum seed — Segwit'), 'an Electrum seed is recognised');
+    check(await page.locator('#vf-results .addr-value').first().innerText() === el.receiving[0], "its first address is the one Electrum's tests give");
+    await press(page.locator('.el-branch .seg-btn[data-c="1"]'));
+    check((await page.locator('.more-list .more-addr').first().innerText()).startsWith(el.change[0]), 'and its first change address');
+    await noteLayout('check wallet, Electrum');
     await press(page.locator('#vf-clear'));
   }
 

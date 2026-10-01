@@ -14,6 +14,8 @@
  *                       branches, and from account xpubs / ypubs / zpubs,
  *                       computed with bip_utils and embit (Python)
  *   shamir-compat.json  parts made by version 1.0.1, which must keep working
+ *   electrum.json       Electrum seeds: Electrum's own test values, and more
+ *                       addresses computed with Python (hashlib, bip_utils)
  *
  * plus the published examples of BIP-84/86/49/44, EIP-55 and BIP-380.
  * Run with `npm test`.
@@ -28,6 +30,7 @@ import {
   entropyToMnemonic, mnemonicToEntropy, mnemonicToSeedSync, validateMnemonic, wordlist, HDKey,
   parsePath, addressAtPath, DERIVATIONS, deriveWith, derivationChoices, hasAccounts, fillPath, addressKind, findAddress, suggestWords, diagnoseMnemonic,
   readPublicKey, addressesFromXpub, xpubDescriptor, KeyError,
+  electrumNormalize, electrumSeedType, electrumSeed, electrumWallet, findElectrumAddress,
 } from '../src/core.js';
 import { sha256 } from '@noble/hashes/sha2.js';
 import { base58, createBase58check } from '@scure/base';
@@ -38,6 +41,7 @@ import SLIP39 from './vectors/slip39.json';
 import ADDR from './vectors/addresses.json';
 import COMPAT from './vectors/shamir-compat.json';
 import PATHS from './vectors/paths.json';
+import ELECTRUM from './vectors/electrum.json';
 
 /* ── tiny harness ─────────────────────────────────────────────── */
 let passed = 0, failed = 0, section = '', failedAtStart = 0;
@@ -680,6 +684,57 @@ group('Watch-only — addresses from an account xpub, ypub or zpub (embit / bip_
   eq(readPublicKey('  ' + PATHS.xpubs[0].key.slice(0, 50) + '\n' + PATHS.xpubs[0].key.slice(50) + ' ').xpub, PATHS.xpubs[0].xpub, 'spaces and line breaks ignored');
   throws(() => xpubDescriptor(PATHS.xpubs[0].xpub, 'nope'), 'unknown format refused');
   done(`${PATHS.xpubs.length} keys, ${n} addresses and descriptors`);
+}
+
+/* ════════════════════════════════════════════════════════════════ */
+{
+  group('Electrum seeds — Electrum\'s own test values, and Python (hashlib / bip_utils)');
+  let n = 0;
+  for (const v of ELECTRUM.official.bip32Seeds) {
+    eq(electrumSeedType(v.words), v.type, `type of “${v.words.slice(0, 24)}…”`);
+    eq(toHex(electrumSeed(v.words, v.passphrase)), v.seed, `BIP-32 seed of “${v.words.slice(0, 24)}…”${v.passphrase ? ' with passphrase' : ''}`);
+    n++;
+  }
+  for (const v of ELECTRUM.official.wallets) {
+    const w = electrumWallet(v.words, v.passphrase);
+    eq(w.type, v.type, `type of “${v.words.slice(0, 24)}…”`);
+    eq(w.masterKey, v.masterKey, `master public key of “${v.words.slice(0, 24)}…”`);
+    w.addresses(0, 0, 5).forEach((a, i) => { eq(a.address, v.receiving[i], `${v.type} receiving #${i}`); n++; });
+    w.addresses(1, 0, 5).forEach((a, i) => { eq(a.address, v.change[i], `${v.type} change #${i}`); n++; });
+    eq(w.addresses(0, 3, 1)[0].address, v.receiving[3], `${v.type}: starting from an index`);
+  }
+  for (const v of ELECTRUM.official.types) eq(electrumSeedType(v.words), v.type, `type ${v.type}`);
+  for (const v of ELECTRUM.computed) {
+    eq(electrumSeedType(v.words), v.type, `type of “${v.words.slice(0, 24)}…”`);
+    eq(validateMnemonic(v.words, wordlist), v.type === '' || !!v.alsoBip39, `BIP-39 validity of “${v.words.slice(0, 24)}…”`);
+    if (!v.type) continue;
+    const w = electrumWallet(v.words, v.passphrase);
+    w.addresses(0, 0, 5).forEach((a, i) => { eq(a.address, v.receiving[i], `${v.type} receiving #${i}`); n++; });
+    w.addresses(1, 0, 5).forEach((a, i) => { eq(a.address, v.change[i], `${v.type} change #${i}`); n++; });
+  }
+  // Paths and descriptors
+  const seg = electrumWallet(ELECTRUM.official.wallets[1].words, '');
+  eq(seg.addresses(1, 2, 1)[0].path, "m/0'/1/2", 'Segwit path');
+  check(/^wpkh\(\[[0-9a-f]{8}\/0h\]xpub[1-9A-HJ-NP-Za-km-z]+\/0\/\*\)#[a-z0-9]{8}$/.test(seg.descriptor), 'Segwit descriptor');
+  const std = electrumWallet(ELECTRUM.official.wallets[0].words, '');
+  eq(std.addresses(0, 0, 1)[0].path, 'm/0/0', 'Standard path');
+  check(/^pkh\(\[[0-9a-f]{8}\]xpub[1-9A-HJ-NP-Za-km-z]+\/0\/\*\)#[a-z0-9]{8}$/.test(std.descriptor), 'Standard descriptor');
+  // Typing: capitals, extra spaces, accents and line breaks change nothing
+  const v0 = ELECTRUM.official.wallets[1];
+  eq(electrumWallet('  ' + v0.words.toUpperCase().replace(/ /g, '  \n') + ' ', '').addresses(0, 0, 1)[0].address, v0.receiving[0], 'capitals and spaces ignored');
+  eq(electrumNormalize('Peatón  Vehículo'), 'peaton vehiculo', 'accents removed');
+  eq(electrumNormalize('眼 悲 叛'), '眼悲叛', 'no space between CJK characters');
+  // Finding an address
+  const hit = findElectrumAddress(seg, v0.change[4]);
+  check(hit && hit.change === 1 && hit.index === 4 && hit.path === "m/0'/1/4", 'finds a change address');
+  check(findElectrumAddress(seg, v0.receiving[0]).index === 0, 'finds the first receiving address');
+  eq(findElectrumAddress(seg, ELECTRUM.official.wallets[0].receiving[0]), null, 'another wallet\'s address is not found');
+  // What is refused
+  throws(() => electrumWallet('abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about'), 'BIP-39 words are not an Electrum seed');
+  throws(() => electrumWallet(ELECTRUM.official.wallets[3].words, 'x'), 'an Electrum 1.x seed has no passphrase', (e) => e.message === 'OLD_NO_PASSPHRASE');
+  eq(electrumWallet(ELECTRUM.official.types[3].words).computed, false, '2FA seeds are recognised, not computed');
+  eq(electrumSeedType(''), '', 'empty text is no seed');
+  done(`${ELECTRUM.official.bip32Seeds.length + ELECTRUM.official.wallets.length + ELECTRUM.official.types.length + ELECTRUM.computed.length} seeds, ${n} values`);
 }
 
 /* ════════════════════════════════════════════════════════════════ */

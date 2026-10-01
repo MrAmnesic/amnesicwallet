@@ -35,10 +35,12 @@ import { sha256, sha512 } from '@noble/hashes/sha2.js';
 import { keccak_256 } from '@noble/hashes/sha3.js';
 import { ripemd160 } from '@noble/hashes/legacy.js';
 import { hmac } from '@noble/hashes/hmac.js';
+import { pbkdf2 } from '@noble/hashes/pbkdf2.js';
 import { secp256k1 } from '@noble/curves/secp256k1.js';
 import { ed25519 } from '@noble/curves/ed25519.js';
 import { base58, bech32, bech32m, createBase58check } from '@scure/base';
 import slip39lib from 'slip39';
+import { ELECTRUM_OLD_WORDS } from './electrum-old-words.js';
 
 export { entropyToMnemonic, mnemonicToEntropy, mnemonicToSeedSync, validateMnemonic, wordlist, HDKey };
 
@@ -855,6 +857,175 @@ export function diagnoseMnemonic(text) {
   const countOk = WORD_OPTIONS.includes(words.length);
   const checksumOk = countOk && unknown.length === 0 && validateMnemonic(norm, wordlist);
   return { words, count: words.length, countOk, unknown, checksumOk, valid: checksumOk };
+}
+
+/* ════════════════════════════════════════════════════════════════
+   ELECTRUM SEEDS — read, never created
+
+   Electrum (from version 2.0) has a seed format of its own. The words
+   come from the same English list, but they are not BIP-39: the seed type
+   is a prefix of HMAC-SHA512("Seed version", words), not a checksum, and
+   the words become a seed with the salt "electrum" instead of "mnemonic".
+   Electrum 1.x (2011–2014) used another list of 1,626 words and no BIP-32.
+   Everything below follows Electrum's mnemonic.py, old_mnemonic.py and
+   keystore.py, and is tested against Electrum's own test values.
+   ════════════════════════════════════════════════════════════════ */
+
+const CJK_INTERVALS = [
+  [0x4E00, 0x9FFF], [0x3400, 0x4DBF], [0x20000, 0x2A6DF], [0x2A700, 0x2B73F], [0x2B740, 0x2B81F],
+  [0xF900, 0xFAFF], [0x2F800, 0x2FA1D], [0x2E80, 0x2EFF], [0x2F00, 0x2FDF], [0x31C0, 0x31EF],
+  [0x3200, 0x32FF], [0x3300, 0x33FF], [0x3040, 0x309F], [0x30A0, 0x30FF], [0x31F0, 0x31FF],
+  [0xFF65, 0xFF9F], [0xAC00, 0xD7AF], [0x1100, 0x11FF], [0x3130, 0x318F], [0x3190, 0x319F],
+  [0x31A0, 0x31BF], [0xA000, 0xA48F], [0xA490, 0xA4CF], [0x2FF0, 0x2FFF], [0x3000, 0x303F],
+  [0xFE30, 0xFE4F], [0x1F200, 0x1F2FF],
+];
+const isCJK = (ch) => {
+  const c = ch === undefined ? -1 : ch.codePointAt(0);
+  return CJK_INTERVALS.some(([a, b]) => c >= a && c <= b);
+};
+
+/* Python's unicodedata.combining(c) != 0, which JavaScript cannot ask
+   directly: a mark with a non-zero combining class that follows U+0345
+   (class 240, the highest) is moved before it by canonical ordering. */
+const isCombining = (c) => /\p{M}/u.test(c) && (c === '\u0345' || ('\u0345' + c).normalize('NFD') !== '\u0345' + c);
+
+/* Electrum's normalize_text: NFKD, lower case, combining marks (accents)
+   removed, single spaces, and no space between two CJK characters. */
+export function electrumNormalize(text) {
+  const s = Array.from(String(text || '').normalize('NFKD').toLowerCase()).filter(c => !isCombining(c)).join('')
+    .split(/\s+/).filter(Boolean).join(' ');
+  const ch = Array.from(s);
+  return ch.filter((c, i) => !(c === ' ' && isCJK(ch[i - 1]) && isCJK(ch[i + 1]))).join('');
+}
+
+const OLD_N = ELECTRUM_OLD_WORDS.length;     // 1626
+const OLD_INDEX = new Map(ELECTRUM_OLD_WORDS.map((w, i) => [w, i]));
+
+/* Electrum 1.x words → the hex seed (old_mnemonic.mn_decode), or null if
+   a word is not in that list. */
+function electrumOldHex(words) {
+  if (!words.every(w => OLD_INDEX.has(w))) return null;
+  const mod = (a) => ((a % OLD_N) + OLD_N) % OLD_N;
+  let out = '';
+  for (let i = 0; i + 3 <= words.length; i += 3) {
+    const [w1, w2, w3] = words.slice(i, i + 3).map(w => OLD_INDEX.get(w));
+    const x = w1 + OLD_N * mod(w2 - w1) + OLD_N * OLD_N * mod(w3 - w2);
+    out += x.toString(16).padStart(8, '0');
+  }
+  return out;
+}
+
+const SEED_PREFIXES = [['standard', '01'], ['segwit', '100'], ['2fa', '101'], ['2fa_segwit', '102']];
+
+/* The Electrum seed type of some words, as Electrum's calc_seed_type:
+   'old', 'standard', 'segwit', '2fa', '2fa_segwit', or '' if none. */
+export function electrumSeedType(text) {
+  const norm = electrumNormalize(text);
+  if (!norm) return '';
+  const words = norm.split(' ');
+  if ((words.length === 12 || words.length === 24) && electrumOldHex(words) !== null) return 'old';
+  const h = toHex(hmac(sha512, new TextEncoder().encode('Seed version'), new TextEncoder().encode(norm)));
+  for (const [type, prefix] of SEED_PREFIXES) {
+    if (!h.startsWith(prefix)) continue;
+    // Electrum 2.7 changed 2FA derivation; it tells the two apart by length.
+    if (type === '2fa' && !(words.length === 12 || words.length >= 20)) continue;
+    return type;
+  }
+  return '';
+}
+
+/* The BIP-32 seed of an Electrum 2.0+ seed, with its optional extension
+   (Electrum's "passphrase"), both normalised as Electrum does. */
+export function electrumSeed(text, passphrase = '') {
+  const enc = new TextEncoder();
+  return pbkdf2(sha512, enc.encode(electrumNormalize(text)), enc.encode('electrum' + electrumNormalize(passphrase)), { c: 2048, dkLen: 64 });
+}
+
+export const ELECTRUM_TYPES = {
+  standard:   { label: 'Standard', format: 'legacy', base: 'm',     note: 'Legacy addresses (1…)' },
+  segwit:     { label: 'Segwit',   format: 'native', base: "m/0'",  note: 'Native SegWit addresses (bc1q…)' },
+  old:        { label: 'Electrum 1.x', format: 'legacy', base: null, note: 'Legacy addresses (1…), from a seed made before 2014' },
+  '2fa':        { label: '2FA', computed: false },
+  '2fa_segwit': { label: '2FA Segwit', computed: false },
+};
+
+const bigFrom = (bytes) => BigInt('0x' + (toHex(bytes) || '0'));
+const N_SECP = secp256k1.Point.CURVE().n;
+
+/* An Electrum wallet read from its seed: what it is and how to list its
+   addresses. Receiving addresses are on branch 0, change on branch 1. */
+export function electrumWallet(text, passphrase = '') {
+  const type = electrumSeedType(text);
+  const t = ELECTRUM_TYPES[type];
+  if (!t) throw new Error('NOT_ELECTRUM');
+  if (t.computed === false) return { type, label: t.label, computed: false };
+
+  if (type === 'old') {
+    if (passphrase) throw new Error('OLD_NO_PASSPHRASE');
+    const hexSeed = electrumOldHex(electrumNormalize(text).split(' '));
+    const seedAscii = new TextEncoder().encode(hexSeed);
+    let x = seedAscii;
+    for (let i = 0; i < 100000; i++) {                // Electrum's stretch_key
+      const b = new Uint8Array(x.length + seedAscii.length);
+      b.set(x); b.set(seedAscii, x.length);
+      x = sha256(b);
+    }
+    const secexp = bigFrom(x) % N_SECP;
+    const mpkPoint = secp256k1.Point.BASE.multiply(secexp);
+    const mpk = mpkPoint.toBytes(false).slice(1);       // 64 bytes, as Electrum shows it
+    x.fill(0);
+    const addresses = (change, from, count) => {
+      const out = [];
+      for (let n = from; n < from + count; n++) {
+        const msg = new TextEncoder().encode(`${n}:${change}:`);
+        const b = new Uint8Array(msg.length + mpk.length);
+        b.set(msg); b.set(mpk, msg.length);
+        const z = bigFrom(sha256(sha256(b))) % N_SECP;
+        const pub = mpkPoint.add(secp256k1.Point.BASE.multiply(z)).toBytes(false);
+        out.push({ index: n, change, path: `Electrum 1.x, ${change ? 'change' : 'receiving'} #${n}`, address: b58check(0x00, hash160(pub)) });
+      }
+      return out;
+    };
+    return { type, label: t.label, format: 'legacy', masterKey: toHex(mpk), masterKeyName: 'Master public key', addresses };
+  }
+
+  const root = HDKey.fromMasterSeed(electrumSeed(text, passphrase));
+  const acct = t.base === 'm' ? root : root.derive(t.base);
+  const branch = [acct.deriveChild(0), acct.deriveChild(1)];
+  const addresses = (change, from, count) => {
+    const out = [];
+    for (let i = from; i < from + count; i++) {
+      out.push({ index: i, change, path: `${t.base}/${change}/${i}`, address: btcAddressFromPubkey(branch[change].deriveChild(i).publicKey, t.format) });
+    }
+    return out;
+  };
+  const xpub = acct.publicExtendedKey;
+  const fp = fingerprintHex(root);
+  const origin = t.base === 'm' ? fp : `${fp}/0h`;
+  const descriptor = withChecksum(type === 'standard' ? `pkh([${origin}]${xpub}/0/*)` : `wpkh([${origin}]${xpub}/0/*)`);
+  // Electrum shows a Segwit wallet's key as a zpub.
+  const masterKey = type === 'segwit' ? toZpub(xpub) : xpub;
+  return { type, label: t.label, format: t.format, masterKey, masterKeyName: type === 'segwit' ? 'Master public key (zpub)' : 'Master public key (xpub)', descriptor, addresses };
+}
+
+function toZpub(xpub) {
+  const raw = base58check.decode(xpub);
+  const out = new Uint8Array(raw);
+  out.set([0x04, 0xb2, 0x47, 0x46], 0);
+  return base58check.encode(out);
+}
+
+/* Which receiving or change address of an Electrum wallet an address is:
+   the first `perBranch` of each branch are searched. */
+export function findElectrumAddress(wallet, text, perBranch = 200) {
+  const target = String(text || '').trim();
+  for (const change of [0, 1]) {
+    for (let from = 0; from < perBranch; from += 50) {
+      const hit = wallet.addresses(change, from, 50).find(a => a.address === target);
+      if (hit) return hit;
+    }
+  }
+  return null;
 }
 
 /* ════════════════════════════════════════════════════════════════

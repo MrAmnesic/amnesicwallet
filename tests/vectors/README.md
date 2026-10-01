@@ -10,6 +10,7 @@ project. Each file is listed with its origin.
 | `slip10-ed25519.json` | Test vectors 1 and 2 for ed25519 | [SLIP-0010](https://github.com/satoshilabs/slips/blob/master/slip-0010.md), commit `570ed55b7fde158f1116be34fc2faa35dada5912` | CC BY-SA 4.0, SatoshiLabs |
 | `addresses.json` | Addresses, account xpubs, fingerprints, BIP-48 xpubs/Zpubs and multisig vaults for 5 mnemonics × 2 passphrases | Computed for this project with the Python libraries [bip_utils](https://github.com/ebellocchia/bip_utils) and [embit](https://github.com/diybitcoinhardware/embit), independently of AmnesicWallet's code | GPL-3.0-or-later (this project) |
 | `paths.json` | Addresses at every derivation path the check offers (all networks, accounts 1, 2 and 5, including the secp256k1-derived Solana paths `m/44'/501'/n'/0/0` and `m/501'/n'/0/0`), receiving and change branches, and addresses and descriptors from account xpubs, ypubs and zpubs, for 3 mnemonics | Computed for this project with [bip_utils](https://github.com/ebellocchia/bip_utils) and [embit](https://github.com/diybitcoinhardware/embit) — Bitcoin with both, cross-checked — independently of AmnesicWallet's code; the script is `paths.py`, next to it | GPL-3.0-or-later (this project) |
+| `electrum.json` | Electrum seeds: types, BIP-32 seeds, master public keys, first receiving and change addresses (official part); more addresses and seeds (computed part) | Official part from [spesmilo/electrum](https://github.com/spesmilo/electrum), `tests/test_mnemonic.py` and `tests/test_wallet_vertical.py`, commit `4cb03ef4f1f2baaf66519342b933ee731333b1fd`; computed part with Python's `hashlib` and [bip_utils](https://github.com/ebellocchia/bip_utils), cross-checked with bip_utils' Electrum module; the script is `electrum.py`, next to it | Official part MIT, © 2011-2024 The Electrum developers; the rest GPL-3.0-or-later (this project) |
 | `shamir-compat.json` | Shamir parts (3 of 5) produced by version 1.0.1 | Generated with version 1.0.1 of this program | GPL-3.0-or-later (this project) |
 
 The vectors were converted to JSON without changing any value.
@@ -52,6 +53,30 @@ The vectors were converted to JSON without changing any value.
 >
 > The above copyright notice and this permission notice shall be included in all copies
 > or substantial portions of the Software.
+>
+> THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED,
+> INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A
+> PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
+> HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF
+> CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE
+> OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+
+**spesmilo/electrum**
+
+> The MIT License (MIT)
+>
+> Copyright (c) 2011-2024 The Electrum developers
+> Copyright (c) 2011-2024 Thomas Voegtlin
+>
+> Permission is hereby granted, free of charge, to any person obtaining a copy of
+> this software and associated documentation files (the "Software"), to deal in
+> the Software without restriction, including without limitation the rights to
+> use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of
+> the Software, and to permit persons to whom the Software is furnished to do so,
+> subject to the following conditions:
+>
+> The above copyright notice and this permission notice shall be included in all
+> copies or substantial portions of the Software.
 >
 > THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED,
 > INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A
