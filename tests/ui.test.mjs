@@ -236,6 +236,7 @@ async function run(browser, engine, device) {
   await page.locator('#results-card .address-qr img').nth(3).waitFor();
   const qrs = await page.locator('#results-card .address-qr img').evaluateAll((els) => els.map((e) => e.getAttribute('src')));
   check(qrs.every((s) => s.startsWith('data:image/svg+xml;base64,')), 'every address has its QR code, drawn without a canvas');
+  check(await page.locator('#results-card .addr-icon svg').count() === 4, "every network's symbol is drawn (SVG), not a font character");
   await noteLayout('addresses');
 
   /* 1b. A Shamir wallet (and, on the computer, a SLIP-39 wallet) */
@@ -290,6 +291,9 @@ async function run(browser, engine, device) {
     const got = await page.locator('#vf-results .addr-value').allInnerTexts();
     const want = [v.btc.native[0], v.eth, v.trx, v.sol];
     check(JSON.stringify(got) === JSON.stringify(want), `Check wallet (${label}): the four addresses match the independent values`);
+    await press(page.locator('#vfc-eth .help-dot[data-help="evm"]'));
+    check((await page.locator('#help-pop').innerText()).includes('EVM-compatible'), 'the "?" next to the EVM networks explains them');
+    await page.keyboard.press('Escape');
     await noteLayout('check wallet');
   }
 

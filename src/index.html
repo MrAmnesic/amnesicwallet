@@ -353,7 +353,7 @@
     }
     .help-dot:hover { border-color: var(--accent); color: var(--accent); background: var(--accent-glow); }
     .help-pop {
-      position: absolute; z-index: 100000; width: 320px;
+      position: absolute; z-index: 100000; width: 320px; max-width: calc(100vw - 24px); box-sizing: border-box;
       background: var(--bg-card); border: 1px solid var(--border-accent);
       border-radius: 12px; padding: 14px 16px;
       box-shadow: 0 10px 34px rgba(0,0,0,.28);
@@ -446,7 +446,10 @@
       box-shadow: 0 0 24px rgba(247, 147, 26, 0.06);
     }
 
-    .chain-icon { font-size: 26px; line-height: 1; }
+    .chain-icon { line-height: 0; }
+    .chain-logo { display: block; }
+    .logo-inline { display: inline-block; vertical-align: -2px; }
+    .sl-n.sl-logo { background: none; }
     .chain-name { font-weight: 600; font-size: 13px; }
 
     .chain-tag {
@@ -482,9 +485,6 @@
       font-size: 22px;
       width: 44px; height: 44px;
       display: flex; align-items: center; justify-content: center;
-      background: var(--accent-glow);
-      border-radius: 10px;
-      color: var(--accent);
       flex-shrink: 0;
     }
 

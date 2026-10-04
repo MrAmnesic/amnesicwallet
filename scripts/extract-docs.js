@@ -38,6 +38,9 @@ function stripPlaceholders(html) {
     if (m.includes('r.m')) return 'M';
     if (m.includes('r.n')) return 'N';
     if (m.includes('nWords') || m.includes('words.length')) return '12';
+    // the networks' logos (SVG in the app) become their usual symbols
+    const logo = m.match(/chainLogo\('(\w+)'/);
+    if (logo) return { btc: '₿', eth: '◈', sol: '◎', trx: '◆' }[logo[1]] || '';
     return '';
   });
 }
@@ -82,7 +85,7 @@ function buildGuide() {
     '<h2>(?<h2>.*?)<\\/h2>',
     '<p class="hint"[^>]*>(?<hint>.*?)<\\/p>',
     '<p[^>]*>(?<p>.*?)<\\/p>',
-    '<span class="sl-n">(?<n>.*?)<\\/span><span class="sl-t">(?<t>.*?)<\\/span>',
+    '<span class="sl-n[^"]*">(?<n>.*?)<\\/span><span class="sl-t">(?<t>.*?)<\\/span>',
     '<code class="pd-full">(?<full>.*?)<\\/code>',
     '<div class="pd-row"><code>(?<k>.*?)<\\/code><span>(?<v>.*?)<\\/span><\\/div>',
     '<div class="note-box"[^>]*>(?<note>.*?)<\\/div>',

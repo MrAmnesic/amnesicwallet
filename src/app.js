@@ -37,6 +37,20 @@ import QRCode from 'qrcode';
 
 const SECURE_RANDOM_OK = isSecureRandomAvailable();
 
+/* The four networks' symbols, drawn as SVG inside the file: a text
+   character such as ₿ depends on the fonts installed, and Tails has none
+   that contains it. */
+const CHAIN_LOGOS = {
+  btc: '<circle cx="16" cy="16" r="16" fill="#F7931A"/><path fill="#fff" transform="translate(16 16) scale(.5) translate(-32 -32)" d="M46.11 27.441c.636-4.258-2.606-6.547-7.039-8.074l1.438-5.768-3.511-.875-1.4 5.616c-.923-.23-1.871-.447-2.813-.662l1.41-5.653-3.509-.875-1.439 5.766c-.764-.174-1.514-.346-2.242-.527l.004-.018-4.842-1.209-.934 3.75s2.605.597 2.55.634c1.422.355 1.679 1.296 1.636 2.042l-1.638 6.571c.098.025.225.061.365.117l-.371-.092-2.297 9.205c-.174.432-.615 1.08-1.609.834.035.051-2.552-.637-2.552-.637l-1.743 4.019 4.569 1.139c.85.213 1.683.436 2.503.646l-1.453 5.834 3.507.875 1.439-5.772c.958.26 1.888.5 2.798.726l-1.434 5.745 3.511.875 1.453-5.823c5.987 1.133 10.489.676 12.384-4.739 1.527-4.36-.076-6.875-3.226-8.515 2.294-.529 4.022-2.038 4.483-5.155zM38.087 38.69c-1.085 4.36-8.426 2.003-10.806 1.412l1.928-7.729c2.38.594 10.012 1.77 8.878 6.317zm1.086-11.312c-.99 3.966-7.1 1.951-9.082 1.457l1.748-7.01c1.982.494 8.365 1.416 7.334 5.553z"/>',
+  eth: '<circle cx="16" cy="16" r="16" fill="#6F7380"/><g fill="#fff"><path fill-opacity=".6" d="M16.498 4v8.87l7.497 3.35z"/><path d="M16.498 4L9 16.22l7.498-3.35z"/><path fill-opacity=".6" d="M16.498 21.968v6.027L24 17.616z"/><path d="M16.498 27.995v-6.028L9 17.616z"/><path fill-opacity=".2" d="M16.498 20.573l7.497-4.353-7.497-3.348z"/><path fill-opacity=".6" d="M9 16.22l7.498 4.353v-7.701z"/></g>',
+  trx: '<circle cx="16" cy="16" r="16" fill="#EF0027"/><path fill="#fff" d="M21.932 9.913L7.5 7.257l7.595 19.112 10.583-12.894-3.746-3.562zm-.232 1.17l2.208 2.099-6.038 1.093 3.83-3.192zm-5.142 2.973l-6.364-5.278 10.402 1.914-4.038 3.364zm-.453.934l-1.038 8.58L9.472 9.487l5.633 4.503zm.96.455l6.687-1.21-7.67 9.343.983-8.133z"/>',
+  sol: '<circle cx="16" cy="16" r="16" fill="#14B87D"/><g fill="#fff"><path d="M11.2 9h12.6l-2.6 2.8H8.6z"/><path d="M8.6 14.6h12.6l2.6 2.8H11.2z"/><path d="M11.2 20.2h12.6l-2.6 2.8H8.6z"/></g>',
+};
+const SYMBOL_CHAIN = { BTC: 'btc', ETH: 'eth', TRX: 'trx', SOL: 'sol' };
+function chainLogo(id, size = 28, cls = 'chain-logo') {
+  return `<svg class="${cls}" viewBox="0 0 32 32" width="${size}" height="${size}" aria-hidden="true" focusable="false">${CHAIN_LOGOS[id]}</svg>`;
+}
+
 /* ════════════════════════════════════════════════════════════════
    UI UTILITIES (unchanged since v1)
    ════════════════════════════════════════════════════════════════ */
@@ -574,7 +588,7 @@ function renderCsAddresses() {
       <div class="addresses-list">
         ${entries.map(e => `
           <div class="address-item">
-            <div class="address-header"><span class="addr-icon">${escapeHtml(e.icon)}</span>
+            <div class="address-header"><span class="addr-icon">${chainLogo(SYMBOL_CHAIN[e.symbol], 36)}</span>
               <div class="address-header-text"><strong>${escapeHtml(e.name)}</strong></div></div>
             <div class="address-details">
               <div class="detail-row"><span class="detail-label">Address</span>
@@ -948,7 +962,7 @@ function renderVerifyTab() {
             ${CHAINS.map(c => `
               <label class="chain-option">
                 <input type="checkbox" id="vf-chk-${c.id}" value="${c.id}" ${c.id === 'btc' ? 'checked' : ''} />
-                <div class="chain-box"><span class="chain-icon">${c.icon}</span><span class="chain-name">${c.name}</span><span class="chain-tag">${c.tag}</span></div>
+                <div class="chain-box"><span class="chain-icon">${chainLogo(c.id)}</span><span class="chain-name">${c.name}</span><span class="chain-tag">${c.tag}</span></div>
               </label>`).join('')}
           </div>
         </div>
@@ -1094,9 +1108,9 @@ function vfCardHTML(id) {
   const d = r.derivation;
   const single = !hasAccounts(d);
   const head = `
-    <div class="address-header"><span class="addr-icon">${chain.icon}</span>
+    <div class="address-header"><span class="addr-icon">${chainLogo(chain.id, 36)}</span>
       <div class="address-header-text"><strong>${escapeHtml(chain.name)}</strong>
-        ${id === 'eth' ? `<div class="evm-tags">${['Ethereum', 'BSC', 'Polygon', 'Arbitrum', 'Avalanche', 'Optimism', 'Base'].map(n => `<span class="evm-tag">${n}</span>`).join('')}</div>` : ''}
+        ${id === 'eth' ? `<div class="evm-tags">${['Ethereum', 'BSC', 'Polygon', 'Arbitrum', 'Avalanche', 'Optimism', 'Base'].map(n => `<span class="evm-tag">${n}</span>`).join('')}${help('evm')}</div>` : ''}
       </div>
     </div>
     <div class="acct-bar">
@@ -1317,7 +1331,7 @@ function electrumHTML() {
       <p class="hint" style="margin-bottom:14px">These words are a seed in <strong>Electrum's own format</strong>, not BIP-39: they are read here as Electrum reads them. ${escapeHtml(t.note)}. An Electrum seed holds <strong>Bitcoin only</strong>${others ? ': the other networks you selected do not apply' : ''}. Other programs show these addresses only if they can read Electrum seeds.</p>
       ${bip39Note}
       <div class="addresses-list"><div class="address-item">
-        <div class="address-header"><span class="addr-icon">₿</span><div class="address-header-text"><strong>Bitcoin</strong></div></div>
+        <div class="address-header"><span class="addr-icon">${chainLogo('btc', 36)}</span><div class="address-header-text"><strong>Bitcoin</strong></div></div>
         <div class="address-details">
           <div class="detail-row"><span class="detail-label">Address</span>
             <div class="addr-copy-row"><code class="detail-value addr-value">${escapeHtml(first.address)}</code>${copyButton(first.address)}</div>
@@ -1501,7 +1515,7 @@ function renderSlipView() {
           ${CHAINS.map(ch => `
             <label class="chain-option">
               <input type="checkbox" id="chk-${ch.id}" value="${ch.id}" ${ch.id === 'btc' ? 'checked' : ''} />
-              <div class="chain-box"><span class="chain-icon">${ch.icon}</span><span class="chain-name">${ch.name}</span><span class="chain-tag">${ch.tag}</span></div>
+              <div class="chain-box"><span class="chain-icon">${chainLogo(ch.id)}</span><span class="chain-name">${ch.name}</span><span class="chain-tag">${ch.tag}</span></div>
             </label>`).join('')}
         </div>
         <div id="btc-format-box" class="btc-fmt-box" style="display:none">
@@ -1629,6 +1643,11 @@ const HELP = {
     d: 'You retype the words looking only at your own backup. It exists to reveal today, in thirty seconds, whether the backup is wrong — instead of on the day you actually need it.',
     g: 'g-verify',
   },
+  evm: {
+    t: 'One address, many networks',
+    d: 'Ethereum, BSC, Polygon, Arbitrum, Avalanche, Optimism and Base are all <strong>EVM-compatible</strong>: they work like Ethereum and make addresses in the same way. So this address — from the same words — is yours on every one of them. The funds on each network stay separate: what arrives on BSC is on BSC, not on Ethereum. To see it, choose that network in your wallet.',
+    g: 'g-evm',
+  },
   powers: {
     t: 'Powers-of-2 backup',
     d: 'Every word has a number from 1 to 2048, which is written by marking boxes whose sum gives that number. It is a way to record the seed without any readable word.',
@@ -1678,7 +1697,7 @@ function openHelpPopover(dot) {
     </div>`;
   document.body.appendChild(pop);
   const r = dot.getBoundingClientRect();
-  const w = 320;
+  const w = Math.min(320, document.documentElement.clientWidth - 24);
   let left = r.left + window.scrollX - w / 2 + r.width / 2;
   left = Math.max(12, Math.min(left, window.innerWidth - w - 12));
   pop.style.left = left + 'px';
@@ -2276,7 +2295,7 @@ function renderWalletView() {
           ${CHAINS.map(c => `
             <label class="chain-option">
               <input type="checkbox" id="chk-${c.id}" value="${c.id}" />
-              <div class="chain-box"><span class="chain-icon">${c.icon}</span><span class="chain-name">${c.name}</span><span class="chain-tag">${c.tag}</span></div>
+              <div class="chain-box"><span class="chain-icon">${chainLogo(c.id)}</span><span class="chain-name">${c.name}</span><span class="chain-tag">${c.tag}</span></div>
             </label>`).join('')}
         </div>
         <div id="btc-format-box" class="btc-fmt-box" style="display:none">
@@ -2487,9 +2506,9 @@ function renderResults() {
       <div class="addresses-list">
         ${entries.map(e => `
           <div class="address-item">
-            <div class="address-header"><span class="addr-icon">${escapeHtml(e.icon)}</span>
+            <div class="address-header"><span class="addr-icon">${chainLogo(SYMBOL_CHAIN[e.symbol], 36)}</span>
               <div class="address-header-text"><strong>${escapeHtml(e.name)}</strong>
-                ${e.evmChains ? `<div class="evm-tags">${e.evmChains.map(c => `<span class="evm-tag">${escapeHtml(c)}</span>`).join('')}</div>` : ''}
+                ${e.evmChains ? `<div class="evm-tags">${e.evmChains.map(c => `<span class="evm-tag">${escapeHtml(c)}</span>`).join('')}${help('evm')}</div>` : ''}
               </div>
             </div>
             <div class="address-details">
@@ -2706,7 +2725,7 @@ body{font-family:'Courier New',monospace;background:#fff;color:#000}
 <div class="header"><h1>Public addresses</h1><p>To use for receiving &middot; ${new Date().toLocaleDateString('en-GB')}</p></div>
 <div class="entries">
 ${entries.map(e => `<div class="entry"><div class="qr"><img src="${qrCodes[e.id]}"></div><div class="info">
-<div class="name">${escapeHtml(e.icon)} ${escapeHtml(e.name)}</div>
+<div class="name">${chainLogo(SYMBOL_CHAIN[e.symbol], 13, 'logo-inline')} ${escapeHtml(e.name)}</div>
 <div class="row"><strong>Path:</strong> ${escapeHtml(e.path)}</div>
 <div class="addr">${escapeHtml(e.address)}</div>
 ${e.evmChains ? `<div class="evm-note">Same address for: ${escapeHtml(e.evmChains.join(', '))}</div>` : ''}
@@ -3656,9 +3675,10 @@ function renderGuideSteps() {
       <div class="card-header"><span class="step-badge">5</span><h2>Spending the funds</h2></div>
       <p style="margin-bottom:12px">AmnesicWallet does not sign transactions, by design: it stays a small generator that can be read and checked, with no reason ever to go online. To spend, you use the words in a wallet that signs.</p>
       <div class="steps-box">
-        <div class="step-line"><span class="sl-n">₿</span><span class="sl-t"><strong>Bitcoin → Sparrow or Electrum.</strong></span></div>
-        <div class="step-line"><span class="sl-n">◈</span><span class="sl-t"><strong>Ethereum and EVM networks → MetaMask or Rabby.</strong></span></div>
-        <div class="step-line"><span class="sl-n">◎</span><span class="sl-t"><strong>Solana → Phantom</strong>, <strong>TRON → TronLink</strong>.</span></div>
+        <div class="step-line"><span class="sl-n sl-logo">${chainLogo('btc', 24)}</span><span class="sl-t"><strong>Bitcoin → Sparrow or Electrum.</strong></span></div>
+        <div class="step-line"><span class="sl-n sl-logo">${chainLogo('eth', 24)}</span><span class="sl-t"><strong>Ethereum and EVM networks → MetaMask or Rabby.</strong></span></div>
+        <div class="step-line"><span class="sl-n sl-logo">${chainLogo('sol', 24)}</span><span class="sl-t"><strong>Solana → Phantom.</strong></span></div>
+        <div class="step-line"><span class="sl-n sl-logo">${chainLogo('trx', 24)}</span><span class="sl-t"><strong>TRON → TronLink.</strong></span></div>
         <div class="step-line"><span class="sl-n">🛡</span><span class="sl-t"><strong>For significant amounts: hardware wallet.</strong> Enter the seed into a Ledger or Trezor using the physical buttons. The key never touches the computer and transactions are signed inside the device.</span></div>
       </div>
       <div class="note-box" style="margin-top:14px">MetaMask has become multichain: besides Ethereum and the EVM networks it natively handles <strong>Solana</strong>, <strong>Bitcoin</strong> (since December 2025) and <strong>TRON</strong> (since January 2026). By importing the seed there you can therefore follow <strong>all four networks</strong> of AmnesicWallet from a single wallet. One useful clarification: for Bitcoin MetaMask uses only the <strong>Native SegWit</strong> format (bc1q…), so it will not show any Taproot or Legacy addresses. For Bitcoin, in any case, Sparrow remains the most specific and complete tool.</div>
@@ -3732,7 +3752,7 @@ function renderGuideFaq() {
           <p><strong>How it's done.</strong> From the wallet, press <em>🔢 Powers-of-2 backup</em>. You get a grid with one row per word and the dots already in the right place — with no words and no numbers: the translation will be up to you at recovery time. Print the numbered dictionary as well and keep it separately.</p>
         </div></details>
 
-        <details class="faq" id="g-formats"><summary>₿ The four Bitcoin address formats</summary><div class="faq-body">
+        <details class="faq" id="g-formats"><summary>${chainLogo('btc', 16, 'logo-inline')} The four Bitcoin address formats</summary><div class="faq-body">
           <p>Bitcoin has changed address format several times over the years. From the <strong>same seed</strong> you can generate all four: they are not different wallets, they are different ways of writing the same ownership.</p>
           <p><strong>Native SegWit</strong> (<em>bc1q…</em>) — Today's standard, and the default choice: low fees and accepted practically everywhere.</p>
           <p><strong>Taproot</strong> (<em>bc1p…</em>) — The most recent: even lower fees and greater privacy. Some older services don't accept it yet.</p>
@@ -3761,6 +3781,11 @@ function renderGuideFaq() {
           <p><strong>Why it concerns you.</strong> If you import the seed elsewhere and the addresses don't match (particularly with Bitcoin, which has several formats), it is almost always the path that differs — not the seed. It's the reason why a Legacy wallet and a Native SegWit one, though born from the same words, show completely different addresses: they simply sit on different branches of the same tree.</p>
           <p><strong>Not every wallet counts accounts the same way.</strong> “Account 2” in MetaMask is the second address of the first branch (<code>m/44'/60'/0'/0/1</code>); in Ledger Live it is a branch of its own (<code>m/44'/60'/1'/0/0</code>). Same words, different addresses.</p>
           <p><strong>How to find a missing address.</strong> In <em>Check wallet</em>, every network has its own account number (− and +) and a button for each derivation path that gives a different address — for Bitcoin the four formats, and also Bitcoin addresses on the paths of Ethereum and TRON. Bitcoin also shows its change addresses. Or paste the address into <em>Find the path of an address</em>: the page looks for it among the addresses of your words and tells you its account and path. If you only have the account's public key (xpub, ypub or zpub), <em>A public key only</em> shows its addresses without typing any secret word.</p>
+        </div></details>
+
+        <details class="faq" id="g-evm"><summary>🔗 One Ethereum address for many networks</summary><div class="faq-body">
+          <p>Next to the Ethereum address you find BSC, Polygon, Arbitrum, Avalanche, Optimism and Base. They are separate networks, but all <strong>EVM-compatible</strong>: they run the same kind of programs as Ethereum and make addresses in the same way, from the same derivation path. That is why the same words give <strong>the same address</strong> on all of them.</p>
+          <p>The funds, though, stay on the network where they were sent. Tokens sent to your address on BSC are on BSC: in MetaMask or Rabby you see them by choosing BSC as the network, not Ethereum. Nothing is lost when the network shown is a different one — it is the same address, looked at on another network.</p>
         </div></details>
 
         <details class="faq" id="g-networks"><summary>📬 Why does Bitcoin have many addresses and the other networks only one?</summary><div class="faq-body">
