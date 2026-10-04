@@ -1110,7 +1110,7 @@ function vfCardHTML(id) {
   const head = `
     <div class="address-header"><span class="addr-icon">${chainLogo(chain.id, 36)}</span>
       <div class="address-header-text"><strong>${escapeHtml(chain.name)}</strong>
-        ${id === 'eth' ? `<div class="evm-tags">${['Ethereum', 'BSC', 'Polygon', 'Arbitrum', 'Avalanche', 'Optimism', 'Base'].map(n => `<span class="evm-tag">${n}</span>`).join('')}</div>` : ''}
+        ${id === 'eth' ? `<div class="evm-tags">${['Ethereum', 'BSC', 'Polygon', 'Arbitrum', 'Avalanche', 'Optimism', 'Base'].map(n => `<span class="evm-tag">${n}</span>`).join('')}${help('evm')}</div>` : ''}
       </div>
     </div>
     <div class="acct-bar">
@@ -1643,6 +1643,11 @@ const HELP = {
     d: 'You retype the words looking only at your own backup. It exists to reveal today, in thirty seconds, whether the backup is wrong — instead of on the day you actually need it.',
     g: 'g-verify',
   },
+  evm: {
+    t: 'One address, many networks',
+    d: 'Ethereum, BSC, Polygon, Arbitrum, Avalanche, Optimism and Base are all <strong>EVM-compatible</strong>: they work like Ethereum and make addresses in the same way. So this address — from the same words — is yours on every one of them. The funds on each network stay separate: what arrives on BSC is on BSC, not on Ethereum. To see it, choose that network in your wallet.',
+    g: 'g-evm',
+  },
   powers: {
     t: 'Powers-of-2 backup',
     d: 'Every word has a number from 1 to 2048, which is written by marking boxes whose sum gives that number. It is a way to record the seed without any readable word.',
@@ -1692,7 +1697,7 @@ function openHelpPopover(dot) {
     </div>`;
   document.body.appendChild(pop);
   const r = dot.getBoundingClientRect();
-  const w = 320;
+  const w = Math.min(320, document.documentElement.clientWidth - 24);
   let left = r.left + window.scrollX - w / 2 + r.width / 2;
   left = Math.max(12, Math.min(left, window.innerWidth - w - 12));
   pop.style.left = left + 'px';
@@ -2503,7 +2508,7 @@ function renderResults() {
           <div class="address-item">
             <div class="address-header"><span class="addr-icon">${chainLogo(SYMBOL_CHAIN[e.symbol], 36)}</span>
               <div class="address-header-text"><strong>${escapeHtml(e.name)}</strong>
-                ${e.evmChains ? `<div class="evm-tags">${e.evmChains.map(c => `<span class="evm-tag">${escapeHtml(c)}</span>`).join('')}</div>` : ''}
+                ${e.evmChains ? `<div class="evm-tags">${e.evmChains.map(c => `<span class="evm-tag">${escapeHtml(c)}</span>`).join('')}${help('evm')}</div>` : ''}
               </div>
             </div>
             <div class="address-details">
@@ -3776,6 +3781,11 @@ function renderGuideFaq() {
           <p><strong>Why it concerns you.</strong> If you import the seed elsewhere and the addresses don't match (particularly with Bitcoin, which has several formats), it is almost always the path that differs — not the seed. It's the reason why a Legacy wallet and a Native SegWit one, though born from the same words, show completely different addresses: they simply sit on different branches of the same tree.</p>
           <p><strong>Not every wallet counts accounts the same way.</strong> “Account 2” in MetaMask is the second address of the first branch (<code>m/44'/60'/0'/0/1</code>); in Ledger Live it is a branch of its own (<code>m/44'/60'/1'/0/0</code>). Same words, different addresses.</p>
           <p><strong>How to find a missing address.</strong> In <em>Check wallet</em>, every network has its own account number (− and +) and a button for each derivation path that gives a different address — for Bitcoin the four formats, and also Bitcoin addresses on the paths of Ethereum and TRON. Bitcoin also shows its change addresses. Or paste the address into <em>Find the path of an address</em>: the page looks for it among the addresses of your words and tells you its account and path. If you only have the account's public key (xpub, ypub or zpub), <em>A public key only</em> shows its addresses without typing any secret word.</p>
+        </div></details>
+
+        <details class="faq" id="g-evm"><summary>🔗 One Ethereum address for many networks</summary><div class="faq-body">
+          <p>Next to the Ethereum address you find BSC, Polygon, Arbitrum, Avalanche, Optimism and Base. They are separate networks, but all <strong>EVM-compatible</strong>: they run the same kind of programs as Ethereum and make addresses in the same way, from the same derivation path. That is why the same words give <strong>the same address</strong> on all of them.</p>
+          <p>The funds, though, stay on the network where they were sent. Tokens sent to your address on BSC are on BSC: in MetaMask or Rabby you see them by choosing BSC as the network, not Ethereum. Nothing is lost when the network shown is a different one — it is the same address, looked at on another network.</p>
         </div></details>
 
         <details class="faq" id="g-networks"><summary>📬 Why does Bitcoin have many addresses and the other networks only one?</summary><div class="faq-body">

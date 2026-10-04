@@ -144,6 +144,14 @@ Here is a derivation path explained:
 
 ---
 
+## 🔗 One Ethereum address for many networks
+
+Next to the Ethereum address you find BSC, Polygon, Arbitrum, Avalanche, Optimism and Base. They are separate networks, but all **EVM-compatible**: they run the same kind of programs as Ethereum and make addresses in the same way, from the same derivation path. That is why the same words give **the same address** on all of them.
+
+The funds, though, stay on the network where they were sent. Tokens sent to your address on BSC are on BSC: in MetaMask or Rabby you see them by choosing BSC as the network, not Ethereum. Nothing is lost when the network shown is a different one — it is the same address, looked at on another network.
+
+---
+
 ## 📬 Why does Bitcoin have many addresses and the other networks only one?
 
 In the Bitcoin world it is good practice to use **a new address for every payment you receive**. All the addresses belong to the same wallet and are controlled by the same seed, but anyone watching the blockchain has a much harder time linking your incoming payments together.

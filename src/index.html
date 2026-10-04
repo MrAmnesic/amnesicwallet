@@ -353,7 +353,7 @@
     }
     .help-dot:hover { border-color: var(--accent); color: var(--accent); background: var(--accent-glow); }
     .help-pop {
-      position: absolute; z-index: 100000; width: 320px;
+      position: absolute; z-index: 100000; width: 320px; max-width: calc(100vw - 24px); box-sizing: border-box;
       background: var(--bg-card); border: 1px solid var(--border-accent);
       border-radius: 12px; padding: 14px 16px;
       box-shadow: 0 10px 34px rgba(0,0,0,.28);

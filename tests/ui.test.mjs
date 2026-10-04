@@ -291,6 +291,9 @@ async function run(browser, engine, device) {
     const got = await page.locator('#vf-results .addr-value').allInnerTexts();
     const want = [v.btc.native[0], v.eth, v.trx, v.sol];
     check(JSON.stringify(got) === JSON.stringify(want), `Check wallet (${label}): the four addresses match the independent values`);
+    await press(page.locator('#vfc-eth .help-dot[data-help="evm"]'));
+    check((await page.locator('#help-pop').innerText()).includes('EVM-compatible'), 'the "?" next to the EVM networks explains them');
+    await page.keyboard.press('Escape');
     await noteLayout('check wallet');
   }
 
