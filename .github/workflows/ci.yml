@@ -45,13 +45,14 @@ jobs:
         run: npm run build
 
       # The page itself, in the three browser engines (Chromium, Firefox,
-      # WebKit), on a computer and on two phone sizes: create a wallet from
+      # WebKit), on a computer and on two phone sizes, and in Firefox with
+      # Tor Browser's settings (the browser of Tails): create a wallet from
       # start to finish, check known seeds, no error, no network request,
       # nothing wider than the screen.
       - name: Install the test browsers
         run: npx playwright install --with-deps chromium firefox webkit
 
-      - name: Use the built page in Chromium, Firefox and WebKit, on a computer and on phones
+      - name: Use the built page in Chromium, Firefox, WebKit and Firefox as Tor Browser, on a computer and on phones
         run: npm run test:ui
 
       - name: Write the hash to SHA256SUMS and the presentation page

@@ -8,7 +8,7 @@
 <html lang="en" data-theme="light">
 <head>
   <meta charset="UTF-8" />
-  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-p3I3/ejOM/aNqydPqZUYRNyi5CjdhJ+aD6f5IpzjqgM='; style-src 'unsafe-inline'; img-src data:; base-uri 'none'; form-action 'none'">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-JwRXom6NLJMmI9o0IxPmXlH/dETVp9si95Ww1DaryX4='; style-src 'unsafe-inline'; img-src data:; base-uri 'none'; form-action 'none'">
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>AmnesicWallet — Offline Wallet Generator</title>
   <style>
@@ -4651,6 +4651,12 @@ body{font-family:'Courier New',monospace;background:#fff;color:#000}
           <p>By pasting it into <strong>Sparrow</strong> (<em>File \u2192 Import Wallet \u2192 Output Descriptor</em>) or into Electrum, you get a read-only wallet: you see balance and movements in real time, but nobody \u2014 not even you, from there \u2014 can move the funds. The seed stays safe where it is, without ever touching a connected device.</p>
           <p>It's the best way to keep an eye on a cold wallet from your phone or your everyday computer.</p>
           <p><strong>A privacy warning:</strong> whoever holds the descriptor sees all your Bitcoin movements, present and future. They cannot spend, but it is like handing over a bank statement: share it only with someone you'd trust to see your accounts.</p>
+        </div></details>
+
+        <details class="faq" id="g-tails"><summary>\u{1F9C5} Opening the program in Tails</summary><div class="faq-body">
+          <p>In Tails the program opens in <strong>Tor Browser</strong>, which there may only read the files inside its own folder. Copy <em>amnesicwallet.html</em> into the <strong>Tor Browser</strong> folder of your home (or <em>Persistent \u2192 Tor Browser</em>, with the Persistent Storage), then open it from Tor Browser with <em>File \u2192 Open File</em>, or by dragging it into the window. Opened from a USB stick or from another folder, it does not load.</p>
+          <p>Tails can also be started with networking switched off, from its Welcome Screen. Tor Browser then warns that Tor is not ready: it can be started anyway, and the program needs no connection.</p>
+          <p>The program needs JavaScript: at Tor Browser's <em>Safest</em> security level it cannot start; at <em>Standard</em> it works. Everything it shows \u2014 QR codes, the networks' symbols, the guide \u2014 is drawn inside the file, with no font or image to fetch, so it looks the same in Tails as elsewhere.</p>
         </div></details>
 
         <details class="faq" id="g-verify"><summary>\u{1F50D} I have an old backup: how do I check it's good?</summary><div class="faq-body">

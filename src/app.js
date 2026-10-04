@@ -3801,6 +3801,12 @@ function renderGuideFaq() {
           <p><strong>A privacy warning:</strong> whoever holds the descriptor sees all your Bitcoin movements, present and future. They cannot spend, but it is like handing over a bank statement: share it only with someone you'd trust to see your accounts.</p>
         </div></details>
 
+        <details class="faq" id="g-tails"><summary>🧅 Opening the program in Tails</summary><div class="faq-body">
+          <p>In Tails the program opens in <strong>Tor Browser</strong>, which there may only read the files inside its own folder. Copy <em>amnesicwallet.html</em> into the <strong>Tor Browser</strong> folder of your home (or <em>Persistent → Tor Browser</em>, with the Persistent Storage), then open it from Tor Browser with <em>File → Open File</em>, or by dragging it into the window. Opened from a USB stick or from another folder, it does not load.</p>
+          <p>Tails can also be started with networking switched off, from its Welcome Screen. Tor Browser then warns that Tor is not ready: it can be started anyway, and the program needs no connection.</p>
+          <p>The program needs JavaScript: at Tor Browser's <em>Safest</em> security level it cannot start; at <em>Standard</em> it works. Everything it shows — QR codes, the networks' symbols, the guide — is drawn inside the file, with no font or image to fetch, so it looks the same in Tails as elsewhere.</p>
+        </div></details>
+
         <details class="faq" id="g-verify"><summary>🔍 I have an old backup: how do I check it's good?</summary><div class="faq-body">
           <p>Go to <strong>🔍 Check wallet</strong> and choose <strong>A complete seed</strong>. Type the words and the program shows you which addresses they generate, without changing anything and without taking the seed onto a connected device.</p>
           <p>If the addresses match those you remember or see in a blockchain explorer, the backup is correct. If they don't match, check in this order: the <strong>passphrase</strong> (had you set one?), the <strong>Bitcoin format</strong> (try the other three), and finally the <strong>later addresses</strong> using the button that shows ten more.</p>

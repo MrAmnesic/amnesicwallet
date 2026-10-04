@@ -5,6 +5,18 @@ Notable changes are recorded here, one entry per published version.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.3.2] — 2026-10
+
+### Added
+- **Opening the program in Tails**, a new FAQ entry: in Tails, Tor Browser
+  may only open files inside its own folder, so `amnesicwallet.html` goes
+  into the **Tor Browser** folder (or *Persistent → Tor Browser*).
+- **The browser tests also run as Tor Browser.** Firefox with Tor Browser's
+  settings at its *Safer* level — fingerprinting resistance with coarse
+  timers, no WebGL, no WebRTC, no JIT, no WebAssembly, no MathML — creates
+  wallets, checks seeds (BIP-39 and Electrum) and keys, on a computer screen
+  and the narrowest window. Nothing in the program had to change for it.
+
 ## [1.3.1] — 2026-10
 
 ### Changed
