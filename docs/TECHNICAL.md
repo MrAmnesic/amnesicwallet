@@ -2,7 +2,7 @@
 
 **Implementation specification, security model and declared limits**
 
-Document version: 1.8 — describes AmnesicWallet 1.3.0
+Document version: 1.9 — describes AmnesicWallet 1.3.1
 
 Reference: `amnesicwallet.html` — SHA-256 hash published with every release, in `SHA256SUMS` and on the official website, [amnesicwallet.com](https://amnesicwallet.com)
 
@@ -53,7 +53,7 @@ AmnesicWallet is a web application contained in a single HTML file that generate
 
 ### 2.1 Distribution model
 
-The product is a single self-contained HTML file. All libraries are embedded into it at build time. At runtime no external resource is requested: no CDN, no remote fonts, no external images. QR codes are drawn locally as SVG `data:` images, without a canvas: Tor Browser refuses to read a canvas back, and would show a blank square.
+The product is a single self-contained HTML file. All libraries are embedded into it at build time. At runtime no external resource is requested: no CDN, no remote fonts, no external images. The networks' symbols are drawn as SVG inside the file, so they appear even where no installed font contains them (as in Tails). QR codes are drawn locally as SVG `data:` images, without a canvas: Tor Browser refuses to read a canvas back, and would show a blank square.
 
 Verifiable consequence: the file behaves identically on a device that has never had connectivity.
 

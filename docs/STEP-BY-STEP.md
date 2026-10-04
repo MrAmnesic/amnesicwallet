@@ -76,7 +76,9 @@ AmnesicWallet does not sign transactions, by design: it stays a small generator 
 
 **◈.** **Ethereum and EVM networks → MetaMask or Rabby.**
 
-**◎.** **Solana → Phantom**, **TRON → TronLink**.
+**◎.** **Solana → Phantom.**
+
+**◆.** **TRON → TronLink.**
 
 **🛡.** **For significant amounts: hardware wallet.** Enter the seed into a Ledger or Trezor using the physical buttons. The key never touches the computer and transactions are signed inside the device.
 

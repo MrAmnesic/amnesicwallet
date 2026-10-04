@@ -325,10 +325,10 @@ export function classicSplit(words, n) {
    ADDRESSES
    ════════════════════════════════════════════════════════════════ */
 export const CHAINS = [
-  { id: 'btc', name: 'Bitcoin',  tag: 'Native SegWit',   icon: '₿' },
-  { id: 'eth', name: 'Ethereum', tag: 'EVM · 0x',        icon: 'Ξ' },
-  { id: 'trx', name: 'TRON',     tag: 'TRC-20 · Base58', icon: '◆' },
-  { id: 'sol', name: 'Solana',   tag: 'Base58',          icon: '◎' },
+  { id: 'btc', name: 'Bitcoin',  tag: 'Native SegWit' },
+  { id: 'eth', name: 'Ethereum', tag: 'EVM · 0x' },
+  { id: 'trx', name: 'TRON',     tag: 'TRC-20 · Base58' },
+  { id: 'sol', name: 'Solana',   tag: 'Base58' },
 ];
 
 export const BTC_FORMATS = {
@@ -399,7 +399,7 @@ export function deriveBTC(master, format, index = 0, account = 0) {
   return {
     name: `Bitcoin — ${f.label}`, symbol: 'BTC',
     address: btcAddressFromPubkey(master.derive(path).publicKey, fmt),
-    path, icon: '₿', btcFormat: fmt,
+    path, btcFormat: fmt,
   };
 }
 
@@ -481,13 +481,13 @@ function evmAddressBytes(compressedPubkey) {
 export function deriveETH(master, account = 0) {
   const path = `m/44'/60'/0'/0/${account}`;
   const address = toChecksumAddress(toHex(evmAddressBytes(master.derive(path).publicKey)));
-  return { name: 'Ethereum (EVM compatible)', symbol: 'ETH', address, path, icon: 'Ξ',
+  return { name: 'Ethereum (EVM compatible)', symbol: 'ETH', address, path,
     evmChains: ['Ethereum', 'BSC', 'Polygon', 'Arbitrum', 'Avalanche', 'Optimism', 'Base'] };
 }
 
 export function deriveTRX(master, account = 0) {
   const path = `m/44'/195'/0'/0/${account}`;
-  return { name: 'TRON (TRC-20)', symbol: 'TRX', address: b58check(0x41, evmAddressBytes(master.derive(path).publicKey)), path, icon: '◆' };
+  return { name: 'TRON (TRC-20)', symbol: 'TRX', address: b58check(0x41, evmAddressBytes(master.derive(path).publicKey)), path };
 }
 
 /* SLIP-10 for ed25519: hardened derivation only. */
@@ -510,7 +510,7 @@ export function deriveSOL(seed, account = 0) {
   const { key } = slip10Ed25519(seed, [44, 501, account, 0]);
   const address = base58.encode(ed25519.getPublicKey(key));
   key.fill(0);
-  return { name: 'Solana', symbol: 'SOL', address, path: `m/44'/501'/${account}'/0'`, icon: '◎' };
+  return { name: 'Solana', symbol: 'SOL', address, path: `m/44'/501'/${account}'/0'` };
 }
 
 export function deriveAll(seed, selected, btcFormat, account = 0) {

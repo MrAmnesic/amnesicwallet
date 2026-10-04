@@ -236,6 +236,7 @@ async function run(browser, engine, device) {
   await page.locator('#results-card .address-qr img').nth(3).waitFor();
   const qrs = await page.locator('#results-card .address-qr img').evaluateAll((els) => els.map((e) => e.getAttribute('src')));
   check(qrs.every((s) => s.startsWith('data:image/svg+xml;base64,')), 'every address has its QR code, drawn without a canvas');
+  check(await page.locator('#results-card .addr-icon svg').count() === 4, "every network's symbol is drawn (SVG), not a font character");
   await noteLayout('addresses');
 
   /* 1b. A Shamir wallet (and, on the computer, a SLIP-39 wallet) */

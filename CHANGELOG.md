@@ -5,6 +5,18 @@ Notable changes are recorded here, one entry per published version.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.3.1] — 2026-10
+
+### Changed
+- **The four networks have their own symbols**, in their colours: Bitcoin
+  orange, Ethereum grey, TRON red, Solana green. They are drawn inside the
+  file (SVG) instead of being text characters.
+
+### Fixed
+- **The Bitcoin symbol in Tails.** The ₿ character needs a font that
+  contains it, and Tails has none, so an empty box appeared. The symbols no
+  longer depend on any font.
+
 ## [1.3.0] — 2026-10
 
 ### Added
