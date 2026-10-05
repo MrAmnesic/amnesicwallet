@@ -6,7 +6,8 @@
  *
  * It runs in the three browser engines:
  *   - Chromium: Chrome, Edge, Brave, most Android browsers;
- *   - Firefox:  Firefox, and Tor Browser (the browser of Tails);
+ *   - Firefox:  Firefox; and once more with Tor Browser's settings, the
+ *               browser of Tails (privacy protections, Safer level);
  *   - WebKit:   Safari, and the browsers on an iPhone.
  *
  * For each browser and screen size it checks that:
@@ -37,6 +38,7 @@
  * there the phone sizes are narrow windows, used with mouse and keyboard.
  *
  * Browsers: Playwright's (`npx playwright install chromium firefox webkit`).
+ * "torbrowser" is Firefox again, with Tor Browser's settings (see BROWSERS).
  * BROWSERS=chromium,firefox limits the run to some of them; another
  * Chromium can be named with CHROMIUM_PATH.
  */
@@ -64,6 +66,25 @@ const BROWSERS = {
   chromium: { name: 'Chromium', type: chromium, phone: 'finger' },
   firefox: { name: 'Firefox', type: firefox, phone: 'window' },
   webkit: { name: 'WebKit', type: webkit, phone: 'tap' },
+  // Firefox set up as Tor Browser (the browser of Tails) at its "Safer"
+  // security level: fingerprinting protection (coarse timers, spoofed
+  // screen and keyboard, light theme), no WebGL, no WebRTC, no JIT, no
+  // WebAssembly, no MathML, no SVG fonts. Tor Browser is a computer program:
+  // a computer screen and the narrowest window.
+  torbrowser: {
+    name: 'Firefox as Tor Browser (Safer level)', type: firefox, phone: 'window', devices: [0, 2],
+    prefs: {
+      'privacy.resistFingerprinting': true,
+      'webgl.disabled': true,
+      'media.peerconnection.enabled': false,
+      'javascript.options.ion': false,
+      'javascript.options.baselinejit': false,
+      'javascript.options.native_regexp': false,
+      'javascript.options.wasm': false,
+      'mathml.disabled': true,
+      'gfx.font_rendering.opentype_svg.enabled': false,
+    },
+  },
 };
 
 const DEVICES = [
@@ -418,7 +439,7 @@ async function run(browser, engine, device) {
 const wanted = (process.env.BROWSERS || Object.keys(BROWSERS).join(',')).split(',').map((b) => b.trim()).filter(Boolean);
 const unknown = wanted.filter((b) => !BROWSERS[b]);
 if (!wanted.length || unknown.length) {
-  console.error(`BROWSERS: unknown ${unknown.join(', ') || '(empty)'}; use chromium, firefox, webkit.`);
+  console.error(`BROWSERS: unknown ${unknown.join(', ') || '(empty)'}; use ${Object.keys(BROWSERS).join(', ')}.`);
   process.exit(1);
 }
 
@@ -426,7 +447,10 @@ for (const id of wanted) {
   const engine = BROWSERS[id];
   let browser;
   try {
-    browser = await engine.type.launch(id === 'chromium' && process.env.CHROMIUM_PATH ? { executablePath: process.env.CHROMIUM_PATH } : {});
+    browser = await engine.type.launch({
+      ...(id === 'chromium' && process.env.CHROMIUM_PATH ? { executablePath: process.env.CHROMIUM_PATH } : {}),
+      ...(engine.prefs ? { firefoxUserPrefs: engine.prefs } : {}),
+    });
   } catch (e) {
     failed++;
     console.log(`\n${engine.name}\n  ✗ cannot start: ${e.message.split('\n')[0]}`);
@@ -434,7 +458,7 @@ for (const id of wanted) {
     continue;
   }
   try {
-    for (const device of DEVICES) {
+    for (const device of engine.devices ? engine.devices.map((i) => DEVICES[i]) : DEVICES) {
       try { await run(browser, engine, device); }
       catch (e) { failed++; console.log(`  ✗ stopped while ${step}: ` + e.message.split('\n')[0]); }
     }

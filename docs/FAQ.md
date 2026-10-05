@@ -174,6 +174,16 @@ It's the best way to keep an eye on a cold wallet from your phone or your everyd
 
 ---
 
+## 🧅 Opening the program in Tails
+
+In Tails the program opens in **Tor Browser**, which there may only read the files inside its own folder. Copy *amnesicwallet.html* into the **Tor Browser** folder of your home (or *Persistent → Tor Browser*, with the Persistent Storage), then open it from Tor Browser with *File → Open File*, or by dragging it into the window. Opened from a USB stick or from another folder, it does not load.
+
+Tails can also be started with networking switched off, from its Welcome Screen. Tor Browser then warns that Tor is not ready: it can be started anyway, and the program needs no connection.
+
+The program needs JavaScript: at Tor Browser's *Safest* security level it cannot start; at *Standard* it works. Everything it shows — QR codes, the networks' symbols, the guide — is drawn inside the file, with no font or image to fetch, so it looks the same in Tails as elsewhere.
+
+---
+
 ## 🔍 I have an old backup: how do I check it's good?
 
 Go to **🔍 Check wallet** and choose **A complete seed**. Type the words and the program shows you which addresses they generate, without changing anything and without taking the seed onto a connected device.

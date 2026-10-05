@@ -2,7 +2,7 @@
 
 **Implementation specification, security model and declared limits**
 
-Document version: 1.9 — describes AmnesicWallet 1.3.1
+Document version: 1.10 — describes AmnesicWallet 1.3.2
 
 Reference: `amnesicwallet.html` — SHA-256 hash published with every release, in `SHA256SUMS` and on the official website, [amnesicwallet.com](https://amnesicwallet.com)
 
@@ -150,6 +150,8 @@ The security of a deterministic wallet depends entirely on the unpredictability 
 **Typing dynamics.** For every keystroke, the key value and a high-resolution timestamp (`performance.now()`) are recorded; the useful contribution lies mainly in the intervals. Thresholds: 20 keystrokes, 5 seconds, 10 distinct keys. On phones, whose on-screen keyboards do not report keys, the characters are read from the input field instead.
 
 **Pointer dynamics.** Coordinates and timestamps of mouse or finger movement. Progress requires, jointly: 8 seconds, 100 events, 1000 px travelled and 8 changes of direction.
+
+**Coarse timers.** Browsers that resist fingerprinting — Tor Browser, and so Tails — round `performance.now()` to tens of milliseconds. The intervals then carry less unpredictability; the thresholds are still reached in the same way, and the system CSPRNG, which is always part of the mix (3.3), does not depend on them.
 
 **Dice (optional).** Rolls entered by the user: log₂6 ≈ 2.585 bits each, so 50 rolls for 128 bits and 100 for 256 bits. With two dice thrown together, identical dice cannot be told apart and people tend to enter the smaller number first; a pair is then worth log₂21 ≈ 4.39 bits, so the program asks for 30 double rolls (128 bits) or 59 (256 bits). The only source generated entirely outside the computer.
 
@@ -454,7 +456,7 @@ Canonical mnemonic `abandon × 11 + about`, no passphrase:
 | TRON | `TUEZSdKsoDHQMeZwihtdoBiN46zxhGWYdH` |
 | Solana | `HAgk14JpMQLgt6rVgv7cBQFJWFto5Dqxi472uT3DKpqk` |
 
-`npm run test:ui` then uses the built file itself, in the three browser engines (Chromium, Firefox, WebKit), on a computer screen and on two phone sizes. It creates a wallet from start to finish and checks that the words form a valid seed and that the addresses shown are the ones that seed gives; it checks known seeds in Check wallet against the independent values above, together with a mistyped word, each network's accounts and derivations, change addresses, the address search, an Electrum seed, and the check with a public key only; and it fails on any page error, any network request, or any screen wider than the display. Canvas read-back is refused throughout, as Tor Browser does. Continuous integration runs it on every change.
+`npm run test:ui` then uses the built file itself, in the three browser engines (Chromium, Firefox, WebKit), on a computer screen and on two phone sizes, and once more in Firefox with Tor Browser's settings at its *Safer* level (fingerprinting resistance with coarse timers, no WebGL, no WebRTC, no JIT, no WebAssembly, no MathML), on a computer screen and the narrowest window. It creates a wallet from start to finish and checks that the words form a valid seed and that the addresses shown are the ones that seed gives; it checks known seeds in Check wallet against the independent values above, together with a mistyped word, each network's accounts and derivations, change addresses, the address search, an Electrum seed, and the check with a public key only; and it fails on any page error, any network request, or any screen wider than the display. Canvas read-back is refused throughout, as Tor Browser does. Every character the page displays has been checked against the fonts Tor Browser ships for Linux, the only ones it uses. Continuous integration runs it on every change.
 
 ### 8.4 Verifying the absence of network traffic
 
