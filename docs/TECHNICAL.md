@@ -378,7 +378,7 @@ The model does **not** protect against:
 - user error in keeping the backups, or loss of the passphrase;
 - vulnerabilities in the browser engine or in the embedded libraries;
 - the clipboard: words copied with the Copy button stay there until overwritten, and some systems keep a clipboard history;
-- **memory remanence.** JavaScript offers no way to guarantee that a value is erased: strings are immutable and the garbage collector decides when memory is reused. The program overwrites the buffers it controls, and "Generate a new wallet" drops every secret of the session (wallet, seeds being checked, multisig keys) and closes the print windows it opened; but only closing the tab — better, shutting down a live system such as Tails — releases everything.
+- **memory remanence.** JavaScript offers no way to guarantee that a value is erased: strings are immutable and the garbage collector decides when memory is reused. The program overwrites the buffers it controls, and "Generate a new wallet" drops every secret of the session (wallet, seeds being checked, multisig keys) and removes the hidden frame used for printing (pages are printed from a frame of the page itself, never from a new tab); but only closing the tab — better, shutting down a live system such as Tails — releases everything.
 
 For these reasons the documentation recommends running the tool on a system isolated from the network, preferably booted from removable media without persistence.
 

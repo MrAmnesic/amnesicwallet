@@ -14,13 +14,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   "Part 2 of 5", the threshold and the line naming the program are gone.
 - **Printed SLIP-39 sheets carry only their words.** Each share already
   contains, inside its words, its number and the threshold.
-- Print windows are all titled "Document".
+- Printed pages are titled "Document".
 - **Each Shamir part's number is essential, and the program says so**: on
   the parts, when one is copied, in Check wallet → Shamir backup and in
   the FAQ. The order in which parts are
   entered does not matter; each part must go in with its own number.
 - The words, the parts and every backup format are unchanged; parts and
   sheets printed by earlier versions still work.
+
+### Fixed
+- **The page froze after printing** (Chrome, Edge): printing opened a new
+  tab, and for as long as that tab's print dialog stayed open the page could
+  not be scrolled or used, even when coming back to it. Pages are now
+  printed from a hidden frame of the page itself: the print dialog opens
+  over the page, and no tab holding the words is left behind.
+- Check wallet → Shamir backup said the part number was printed as "Part 2
+  of 5"; it now points to the corner of the sheet ("2 · A3F9"), and still
+  mentions the older sheets.
 
 ## [1.3.2] — 2026-10
 

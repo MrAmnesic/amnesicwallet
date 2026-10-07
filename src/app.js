@@ -120,25 +120,30 @@ function showToast(msg, type) {
   requestAnimationFrame(() => toast.classList.add('toast-show'));
   setTimeout(() => { toast.classList.remove('toast-show'); setTimeout(() => toast.remove(), 300); }, 2600);
 }
-const printWindows = [];            // closed when the user removes everything from the page
+/* Printing happens from a hidden frame of this page, not from a new tab.
+   A print started in another tab froze this one (Chromium, Edge) for as long
+   as that tab's print dialog stayed open, and left a tab holding the words.
+   The frame is removed when the print is over, before the next print, and
+   when the user removes everything from the page. */
+const printFrames = [];
+function removePrintFrames() {
+  while (printFrames.length) { try { printFrames.pop().remove(); } catch (_) {} }
+}
 function printHTML(html) {
-  const doc = html.replace(/^\s+/, '');
-  const win = window.open('', '_blank');
-  if (win) {
-    printWindows.push(win);
-    win.document.write(doc); win.document.close(); win.focus();
-    setTimeout(() => win.print(), 500);
-    return;
-  }
+  removePrintFrames();
   const iframe = document.createElement('iframe');
+  iframe.setAttribute('aria-hidden', 'true');
+  iframe.tabIndex = -1;
   iframe.style.cssText = 'position:fixed;left:-9999px;top:-9999px;width:0;height:0;border:none';
   document.body.appendChild(iframe);
-  const idoc = iframe.contentDocument || iframe.contentWindow.document;
-  idoc.open(); idoc.write(doc); idoc.close();
-  setTimeout(() => {
-    iframe.contentWindow.focus(); iframe.contentWindow.print();
-    setTimeout(() => document.body.removeChild(iframe), 1000);
-  }, 500);
+  printFrames.push(iframe);
+  const w = iframe.contentWindow;
+  w.document.open(); w.document.write(html.replace(/^\s+/, '')); w.document.close();
+  w.addEventListener('afterprint', () => setTimeout(() => {
+    const i = printFrames.indexOf(iframe);
+    if (i >= 0) { printFrames.splice(i, 1); iframe.remove(); }
+  }, 0));
+  setTimeout(() => { w.focus(); w.print(); }, 500);
 }
 
 /* ════════════════════════════════════════════════════════════════
@@ -2196,7 +2201,7 @@ function renderPartsCard() {
         : `Only <strong>${m} of ${n}</strong> are needed to get the seed back. Keep them in different places.`}</p>
       ${classic ? '' : `<div class="warn-box" style="margin:8px 0 12px">🔢 <strong>Each part goes with its number.</strong> To rebuild the seed, every part must be entered with its own number — the order does not matter, the number does. A part whose number is unknown cannot be used. The printed sheet carries it in a corner, next to the verification code: <strong>“3 · ${escapeHtml(code)}”</strong> is part 3. If you copy a part by hand, write its number next to it.</div>`}
       <p class="hint" style="margin-bottom:14px">They stay here until you close the page or press Generate a new wallet.</p>
-      ${code ? `<div class="ok-box" style="margin-bottom:14px">Verification code: <strong>${escapeHtml(code)}</strong> &mdash; write it on every sheet. It confirms, at recovery time, that the reassembled seed is the right one.</div>` : ''}
+      ${code ? `<div class="ok-box" style="margin-bottom:14px">Verification code: <strong>${escapeHtml(code)}</strong>. It confirms, at recovery time, that the reassembled seed is the right one.</div>` : ''}
       <div class="keys-list">${rows}</div>
       <div class="ov-row" style="margin-top:16px">
         <button class="btn btn-primary" id="pc-print-all">🖨️ Print all parts</button>
@@ -2426,21 +2431,21 @@ function resetWalletState() {
 }
 
 /* "Generate a new wallet": nothing secret from this session stays in the
-   page — the wallet, the Check tab, the multisig keys, the print windows. */
+   page — the wallet, the Check tab, the multisig keys, what was prepared for printing. */
 function clearEverything() {
   resetWalletState();
   vfSeed = null; vfMnemonic = null; vfResults = null; csResults = null;
   vfCards = newVfCards(); vfFind = null; xp = null; vfElectrum = null; vfAlsoElectrum = ''; vfSource = null;
   msMyXpub = null; msSoloSeeds = null; msSoloVault = null; msSoloRevealed = []; msSoloConfig = null;
   recParts = [{}, {}, {}];
-  while (printWindows.length) { try { printWindows.pop().close(); } catch (_) {} }
+  removePrintFrames();
 }
 
 function handleReset() {
   overlayRoot().innerHTML = `
     <div class="ov"><div class="ov-card ov-narrow">
       <h3>Generate a new wallet?</h3>
-      <p>The current wallet will be removed from this page and cannot be brought back here — together with anything else still open in this session: seeds being checked, multisig keys, print windows. Only proceed if you have already saved the words safely.</p>
+      <p>The current wallet will be removed from this page and cannot be brought back here — together with anything else still open in this session: seeds being checked, multisig keys, pages prepared for printing. Only proceed if you have already saved the words safely.</p>
       <div class="ov-row" style="margin-top:18px">
         <button class="btn btn-outline" id="rs-no">Cancel</button>
         <button class="btn btn-primary" id="rs-yes">Yes, generate a new wallet</button>
@@ -2959,7 +2964,7 @@ function recPartRow(i) {
       <div class="rec-part-head">
         <span>Part</span>
         <select class="inp rec-x" style="width:70px">${Array.from({length:16},(_,k)=>`<option value="${k+1}">${k+1}</option>`).join('')}</select>
-        <span class="hint">as printed on the sheet: "Part <strong>2</strong> of 5"</span>
+        <span class="hint">the number in the corner of the sheet, before the code: “<strong>2</strong> · A3F9” (older sheets: “Part <strong>2</strong> of 5”)</span>
       </div>
       <textarea class="inp rec-words" rows="2" placeholder="The words of this part, separated by spaces" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false"></textarea>
     </div>`;
