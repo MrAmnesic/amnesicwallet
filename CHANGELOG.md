@@ -36,6 +36,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   browser saves downloads. Nothing is sent anywhere: the file is made in the
   page.
 - *View xpub and descriptor* now sits right after *Copy*.
+- **Each Shamir part and each SLIP-39 sheet** can now also be saved as
+  .txt and written as a powers-of-2 grid, like the seed. A part's file and
+  grid carry its number and verification code ("2 · A3F9"); a SLIP-39 grid
+  uses the SLIP-39 list of 1024 words (eleven columns), whose numbered list
+  the program prints too.
+- **A SLIP-39 wallet shows its xpub and descriptor** (*View xpub and
+  descriptor*, next to *Print all sheets*).
+- **Better suggestions for a mistyped word.** When one word of a seed is not
+  in the list, only the close words that make the whole seed valid are
+  suggested: the right one is now almost always among them (in tests, every
+  time for a one- or two-letter slip in a 24-word seed). When every word is
+  in the list but they do not fit together, the program lists the single
+  changes that would make them fit — a word one letter away, or two
+  neighbouring words in the other order — to compare with the backup.
+- The same diagnosis now appears in Check wallet → Shamir backup (both when
+  converting a seed and when entering a part) and in the multisig screens,
+  which used to say only that the words were not valid.
 
 ### Fixed
 - **The page froze after printing** (Chrome, Edge): printing opened a new

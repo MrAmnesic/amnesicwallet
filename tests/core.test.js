@@ -446,6 +446,13 @@ group('Powers-of-2 grid');
   eq(rows[0].marks.filter(Boolean).length, 1, 'no row is ever empty');
   check(rows.every((r) => r.marks.reduce((s, on, i) => s + (on ? [2048, 1024, 512, 256, 128, 64, 32, 16, 8, 4, 2, 1][i] : 0), 0) === r.n), 'the marks add up to the number');
   throws(() => metalRows('abandon bitcoinz'), 'a word outside the dictionary is refused');
+  // SLIP-39 dictionary: positions from the official wordlist.txt of
+  // trezor/python-shamir-mnemonic (academic = line 1, zero = line 1024).
+  const sr = metalRows('academic acid husband lunar zero', 'slip39');
+  eq(sr.map((r) => r.n).join(' '), '1 2 449 544 1024', 'SLIP-39 words are numbered as in the official list');
+  eq(sr[0].marks.length, 11, 'a SLIP-39 row has 11 columns, 1024 down to 1');
+  check(sr.every((r) => r.marks.reduce((s, on, i) => s + (on ? [1024, 512, 256, 128, 64, 32, 16, 8, 4, 2, 1][i] : 0), 0) === r.n), 'the SLIP-39 marks add up to the number');
+  throws(() => metalRows('abandon', 'slip39'), 'a BIP-39-only word is refused in a SLIP-39 grid');
   done('grid');
 }
 
@@ -638,6 +645,35 @@ group('Seed diagnosis — which word is wrong');
   check(d.count === 0 && !d.valid, 'empty');
   d = diagnoseMnemonic('abandon abandonn zooo about');
   eq(d.unknown.map(u => u.position).join(','), '2,3', 'several unknown words, each with its position');
+
+  // Official vectors (trezor/python-mnemonic) with one word misspelt: the
+  // checksum leaves the right word among the suggestions — even three
+  // letters off — and every suggestion makes the seed valid.
+  for (const [k, pos, typo] of [[2, 4, 'amout'], [9, 0, 'lgeal'], [15, 3, 'crd'], [17, 21, 'drvie'], [23, 7, 'heavyy'], [20, 6, 'hoel'], [12, 9, 'eldr']]) {
+    const w = BIP39[k][1].split(' ');
+    const right = w[pos];
+    w[pos] = typo;
+    const u = diagnoseMnemonic(w.join(' ')).unknown[0];
+    check(u.checked && u.suggestions.includes(right), `"${typo}": the suggestions include "${right}"`);
+    check(u.suggestions.every((c) => { const x = w.slice(); x[pos] = c; return validateMnemonic(x.join(' '), wordlist); }), `"${typo}": every suggestion makes the seed valid`);
+  }
+  {
+    const w = BIP39[23][1].split(' ');          // 24 words: 8 check bits
+    const right = w[5];
+    w[5] = 'svrvey';                            // two letters off "survey"
+    eq(diagnoseMnemonic(w.join(' ')).unknown[0].suggestions[0], right, 'a 24-word seed: the right word comes first');
+  }
+  {
+    // Every word in the list, checksum broken: the leads include the right change
+    const w = BIP39[18][1].split(' ');          // "cat swing flag ..."
+    const x = w.slice(); x[0] = 'hat';          // "cat" -> "hat": one letter
+    const d3 = diagnoseMnemonic(x.join(' '));
+    if (!d3.valid) check(d3.fixes.some((f) => f.kind === 'word' && f.position === 1 && f.to === 'cat'), 'checksum broken by a similar word: "hat" -> "cat" is among the leads');
+    const y = w.slice(); [y[4], y[5]] = [y[5], y[4]];
+    const d4 = diagnoseMnemonic(y.join(' '));
+    if (!d4.valid) check(d4.fixes.some((f) => f.kind === 'swap' && f.position === 5), 'two words in the wrong order: the swap is among the leads');
+    check(d3.fixes.concat(d4.fixes).length <= 12, 'at most six leads each');
+  }
 
   // Every official vector is diagnosed as valid; one changed word never is
   for (const v of BIP39) {

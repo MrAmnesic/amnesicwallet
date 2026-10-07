@@ -24,7 +24,7 @@
  */
 
 import {
-  WORD_OPTIONS, ENT_BYTES, CHAINS, BTC_FORMATS, METAL_COLS,
+  WORD_OPTIONS, ENT_BYTES, CHAINS, BTC_FORMATS, METAL_COLS, SLIP39_METAL_COLS, slip39Wordlist,
   isSecureRandomAvailable, combineEntropy, createMouseCollector, createTypingCollector,
   diceRollsNeeded, diceBytesFrom, shamirSplit, shamirCombine, verificationCode, classicSplit,
   deriveAll, deriveBTC, deriveBTCMany, btcAccountInfo, btcPath, deriveMultisigXpub, multisigAddress, KeyError,
@@ -464,15 +464,7 @@ function wireConvertShamir() {
     const words = (ta.value || '').trim().toLowerCase().replace(/\s+/g, ' ');
     const err = document.getElementById('cv-err');
     if (!words) { err.innerHTML = '<span style="color:var(--danger)">Type the words of your seed.</span>'; return; }
-    const n = words.split(' ').length;
-    if (![12, 15, 18, 21, 24].includes(n)) {
-      err.innerHTML = `<span style="color:var(--danger)">You typed ${n} words. A BIP-39 seed has 12, 15, 18, 21 or 24.</span>`;
-      return;
-    }
-    if (!validateMnemonic(words, wordlist)) {
-      err.innerHTML = '<span style="color:var(--danger)">These words do not form a valid seed. It is usually a typo or a similar but different word: check them one by one.</span>';
-      return;
-    }
+    if (!validateMnemonic(words, wordlist)) { err.innerHTML = diagnosisHTML(diagnoseMnemonic(words), false); return; }
     const { n: parts, m: needed } = readThreshold('cv');
     try {
       resetWalletState();
@@ -992,21 +984,44 @@ function wireVerify() {
 
 /* What is wrong with the typed words, in words a person can act on:
    which position, what was typed, which list words are close to it. */
-function diagnosisHTML(d) {
+function diagnosisHTML(d, buttons = true) {
   if (!d.count) return '<div class="warn-box">Type the words of your seed.</div>';
   const parts = [];
   if (!d.countOk) parts.push(`You typed <strong>${d.count}</strong> ${d.count === 1 ? 'word' : 'words'}. A BIP-39 seed has 12, 15, 18, 21 or 24.`);
+  // With buttons (Check wallet) a suggestion replaces the word in the box;
+  // elsewhere it is only named.
+  const pick = (u, w) => buttons
+    ? `<button class="btn btn-outline btn-small vf-sugg" data-pos="${u.position}" data-word="${w}">${w}</button>`
+    : `<strong>${w}</strong>`;
   for (const u of d.unknown) {
     parts.push(`Word <strong>${u.position}</strong>, “${escapeHtml(u.word)}”, is not in the list of BIP-39 words. ` +
       (u.suggestions.length
-        ? `Did you mean ${u.suggestions.map(w => `<button class="btn btn-outline btn-small vf-sugg" data-pos="${u.position}" data-word="${w}">${w}</button>`).join(' ')}?`
-        : 'No list word is close to it: look at it again on your sheet.'));
+        ? `${u.checked ? (u.suggestions.length > 1 ? 'These list words, close to it, make the whole seed valid: ' : 'This list word, close to it, makes the whole seed valid: ') : 'Did you mean '}${u.suggestions.map(w => pick(u, w)).join(' ')}${u.checked ? '. Choose the one on your sheet.' : '?'}`
+        : u.checked
+          ? 'No list word close to it makes the seed valid: look at it again on your sheet, and at the other words too.'
+          : 'No list word is close to it: look at it again on your sheet.'));
   }
   if (d.countOk && !d.unknown.length && !d.checksumOk) {
     parts.push(`All ${d.count} words are in the list, but they do not fit together: the last word also works as a check on all the others, and here it does not match. Usually one word is a different but similar list word, or two words are in the wrong order. Compare them one by one with your sheet.`);
-    parts.push('They are not an Electrum seed either: if they come from Electrum, one word is different there too.');
+    if (d.fixes.length) {
+      parts.push(`Changes that would make them fit — check which one matches your sheet; more than one can fit by chance:<br>` +
+        d.fixes.map(f => f.kind === 'swap'
+          ? `· words ${f.position} and ${f.position + 1} in the other order (“${escapeHtml(f.to)} ${escapeHtml(f.from)}”)`
+          : `· word ${f.position}: “${escapeHtml(f.from)}” → ${pick(f, f.to)}`).join('<br>'));
+    }
+    if (buttons) parts.push('They are not an Electrum seed either: if they come from Electrum, one word is different there too.');
   }
   return `<div class="warn-box">${parts.map(t => `<p style="margin:4px 0">${t}</p>`).join('')}</div>`;
+}
+
+/* The same, in one line for a message: the first problem only. */
+function diagnosisText(d) {
+  if (!d.countOk) return `${d.count} words: a BIP-39 seed has 12, 15, 18, 21 or 24.`;
+  const u = d.unknown[0];
+  if (u) return `Word ${u.position}, “${u.word}”, is not a BIP-39 word${u.suggestions.length ? ` — perhaps ${u.suggestions.join(', ')}` : ''}.`;
+  const f = d.fixes[0];
+  return 'All the words are in the list but they do not fit together: usually one is a similar list word.'
+    + (f ? ` One possible change, to compare with your sheet: ${f.kind === 'swap' ? `words ${f.position} and ${f.position + 1} in the other order` : `word ${f.position}, “${f.from}” → “${f.to}”`}.` : '');
 }
 
 function showDiagnosis(d) {
@@ -1494,6 +1509,8 @@ function renderSlipView() {
                 <button class="btn btn-outline btn-small sl-reveal" data-i="${i}">${open ? '🙈 Hide' : '👁️ Reveal'}</button>
                 <button class="btn btn-outline btn-small sl-copy" data-i="${i}">📋 Copy</button>
                 <button class="btn btn-outline btn-small sl-print" data-i="${i}">🖨️ Print</button>
+                <button class="btn btn-outline btn-small sl-txt" data-i="${i}">💾 Save as .txt</button>
+                <button class="btn btn-outline btn-small sl-metal" data-i="${i}">🔢 Powers of 2</button>
                 <button class="btn btn-outline btn-small sl-check" data-i="${i}">✅ Check again</button>
               </div>
             </div>`;
@@ -1501,8 +1518,10 @@ function renderSlipView() {
         </div>
         <div class="ov-row" style="margin-top:16px">
           <button class="btn btn-primary" id="slip-print-all">🖨️ Print all sheets</button>
+          ${watchButton()}
           <button class="btn btn-ghost btn-danger btn-small" id="slip-reset">✕ Start over</button>
         </div>
+        <div id="watch-panel"></div>
         <div class="note-box" style="margin-top:12px">The first three words are the same on every sheet: they identify this backup and tell you at a glance whether you are combining sheets from the same set.</div>
       </div>
 
@@ -1528,7 +1547,6 @@ function renderSlipView() {
           </div>
         </div>
         <button id="btn-derive" class="btn btn-primary">Calculate the addresses</button>
-        <div id="watch-panel"></div>
         <div id="results-container"></div>
       </div>
     </section>`;
@@ -1543,6 +1561,11 @@ function wireSlipView() {
     catch (_) { showToast('Copy failed.', 'error'); }
   }));
   document.querySelectorAll('.sl-print').forEach(b => b.addEventListener('click', () => printSlipShare(+b.dataset.i)));
+  const sheetSrc = (i) => ({ words: slipShares[i], kind: 'slip39', label: `Sheet ${i + 1}` });
+  document.querySelectorAll('.sl-txt').forEach(b => b.addEventListener('click', () => handleSaveSeedTxt(sheetSrc(+b.dataset.i))));
+  document.querySelectorAll('.sl-metal').forEach(b => b.addEventListener('click', () => showMetalIntro(sheetSrc(+b.dataset.i))));
+  document.getElementById('btn-watch')?.addEventListener('click', toggleWatch);
+  syncWatchPanel();                        // after a redraw, an open panel stays open
   document.querySelectorAll('.sl-check').forEach(b => b.addEventListener('click', () => {
     const i = +b.dataset.i;
     showVerifyBackup(slipShares[i], `Sheet ${i + 1} of ${slipConfig.n}`);
@@ -2146,6 +2169,23 @@ function wireWatchCard() {
   });
 }
 
+function toggleWatch() {
+  const panel = document.getElementById('watch-panel');
+  if (watchRevealed) {                       // second press: close again
+    watchRevealed = false; panel.innerHTML = '';
+    document.getElementById('btn-watch').innerHTML = '👁️ View xpub and descriptor';
+    return;
+  }
+  try {
+    if (!btcAccount) btcAccount = btcAccountInfo(currentSeed, btcFormat);
+    watchRevealed = true;
+    panel.innerHTML = renderWatchPanel();
+    wireWatchCard();
+    document.getElementById('btn-watch').innerHTML = '🙈 Hide xpub and descriptor';
+    panel.scrollIntoView?.({ behavior: 'smooth', block: 'nearest' });
+  } catch (err) { showToast('Error: ' + err.message, 'error'); }
+}
+
 function renderWatchPanel() {
   const a = btcAccount;
   return `
@@ -2186,6 +2226,8 @@ function renderPartsCard() {
           <button class="btn btn-outline btn-small pc-reveal" data-i="${i}">${open ? '🙈 Hide' : '👁️ Reveal'}</button>
           <button class="btn btn-outline btn-small pc-copy" data-i="${i}">📋 Copy</button>
           <button class="btn btn-outline btn-small pc-print" data-i="${i}">🖨️ Print</button>
+          <button class="btn btn-outline btn-small pc-txt" data-i="${i}">💾 Save as .txt</button>
+          <button class="btn btn-outline btn-small pc-metal" data-i="${i}">🔢 Powers of 2</button>
           <button class="btn btn-outline btn-small pc-check" data-i="${i}">✅ Check again</button>
         </div>
       </div>`;
@@ -2225,6 +2267,13 @@ function wirePartsCard() {
   document.querySelectorAll('.pc-print').forEach(b => b.addEventListener('click', () => {
     printShamirPart(shamirParts[+b.dataset.i], n, m, code, classic);
   }));
+  // What a part's .txt file and powers-of-2 grid carry: its words, where they
+  // start, and for a Shamir part its number (with the code) in a corner.
+  const partSrc = (p) => classic
+    ? { words: p.words.join(' '), offset: p.from - 1, label: `Part ${p.x} of ${n}` }
+    : { words: p.words, corner: `${p.x}${code ? ` · ${code}` : ''}`, label: `Part ${p.x} of ${n}` };
+  document.querySelectorAll('.pc-txt').forEach(b => b.addEventListener('click', () => handleSaveSeedTxt(partSrc(shamirParts[+b.dataset.i]))));
+  document.querySelectorAll('.pc-metal').forEach(b => b.addEventListener('click', () => showMetalIntro(partSrc(shamirParts[+b.dataset.i]))));
   document.querySelectorAll('.pc-check').forEach(b => b.addEventListener('click', () => {
     const p = shamirParts[+b.dataset.i];
     const str = classic ? p.words.join(' ') : p.words;
@@ -2334,23 +2383,9 @@ function wireWalletView() {
   document.getElementById('btn-copy-seed')?.addEventListener('click', handleCopySeed);
   document.getElementById('btn-print-seed')?.addEventListener('click', handlePrintSeed);
   document.getElementById('btn-txt-seed')?.addEventListener('click', () => handleSaveSeedTxt());
-  document.getElementById('btn-metal')?.addEventListener('click', showMetalIntro);
-  document.getElementById('btn-watch')?.addEventListener('click', () => {
-    const panel = document.getElementById('watch-panel');
-    if (watchRevealed) {                       // second press: close again
-      watchRevealed = false; panel.innerHTML = '';
-      document.getElementById('btn-watch').innerHTML = '👁️ View xpub and descriptor';
-      return;
-    }
-    try {
-      if (!btcAccount) btcAccount = btcAccountInfo(currentSeed, btcFormat);
-      watchRevealed = true;
-      panel.innerHTML = renderWatchPanel();
-      wireWatchCard();
-      document.getElementById('btn-watch').innerHTML = '🙈 Hide xpub and descriptor';
-      panel.scrollIntoView?.({ behavior: 'smooth', block: 'nearest' });
-    } catch (err) { showToast('Error: ' + err.message, 'error'); }
-  });
+  document.getElementById('btn-metal')?.addEventListener('click', () => showMetalIntro());
+  document.getElementById('btn-watch')?.addEventListener('click', toggleWatch);
+  syncWatchPanel();                        // after a redraw, an open panel stays open
 
   document.getElementById('btn-verify-backup')?.addEventListener('click', () => showVerifyBackup());
   document.getElementById('btn-split-seed')?.addEventListener('click', showClassicSplitSetup);
@@ -2422,9 +2457,12 @@ body{font-family:'Courier New',monospace;background:#fff;color:#000}
 /* The Seed Card as plain text, saved where the browser saves downloads:
    the same words, numbered, with no grid. The file is made in the page
    (a data: link) — nothing is sent anywhere. */
-function handleSaveSeedTxt(mnemonic) {
-  const words = (typeof mnemonic === 'string' ? mnemonic : currentMnemonic).split(' ');
-  const text = 'DOCUMENT\r\n\r\n' + words.map((w, i) => `${String(i + 1).padStart(2, ' ')}  ${w}`).join('\r\n') + '\r\n';
+function handleSaveSeedTxt(src) {
+  const m = (src && src.words) ? src : { words: currentMnemonic };
+  const off = m.offset || 0;
+  const words = m.words.split(' ');
+  const text = 'DOCUMENT\r\n\r\n' + words.map((w, i) => `${String(off + i + 1).padStart(2, ' ')}  ${w}`).join('\r\n') + '\r\n'
+    + (m.corner ? `\r\n${m.corner}\r\n` : '');
   const a = document.createElement('a');
   a.href = 'data:text/plain;charset=utf-8,' + encodeURIComponent(text);
   a.download = 'document.txt';
@@ -2603,26 +2641,33 @@ function renderResults() {
    this way no row is ever empty (with 0-based numbering "abandon"
    would have no marks, indistinguishable from an unfilled row).
    ══════════════════════════════════════════════════════════════ */
-function showMetalIntro() {
-  const nw = currentMnemonic.split(' ').length;
+/* src: the words to put on the grid. Without arguments, the wallet's seed.
+   A part or a sheet passes its own words, the position of its first word
+   (a Classic group starts further on), the corner to print under the grid
+   (a Shamir part's number, which recovery needs) and 'slip39' for a
+   SLIP-39 sheet, whose words come from the 1024-word SLIP-39 dictionary. */
+function showMetalIntro(src) {
+  const m = (src && src.words) ? src : { words: currentMnemonic };
+  const slip = m.kind === 'slip39';
   overlayRoot().innerHTML = `
     <div class="ov"><div class="ov-card">
-      <h3>🔢 Powers-of-2 backup</h3>
+      <h3>🔢 Powers-of-2 backup${m.label ? ` &mdash; ${escapeHtml(m.label)}` : ''}</h3>
       <p>Instead of the words, <strong>only dots on a grid</strong>: every word becomes a sum of powers of two.${helpLink('g-powers', 'Learn more about powers-of-2 backup')}</p>
 
       <div class="metal-demo">
         <div class="metal-demo-head">How it works</div>
-        <p>Every word in the BIP-39 dictionary has a number from 1 to 2048. That number is written by marking some boxes: <strong>adding them up gives back the number</strong>, and looking that number up in the dictionary gives back the word.</p>
+        <p>Every word in the ${slip ? 'SLIP-39 dictionary has a number from 1 to 1024' : 'BIP-39 dictionary has a number from 1 to 2048'}. That number is written by marking some boxes: <strong>adding them up gives back the number</strong>, and looking that number up in the dictionary gives back the word.</p>
         <div class="metal-demo-row">
-          <span class="mdr-label">Example &mdash; the 2045th word of the dictionary</span>
-          <span class="mdr-cells">1024 + 512 + 256 + 128 + 64 + 32 + 16 + 8 + 4 + 1 = <strong>2045</strong></span>
+          <span class="mdr-label">Example &mdash; the ${slip ? '1021st' : '2045th'} word of the dictionary</span>
+          <span class="mdr-cells">${slip ? '512 + 256 + 128 + 64 + 32 + 16 + 8 + 4 + 1 = <strong>1021</strong>' : '1024 + 512 + 256 + 128 + 64 + 32 + 16 + 8 + 4 + 1 = <strong>2045</strong>'}</span>
         </div>
       </div>
 
       <p><strong>The words don't appear on the sheet</strong>, nor do the numbers: only the dots. At recovery time it will be up to you to add the columns and look up the words.</p>
+      ${m.corner ? `<p class="hint">Under the grid, in a corner, goes this part's number with the verification code: <strong>“${escapeHtml(m.corner)}”</strong>. Without the number the part cannot be used.</p>` : ''}
 
       <div class="ok-box" style="margin-top:12px">
-        <strong>You will need the numbered dictionary</strong> to turn numbers into words. You'll find it in this program, but it's worth printing it below and keeping it <em>separately</em> from the grid: on its own it reveals nothing, it's a public list identical for everyone.
+        <strong>You will need the numbered ${slip ? 'SLIP-39 ' : ''}dictionary</strong> to turn numbers into words. You'll find it in this program, but it's worth printing it below and keeping it <em>separately</em> from the grid: on its own it reveals nothing, it's a public list identical for everyone.
       </div>
 
       <div class="ov-row" style="margin-top:18px">
@@ -2634,18 +2679,20 @@ function showMetalIntro() {
       </div>
     </div></div>`;
   document.getElementById('mt-close').addEventListener('click', closeOverlay);
-  document.getElementById('mt-print').addEventListener('click', printMetalSheet);
-  document.getElementById('mt-list').addEventListener('click', printWordlistIndex);
+  document.getElementById('mt-print').addEventListener('click', () => printMetalSheet(m));
+  document.getElementById('mt-list').addEventListener('click', () => printWordlistIndex(slip ? slip39Wordlist : wordlist));
 }
 
-function printMetalSheet() {
+function printMetalSheet(m) {
+  const slip = m.kind === 'slip39';
   let rows;
-  try { rows = metalRows(currentMnemonic); }
+  try { rows = metalRows(m.words, slip ? 'slip39' : 'bip39'); }
   catch (e) { showToast(e.message, 'error'); return; }
-  const head = METAL_COLS.map(c => `<th class="cn">${c}</th>`).join('');
+  const off = m.offset || 0;
+  const head = (slip ? SLIP39_METAL_COLS : METAL_COLS).map(c => `<th class="cn">${c}</th>`).join('');
   const body = rows.map(r => `
     <tr>
-      <td class="pos">${r.pos}</td>
+      <td class="pos">${off + r.pos}</td>
       ${r.marks.map(m => `<td class="cell${m ? ' on' : ''}">${m ? '●' : ''}</td>`).join('')}
     </tr>`).join('');
   printHTML(`<!DOCTYPE html>
@@ -2654,20 +2701,22 @@ function printMetalSheet() {
 body{font-family:'Courier New',monospace;background:#fff;color:#000}
 table{width:100%;border-collapse:collapse}
 th,td{border:1px solid #999;text-align:center;font-size:10px;padding:4px 1px}
-th{background:#eee;font-size:9px;width:7.6%}
+th{background:#eee;font-size:9px;width:${slip ? '8.3' : '7.6'}%}
 td.pos{width:28px;background:#f4f4f4;color:#666;font-weight:bold}
 td.cell{height:24px;font-size:13px}
+.corner{margin-top:10px;text-align:right;font-size:10px;color:#555;letter-spacing:1px}
 </style></head><body>
 <table>
 <tr><th></th>${head}</tr>
 ${body}
 </table>
+${m.corner ? `<div class="corner">${escapeHtml(m.corner).replace(' · ', ' &middot; ')}</div>` : ''}
 </body></html>`);
 }
 
-function printWordlistIndex() {
+function printWordlistIndex(list) {
   const perCol = 103, cols = 5;
-  const total = wordlist.length;
+  const total = list.length;
   let pages = '';
   for (let start = 0; start < total; start += perCol * cols) {
     const chunk = [];
@@ -2675,7 +2724,7 @@ function printWordlistIndex() {
       const from = start + c * perCol;
       const items = [];
       for (let i = from; i < Math.min(from + perCol, total); i++) {
-        items.push(`<div class="wi"><span class="wn">${i + 1}</span>${escapeHtml(wordlist[i])}</div>`);
+        items.push(`<div class="wi"><span class="wn">${i + 1}</span>${escapeHtml(list[i])}</div>`);
       }
       if (items.length) chunk.push(`<div class="col">${items.join('')}</div>`);
     }
@@ -3004,7 +3053,7 @@ function wireRecover() {
       if (!words) continue;
       const x = parseInt(row.querySelector('.rec-x').value);
       if (!validateMnemonic(words, wordlist)) {
-        showRecResult(`<div class="warn-box">✗ The words of part ${x} are not valid. Check them one by one: it is often a typo or a similar but different word.</div>`);
+        showRecResult(`<div class="warn-box" style="margin-bottom:8px">✗ The words of part ${x} are not valid.</div>${diagnosisHTML(diagnoseMnemonic(words), false)}`);
         return;
       }
       if (parts.some(p => p.x === x)) {
@@ -3339,7 +3388,7 @@ function wireMultisig() {
     if (lines.length < 2) { showToast('At least two seeds are needed, one per line.', 'error'); return; }
     const keys = [];
     for (let i = 0; i < lines.length; i++) {
-      if (!validateMnemonic(lines[i], wordlist)) { showToast(`The seed on line ${i + 1} is not valid. Check the words again.`, 'error'); return; }
+      if (!validateMnemonic(lines[i], wordlist)) { showToast(`Seed on line ${i + 1}: ${diagnosisText(diagnoseMnemonic(lines[i]))}`, 'error'); return; }
       keys.push(deriveMultisigXpub(mnemonicToSeedSync(lines[i], '')));
     }
     ta.value = ''; lines.length = 0;   // out of memory before any output
@@ -3408,7 +3457,7 @@ function wireMultisig() {
   document.getElementById('ms-reuse-go')?.addEventListener('click', () => {
     const words = (document.getElementById('ms-seed-inp').value || '').trim().toLowerCase().replace(/\s+/g, ' ');
     const pass = document.getElementById('ms-pass-inp').value || '';
-    if (!validateMnemonic(words, wordlist)) { showToast('These words do not form a valid seed. Please check them.', 'error'); return; }
+    if (!validateMnemonic(words, wordlist)) { showToast(diagnosisText(diagnoseMnemonic(words)), 'error'); return; }
     const seed = mnemonicToSeedSync(words, pass);
     document.getElementById('ms-seed-inp').value = '';
     document.getElementById('ms-pass-inp').value = '';

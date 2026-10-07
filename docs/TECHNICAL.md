@@ -2,7 +2,7 @@
 
 **Implementation specification, security model and declared limits**
 
-Document version: 1.11 — describes AmnesicWallet 1.3.3
+Document version: 1.12 — describes AmnesicWallet 1.3.3
 
 Reference: `amnesicwallet.html` — SHA-256 hash published with every release, in `SHA256SUMS` and on the official website, [amnesicwallet.com](https://amnesicwallet.com)
 
@@ -344,6 +344,8 @@ Every BIP-39 word is identified by its number in the dictionary, written as a su
 
 The grid shows neither words nor numbers. Reading it back needs the numbered list of BIP-39 words, which the program can also print.
 
+The same grid is offered for each Shamir part (a part is itself a BIP-39 phrase; its number and the verification code go in a corner under the grid, as on its printed sheet; a Classic group keeps the positions of its words in the seed) and for each SLIP-39 sheet. SLIP-39 words come from their own list of 1024 words, numbered 1–1024 in the order of the official `wordlist.txt`, so a SLIP-39 grid has eleven columns (1024 … 1) and is read back with the numbered SLIP-39 list, which the program prints too.
+
 ---
 
 ## 6. Security model
@@ -386,7 +388,7 @@ For these reasons the documentation recommends running the tool on a system isol
 
 ## 7. Personal data
 
-The software does not collect, process or transmit personal data. There are no servers, endpoints or recipients. All material lives in the memory of the browser tab for the duration of the session; no cookies or storage entries are created, and no file — except when the user presses *Save as .txt* next to a new wallet's words: the Seed Card's numbered words are then handed to the browser as a download (a `data:` link built in the page), saved wherever the browser saves downloads.
+The software does not collect, process or transmit personal data. There are no servers, endpoints or recipients. All material lives in the memory of the browser tab for the duration of the session; no cookies or storage entries are created, and no file — except when the user presses *Save as .txt* next to a new wallet's words, a Shamir part or a SLIP-39 sheet: those numbered words (with a part's number and verification code) are then handed to the browser as a download (a `data:` link built in the page), saved wherever the browser saves downloads.
 
 Printed documents are produced locally. The Seed Card and the address lists carry neutral titles and no program name, to limit what an accidental discovery reveals. Shamir parts and SLIP-39 sheets carry only what is needed to use them years later: their number, the total, the threshold and — for Shamir — the verification code.
 
@@ -434,6 +436,7 @@ npm test
 | Every derivation offered by the check, for accounts 1, 2 and 5; change branches; the address search; addresses and descriptors from account xpubs, ypubs and zpubs, and every refusal | Computed with **bip_utils**, **embit** and PyNaCl for 3 mnemonics (`tests/vectors/paths.py`); Bitcoin cross-checked between the two libraries |
 | Electrum seeds: types, BIP-32 seeds (including Japanese, Chinese and Spanish words and Unicode passphrases), master public keys, receiving and change addresses of Standard, Segwit and 1.x seeds, the address search | Electrum's own test values (`tests/test_mnemonic.py`, `tests/test_wallet_vertical.py`); more seeds and addresses computed with Python's `hashlib` and **bip_utils**, cross-checked with bip_utils' own Electrum module (`tests/vectors/electrum.py`) |
 | Diagnosis of a mistyped seed (position, suggestions, checksum) | Official BIP-39 word list and vectors; constructed mistakes |
+| SLIP-39 word numbers for the powers-of-2 grid | Official `wordlist.txt` of trezor/python-shamir-mnemonic |
 | Ethereum checksum | EIP-55 examples |
 | Solana derivation | SLIP-10 ed25519 official vectors |
 | Descriptor checksum | BIP-380 example |
