@@ -46,6 +46,8 @@ in 1.x, and everything made with 1.x is read as before.
   grid carry its number and verification code ("2 · A3F9"); a SLIP-39 grid
   uses the SLIP-39 list of 1024 words (eleven columns), whose numbered list
   the program prints too.
+  *Save all as .txt* and *All in powers of 2*, next to *Print all*, do the
+  same for every part or sheet at once: one file, or one grid per page.
 - **A SLIP-39 wallet shows its xpub and descriptor** (*View xpub and
   descriptor*, next to *Print all sheets*).
 - **Better suggestions for a mistyped word.** When one word of a seed is not

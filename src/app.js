@@ -1518,6 +1518,8 @@ function renderSlipView() {
         </div>
         <div class="ov-row" style="margin-top:16px">
           <button class="btn btn-primary" id="slip-print-all">🖨️ Print all sheets</button>
+          <button class="btn btn-outline" id="slip-txt-all">💾 Save all as .txt</button>
+          <button class="btn btn-outline" id="slip-metal-all">🔢 All in powers of 2</button>
           ${watchButton()}
           <button class="btn btn-ghost btn-danger btn-small" id="slip-reset">✕ Start over</button>
         </div>
@@ -1571,6 +1573,9 @@ function wireSlipView() {
     showVerifyBackup(slipShares[i], `Sheet ${i + 1} of ${slipConfig.n}`);
   }));
   document.getElementById('slip-print-all')?.addEventListener('click', printAllSlipShares);
+  const allSheets = () => ({ list: slipShares.map((_, i) => sheetSrc(i)), kind: 'slip39', label: `all ${slipShares.length} sheets` });
+  document.getElementById('slip-txt-all')?.addEventListener('click', () => handleSaveSeedTxt(allSheets()));
+  document.getElementById('slip-metal-all')?.addEventListener('click', () => showMetalIntro(allSheets()));
   document.getElementById('slip-reset')?.addEventListener('click', handleReset);
   document.getElementById('btn-select-all')?.addEventListener('click', handleSelectAll);
   const syncFmt = () => {
@@ -2247,6 +2252,8 @@ function renderPartsCard() {
       <div class="keys-list">${rows}</div>
       <div class="ov-row" style="margin-top:16px">
         <button class="btn btn-primary" id="pc-print-all">🖨️ Print all parts</button>
+        <button class="btn btn-outline" id="pc-txt-all">💾 Save all as .txt</button>
+        <button class="btn btn-outline" id="pc-metal-all">🔢 All in powers of 2</button>
         <button class="btn btn-ghost btn-small" id="pc-forget">✕ Hide from the page</button>
       </div>
     </div>`;
@@ -2280,6 +2287,9 @@ function wirePartsCard() {
     showVerifyBackup(str, `Part ${p.x} of ${n}`);
   }));
   document.getElementById('pc-print-all')?.addEventListener('click', () => printAllShamirParts(n, m, code, classic));
+  const allParts = () => ({ list: shamirParts.map(partSrc), label: `all ${n} parts` });
+  document.getElementById('pc-txt-all')?.addEventListener('click', () => handleSaveSeedTxt(allParts()));
+  document.getElementById('pc-metal-all')?.addEventListener('click', () => showMetalIntro(allParts()));
   document.getElementById('pc-forget')?.addEventListener('click', () => {
     shamirParts = null; shamirMeta = null; shamirRevealed = [];
     seedUnlocked = false;
@@ -2458,11 +2468,11 @@ body{font-family:'Courier New',monospace;background:#fff;color:#000}
    the same words, numbered, with no grid. The file is made in the page
    (a data: link) — nothing is sent anywhere. */
 function handleSaveSeedTxt(src) {
-  const m = (src && src.words) ? src : { words: currentMnemonic };
-  const off = m.offset || 0;
-  const words = m.words.split(' ');
-  const text = 'DOCUMENT\r\n\r\n' + words.map((w, i) => `${String(off + i + 1).padStart(2, ' ')}  ${w}`).join('\r\n') + '\r\n'
+  // One block of words, or (src.list) every part or sheet, one after the other.
+  const blocks = src ? (src.list || [src]) : [{ words: currentMnemonic }];
+  const block = (m) => m.words.split(' ').map((w, i) => `${String((m.offset || 0) + i + 1).padStart(2, ' ')}  ${w}`).join('\r\n') + '\r\n'
     + (m.corner ? `\r\n${m.corner}\r\n` : '');
+  const text = 'DOCUMENT\r\n\r\n' + blocks.map(block).join('\r\n\r\n');
   const a = document.createElement('a');
   a.href = 'data:text/plain;charset=utf-8,' + encodeURIComponent(text);
   a.download = 'document.txt';
@@ -2647,7 +2657,7 @@ function renderResults() {
    (a Shamir part's number, which recovery needs) and 'slip39' for a
    SLIP-39 sheet, whose words come from the 1024-word SLIP-39 dictionary. */
 function showMetalIntro(src) {
-  const m = (src && src.words) ? src : { words: currentMnemonic };
+  const m = src || { words: currentMnemonic };   // src.list: every part or sheet, one grid each
   const slip = m.kind === 'slip39';
   overlayRoot().innerHTML = `
     <div class="ov"><div class="ov-card">
@@ -2665,6 +2675,7 @@ function showMetalIntro(src) {
 
       <p><strong>The words don't appear on the sheet</strong>, nor do the numbers: only the dots. At recovery time it will be up to you to add the columns and look up the words.</p>
       ${m.corner ? `<p class="hint">Under the grid, in a corner, goes this part's number with the verification code: <strong>“${escapeHtml(m.corner)}”</strong>. Without the number the part cannot be used.</p>` : ''}
+      ${m.list ? `<p class="hint">One grid per ${slip ? 'sheet' : 'part'}, each on its own page${m.list[0].corner ? ', with that part\'s number and the verification code in a corner (for example “' + escapeHtml(m.list[0].corner) + '”)' : ''}.</p>` : ''}
 
       <div class="ok-box" style="margin-top:12px">
         <strong>You will need the numbered ${slip ? 'SLIP-39 ' : ''}dictionary</strong> to turn numbers into words. You'll find it in this program, but it's worth printing it below and keeping it <em>separately</em> from the grid: on its own it reveals nothing, it's a public list identical for everyone.
@@ -2680,21 +2691,29 @@ function showMetalIntro(src) {
     </div></div>`;
   document.getElementById('mt-close').addEventListener('click', closeOverlay);
   document.getElementById('mt-print').addEventListener('click', () => printMetalSheet(m));
+  if (m.list) document.getElementById('mt-print').innerHTML = `🖨️ Print the ${m.list.length} grids`;
   document.getElementById('mt-list').addEventListener('click', () => printWordlistIndex(slip ? slip39Wordlist : wordlist));
 }
 
 function printMetalSheet(m) {
   const slip = m.kind === 'slip39';
-  let rows;
-  try { rows = metalRows(m.words, slip ? 'slip39' : 'bip39'); }
-  catch (e) { showToast(e.message, 'error'); return; }
-  const off = m.offset || 0;
   const head = (slip ? SLIP39_METAL_COLS : METAL_COLS).map(c => `<th class="cn">${c}</th>`).join('');
-  const body = rows.map(r => `
+  const grid = (g) => {
+    const off = g.offset || 0;
+    const body = metalRows(g.words, slip ? 'slip39' : 'bip39').map(r => `
     <tr>
       <td class="pos">${off + r.pos}</td>
-      ${r.marks.map(m => `<td class="cell${m ? ' on' : ''}">${m ? '●' : ''}</td>`).join('')}
+      ${r.marks.map(on => `<td class="cell${on ? ' on' : ''}">${on ? '●' : ''}</td>`).join('')}
     </tr>`).join('');
+    return `<table>
+<tr><th></th>${head}</tr>
+${body}
+</table>
+${g.corner ? `<div class="corner">${escapeHtml(g.corner).replace(' · ', ' &middot; ')}</div>` : ''}`;
+  };
+  let pages;
+  try { pages = (m.list || [m]).map(grid).join('<div class="brk"></div>'); }
+  catch (e) { showToast(e.message, 'error'); return; }
   printHTML(`<!DOCTYPE html>
 <html lang="en"><head><meta charset="UTF-8"><title>Document</title><style>
 *{margin:0;padding:0;box-sizing:border-box}@page{size:A4;margin:14mm}
@@ -2705,12 +2724,9 @@ th{background:#eee;font-size:9px;width:${slip ? '8.3' : '7.6'}%}
 td.pos{width:28px;background:#f4f4f4;color:#666;font-weight:bold}
 td.cell{height:24px;font-size:13px}
 .corner{margin-top:10px;text-align:right;font-size:10px;color:#555;letter-spacing:1px}
+.brk{page-break-after:always}
 </style></head><body>
-<table>
-<tr><th></th>${head}</tr>
-${body}
-</table>
-${m.corner ? `<div class="corner">${escapeHtml(m.corner).replace(' · ', ' &middot; ')}</div>` : ''}
+${pages}
 </body></html>`);
 }
 

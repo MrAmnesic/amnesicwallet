@@ -288,6 +288,11 @@ async function run(browser, engine, device) {
   const code = (await page.locator('.ok-box').first().innerText()).match(/Verification code: ([0-9A-F]{4})/i)[1];
   const part1Txt = await saveText(page.locator('.pc-txt').first());
   check(part1Txt.includes(`12  ${part1[11]}`) && part1Txt.trim().endsWith(`1 · ${code}`), "Shamir wallet: a part's .txt has its words and, at the end, its number with the code");
+  const allPartsTxt = await saveText(page.locator('#pc-txt-all'));
+  check([1, 2, 3, 4].every((x) => allPartsTxt.includes(`${x} · ${code}`)) && allPartsTxt.includes(`12  ${part1[11]}`), 'Shamir wallet: all parts in one .txt, each with its number');
+  await press(page.locator('#pc-metal-all'));
+  check((await page.locator('#mt-print').innerText()).includes('4 grids'), 'Shamir wallet: all parts in powers of 2, one grid each');
+  await press(page.locator('#mt-close'));
   await press(page.locator('.pc-metal').first());
   check((await page.locator('.ov-card h3').innerText()).includes('Part 1 of 4') && (await page.locator('.ov-card').innerText()).includes(`1 · ${code}`), "Shamir wallet: a part's powers-of-2 grid carries its number");
   await press(page.locator('#mt-close'));
@@ -308,6 +313,11 @@ async function run(browser, engine, device) {
     const sheet1 = (await page.locator('.keys-list .key-block').first().locator('.part-word').allInnerTexts()).map((t) => t.replace(/^\d+\s*/, '').trim());
     const sheet1Txt = await saveText(page.locator('.sl-txt').first());
     check(sheet1.length === 20 && sheet1Txt.includes(` 1  ${sheet1[0]}`) && sheet1Txt.trim().endsWith(`20  ${sheet1[19]}`), "SLIP-39 wallet: a sheet's .txt has its 20 words");
+    const allSheetsTxt = await saveText(page.locator('#slip-txt-all'));
+    check((allSheetsTxt.match(/^20 {2}\S+/gm) || []).length === 5 && allSheetsTxt.includes(` 1  ${sheet1[0]}`), 'SLIP-39 wallet: all 5 sheets in one .txt');
+    await press(page.locator('#slip-metal-all'));
+    check((await page.locator('#mt-print').innerText()).includes('5 grids'), 'SLIP-39 wallet: all sheets in powers of 2, one grid each');
+    await press(page.locator('#mt-close'));
     await press(page.locator('.sl-metal').first());
     check((await page.locator('.ov-card').innerText()).includes('SLIP-39 dictionary has a number from 1 to 1024'), "SLIP-39 wallet: a sheet's powers-of-2 grid uses the SLIP-39 dictionary");
     await press(page.locator('#mt-close'));
