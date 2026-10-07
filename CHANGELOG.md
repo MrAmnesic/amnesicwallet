@@ -22,6 +22,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - The words, the parts and every backup format are unchanged; parts and
   sheets printed by earlier versions still work.
 
+- **Check with a public key only: "ETH / TRON paths"** replaces the
+  Ethereum and TRON buttons. For a key exported on the path of Ethereum or
+  TRON it shows the Bitcoin addresses on that path, in the four formats, as
+  Check wallet does with a seed — not Ethereum or TRON addresses.
+- **Read-only codes** of a new wallet: the xpub comes first and is copied
+  with one press, like the descriptor; what each one is opens from a "?"
+  next to it instead of always being on screen.
+- Every "?" shows its explanation when the pointer rests on it; a click still
+  opens it, with the link to the guide.
+- The warning under a new wallet's words ("Whoever holds these words…") is
+  gone.
+- **Save as .txt**, next to *Print the Seed Card*: the same numbered words
+  as the Seed Card, as a plain text file (`document.txt`) saved where the
+  browser saves downloads. Nothing is sent anywhere: the file is made in the
+  page.
+- *View xpub and descriptor* now sits right after *Copy*.
+
 ### Fixed
 - **The page froze after printing** (Chrome, Edge): printing opened a new
   tab, and for as long as that tab's print dialog stayed open the page could

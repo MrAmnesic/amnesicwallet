@@ -231,7 +231,7 @@ function renderApp() {
         ${activeTab === 'guide' ? renderGuideTab() : ''}
       </main>
 
-      <footer><p>No connection. Nothing saved. No trace.<br>Everything happens here, on this device, and disappears when you close the page.</p>
+      <footer><p>No connection. Nothing saved unless you ask. No trace.<br>Everything happens here, on this device, and disappears when you close the page.</p>
         <p class="hint" style="margin-top:8px">AmnesicWallet — free software under the GNU GPL v3 or later, with absolutely no warranty.</p></footer>
     </div>
     <div id="overlay-root"></div>
@@ -675,8 +675,7 @@ function wireCtrlMultisig() {
    ════════════════════════════════════════════════════════════════ */
 const XP_AS = [
   ...Object.values(BTC_FORMATS).map(f => ({ id: f.id, label: `${f.label} (${f.tag})` })),
-  { id: 'eth', label: 'Ethereum (0x…)' },
-  { id: 'trx', label: 'TRON (T…)' },
+  { id: 'cross', label: 'ETH / TRON paths' },
 ];
 
 function renderCtrlXpub() {
@@ -707,8 +706,14 @@ function publicKeyError(err) {
   }
 }
 
+/* 'cross': a key exported on the path of Ethereum (m/44'/60'/0') or TRON
+   (m/44'/195'/0') gives, at key/0/n, the Bitcoin addresses on that path —
+   where funds end up when a wallet mixes up networks. All four formats. */
 function computeXp(count) {
-  xp.list = addressesFromXpub(xp.info.xpub, xp.as, xp.change, 0, count);
+  if (xp.as === 'cross') {
+    const byFmt = Object.keys(BTC_FORMATS).map(f => [f, addressesFromXpub(xp.info.xpub, f, 0, 0, count)]);
+    xp.list = byFmt[0][1].map((a, i) => ({ index: a.index, formats: byFmt.map(([f, l]) => ({ format: f, address: l[i].address })) }));
+  } else xp.list = addressesFromXpub(xp.info.xpub, xp.as, xp.change, 0, count);
 }
 
 function renderXpResults() {
@@ -735,13 +740,19 @@ function renderXpResults() {
           <button class="seg-btn ${xp.change ? 'seg-active' : ''}" data-c="1">Change</button>
         </div>
         ${xp.change ? '<p class="hint" style="margin-top:6px">When you send a payment, what is left comes back to a <strong>change address</strong>. If you have ever spent from this account, part of the funds is usually here.</p>' : ''}
-      ` : '<p class="hint" style="margin-top:10px">For Ethereum and TRON, a key exported at <code>m/44\'/60\'/0\'</code> (or <code>m/44\'/195\'/0\'</code>) gives the addresses of Account 1, 2, 3… of MetaMask-style wallets, in order.</p>'}
+      ` : '<p class="hint" style="margin-top:10px">Bitcoin addresses on the paths of Ethereum and TRON, where funds can end up when a wallet mixes up networks: for a key exported at <code>m/44\'/60\'/0\'</code> (Ethereum) or <code>m/44\'/195\'/0\'</code> (TRON), the addresses at <code>key/0/n</code>, in the four formats.</p>'}
       <div class="more-list" style="margin-top:10px">
-        ${xp.list.map(a => `
+        ${btc ? xp.list.map(a => `
           <div class="more-row">
             <span class="more-idx">#${a.index}</span>
-            <code class="more-addr">${escapeHtml(a.address)}<br><span class="path-value" style="font-size:10px">key/${btc ? xp.change : 0}/${a.index}</span></code>
+            <code class="more-addr">${escapeHtml(a.address)}<br><span class="path-value" style="font-size:10px">key/${xp.change}/${a.index}</span></code>
             ${copyButton(a.address)}
+          </div>`).join('') : xp.list.map(a => `
+          <div class="ap-row">
+            <div class="ap-top"><span class="more-idx">#${a.index}</span><code class="path-value">key/0/${a.index}</code></div>
+            ${a.formats.map(f => `
+              <div class="more-row"><span class="ap-fmt">${escapeHtml(BTC_FORMATS[f.format].label)}</span>
+                <code class="more-addr">${escapeHtml(f.address)}</code>${copyButton(f.address)}</div>`).join('')}
           </div>`).join('')}
       </div>
       <div class="ov-row" style="margin-top:10px">
@@ -1648,6 +1659,16 @@ const HELP = {
     d: 'You retype the words looking only at your own backup. It exists to reveal today, in thirty seconds, whether the backup is wrong — instead of on the day you actually need it.',
     g: 'g-verify',
   },
+  xpub: {
+    t: 'xpub',
+    d: 'The "extended public key" of this account. On its own it generates all your Bitcoin addresses, but no signatures: whoever holds it can see, not spend.',
+    g: 'g-watch',
+  },
+  descriptor: {
+    t: 'Descriptor',
+    d: 'The xpub plus the instructions on how to use it: address format and path. This is what you paste into Sparrow or Electrum to see balance and movements in real time, while the seed stays safe.',
+    g: 'g-watch',
+  },
   evm: {
     t: 'One address, many networks',
     d: 'Ethereum, BSC, Polygon, Arbitrum, Avalanche, Optimism and Base are all <strong>EVM-compatible</strong>: they work like Ethereum and make addresses in the same way. So this address — from the same words — is yours on every one of them. The funds on each network stay separate: what arrives on BSC is on BSC, not on Ethereum. To see it, choose that network in your wallet.',
@@ -1661,7 +1682,8 @@ const HELP = {
 };
 
 function help(key) {
-  return HELP[key] ? `<span class="help-dot" data-help="${key}" title="What does this mean?" role="button" tabindex="0">?</span>` : '';
+  // Hovering shows the explanation; a click (or a tap) opens it with a link to the guide.
+  return HELP[key] ? `<span class="help-dot" data-help="${key}" title="${escapeHtml(HELP[key].d.replace(/<[^>]+>/g, ''))}" role="button" tabindex="0">?</span>` : '';
 }
 
 /* A "?" that explains nothing itself: it jumps straight to the right spot in the guide */
@@ -2105,6 +2127,7 @@ function finishGeneration(diceBytes, typeBytes) {
    ════════════════════════════════════════════════════════════════ */
 let watchRevealed = false;
 let watchInPrint = false;
+const watchButton = () => `<button id="btn-watch" class="btn btn-outline">${watchRevealed ? '🙈 Hide xpub and descriptor' : '👁️ View xpub and descriptor'}</button>`;
 
 /* If the xpub panel is open and the format or networks change, it must be realigned:
    otherwise it would show codes for a format that is no longer selected. */
@@ -2138,27 +2161,13 @@ function renderWatchPanel() {
     <div class="watch-panel">
       <div class="wp-head">👁️ Read-only codes</div>
       <p class="hint" style="margin-bottom:10px">They cannot spend: they are only for watching.${help('watch')}</p>
-      <div class="wc-explain">
-        <div class="wc-item">
-          <span class="wc-name">xpub</span>
-          <span class="wc-txt">The "extended public key". On its own it generates all your Bitcoin addresses, but no signatures.</span>
-        </div>
-        <div class="wc-item">
-          <span class="wc-name">descriptor</span>
-          <span class="wc-txt">The xpub plus the instructions on how to use it: address format and path. This is what you paste into <strong>Sparrow</strong> or <strong>Electrum</strong> to see balance and movements in real time, while the seed stays safe.</span>
-        </div>
-      </div>
-      <div class="detail-label" style="margin-top:12px">Descriptor</div>
+      <div class="detail-label" style="margin-top:12px">xpub <span style="text-transform:none">&middot; ${escapeHtml(a.path)}</span>${help('xpub')}</div>
+      <div class="addr-copy-row"><code class="detail-value" style="font-size:10.5px">${escapeHtml(a.xpub)}</code>
+        <button class="btn btn-icon" id="wc-copy-xpub" title="Copy">📋</button></div>
+      <p class="hint" style="margin-top:6px">Standard ${escapeHtml(a.format.std)} &middot; Fingerprint ${escapeHtml(a.fingerprint)} &middot; Format ${escapeHtml(a.format.label)}</p>
+      <div class="detail-label" style="margin-top:12px">Descriptor${help('descriptor')}</div>
       <div class="addr-copy-row"><code class="detail-value" style="font-size:10.5px">${escapeHtml(a.descriptor)}</code>
         <button class="btn btn-icon" id="wc-copy-desc" title="Copy">📋</button></div>
-      <details class="adv" style="margin-top:10px"><summary>See the raw xpub as well</summary>
-        <div class="adv-body">
-          <div class="detail-label">Account xpub (${escapeHtml(a.path)})</div>
-          <div class="addr-copy-row"><code class="detail-value" style="font-size:10.5px">${escapeHtml(a.xpub)}</code>
-            <button class="btn btn-icon" id="wc-copy-xpub" title="Copy">📋</button></div>
-          <p class="hint" style="margin-top:8px">Standard ${escapeHtml(a.format.std)} &middot; Fingerprint ${escapeHtml(a.fingerprint)} &middot; Format ${escapeHtml(a.format.label)}</p>
-        </div>
-      </details>
       <label class="chk-row wc-print" style="margin-top:12px">
         <input type="checkbox" id="wc-print" ${watchInPrint ? 'checked' : ''}>
         <span>Include these codes in the printed summary</span>
@@ -2275,20 +2284,21 @@ function renderWalletView() {
         <div class="seed-actions"${(split && !seedUnlocked) ? ' style="display:none"' : ''}>
           <button id="btn-reveal-seed" class="btn btn-outline">👁️ Reveal the words</button>
           <button id="btn-copy-seed" class="btn btn-outline">📋 Copy</button>
+          ${split && !seedUnlocked ? '' : watchButton()}
           <button id="btn-print-seed" class="btn btn-outline">🖨️ Print the Seed Card</button>
+          <button id="btn-txt-seed" class="btn btn-outline">💾 Save as .txt</button>
           <button id="btn-metal" class="btn btn-outline">🔢 Powers-of-2 backup</button>
           <button id="btn-verify-backup" class="btn btn-outline">✅ Check the seed again</button>
           ${walletKind === 'classic' && !shamirParts ? '<button id="btn-split-seed" class="btn btn-outline">✂️ Split into groups</button>' : ''}
         </div>
         <!-- Actions that never expose the seed stay available even while it is locked. -->
         <div class="seed-actions seed-actions-2">
-          <button id="btn-watch" class="btn btn-outline">👁️ View xpub and descriptor</button>
+          ${split && !seedUnlocked ? watchButton() : ''}
           <button id="btn-reset" class="btn btn-newwallet">✨ Generate a new wallet</button>
         </div>
         <div id="watch-panel"></div>
         ${pendingConfig && pendingConfig.passphrase ? `<p class="seed-warning">🔑 You set a passphrase: it is as important as the words themselves. Without it this wallet cannot be recovered.</p>` : ''}
         ${walletKind === 'classic' ? '<p class="hint" style="margin-top:10px">For a threshold backup of an existing seed: <button class="link-btn" id="go-convert">Check wallet → Shamir backup</button></p>' : ''}
-        <p class="seed-warning">⚠ Whoever holds these words holds your funds. Whoever loses them loses access, with no way back.</p>
       </div>
 
       <div class="card chain-card">
@@ -2332,6 +2342,7 @@ function wireWalletView() {
   document.getElementById('btn-reveal-seed')?.addEventListener('click', handleRevealSeed);
   document.getElementById('btn-copy-seed')?.addEventListener('click', handleCopySeed);
   document.getElementById('btn-print-seed')?.addEventListener('click', handlePrintSeed);
+  document.getElementById('btn-txt-seed')?.addEventListener('click', () => handleSaveSeedTxt());
   document.getElementById('btn-metal')?.addEventListener('click', showMetalIntro);
   document.getElementById('btn-watch')?.addEventListener('click', () => {
     const panel = document.getElementById('watch-panel');
@@ -2415,6 +2426,22 @@ body{font-family:'Courier New',monospace;background:#fff;color:#000}
 <div class="title">Document</div>
 <div class="grid">${words.map((w, i) => `<div class="w"><i>${i + 1}</i>${escapeHtml(w)}</div>`).join('')}</div>
 </div></body></html>`);
+}
+
+/* The Seed Card as plain text, saved where the browser saves downloads:
+   the same words, numbered, with no grid. The file is made in the page
+   (a data: link) — nothing is sent anywhere. */
+function handleSaveSeedTxt(mnemonic) {
+  const words = (typeof mnemonic === 'string' ? mnemonic : currentMnemonic).split(' ');
+  const text = 'DOCUMENT\r\n\r\n' + words.map((w, i) => `${String(i + 1).padStart(2, ' ')}  ${w}`).join('\r\n') + '\r\n';
+  const a = document.createElement('a');
+  a.href = 'data:text/plain;charset=utf-8,' + encodeURIComponent(text);
+  a.download = 'document.txt';
+  a.style.display = 'none';
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  showToast('Saved as document.txt, in your downloads folder.', 'success');
 }
 
 /* Forget every value tied to the wallet on screen, so nothing from one
@@ -3846,7 +3873,7 @@ function renderGuideFaq() {
         <details class="faq"><summary>📴 Does it really connect to nothing?</summary><div class="faq-body">
           <p>Really. No network request, at any moment: no servers, no statistics, no silent updates. All the cryptographic libraries are embedded in the file, and nothing is downloaded while you use it.</p>
           <p>It is not only a promise in the code. The file carries a rule for the browser, called <em>Content-Security-Policy</em>, that forbids any connection and any script other than its own: even a bug, or a modified copy of a library, would be stopped by the browser itself.</p>
-          <p>Nothing is saved either: no cookies, no local storage, no files written. The seed lives only in the page's memory, and the browser releases it when you close the tab.</p>
+          <p>Nothing is saved either: no cookies, no local storage, and no file unless you press <em>Save as .txt</em>, which saves the Seed Card's words where your browser saves downloads. The seed lives only in the page's memory, and the browser releases it when you close the tab.</p>
           <p><strong>And you can verify it yourself.</strong> Open the file on a computer disconnected from the internet: it works exactly the same way. That is in fact how we recommend using it.</p>
         </div></details>
 

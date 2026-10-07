@@ -234,7 +234,7 @@ Really. No network request, at any moment: no servers, no statistics, no silent 
 
 It is not only a promise in the code. The file carries a rule for the browser, called *Content-Security-Policy*, that forbids any connection and any script other than its own: even a bug, or a modified copy of a library, would be stopped by the browser itself.
 
-Nothing is saved either: no cookies, no local storage, no files written. The seed lives only in the page's memory, and the browser releases it when you close the tab.
+Nothing is saved either: no cookies, no local storage, and no file unless you press *Save as .txt*, which saves the Seed Card's words where your browser saves downloads. The seed lives only in the page's memory, and the browser releases it when you close the tab.
 
 **And you can verify it yourself.** Open the file on a computer disconnected from the internet: it works exactly the same way. That is in fact how we recommend using it.
 

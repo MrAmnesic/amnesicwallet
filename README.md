@@ -31,7 +31,7 @@ It derives the public addresses for four networks and checks backups you already
 ## Features
 
 - **No network, enforced by the browser** — the file carries a Content-Security-Policy that forbids every connection and every script other than its own. It works on a computer that has never been online.
-- **Nothing saved** — no cookies, no storage, no files written.
+- **Nothing saved** — no cookies, no storage, and no file unless you press *Save as .txt*, which hands the Seed Card's words to the browser as a download.
 - **Randomness from several sources** — the system CSPRNG, always, mixed with typing rhythm, pointer or finger movement and, optionally, real dice.
 - **Visual privacy** — words stay covered until you ask; you can copy or print them without showing them.
 - **Four networks** — Bitcoin in four address formats, Ethereum and EVM chains, TRON, Solana.

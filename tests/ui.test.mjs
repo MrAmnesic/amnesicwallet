@@ -25,7 +25,7 @@
  *   - a mistyped word is named with its position and the right word is
  *     offered; each network's own account and derivation buttons, Bitcoin
  *     change addresses, the search for an address and the check with a
- *     public key (zpub, and an Ethereum account key) give the values in
+ *     public key (zpub, and Bitcoin addresses from a key on Ethereum's path) give the values in
  *     tests/vectors/paths.json;
  *   - a seed made by Electrum is recognised as such and shows the addresses
  *     Electrum's own tests give (tests/vectors/electrum.json);
@@ -415,9 +415,9 @@ async function run(browser, engine, device) {
     const e = PATHS.xpubs.find(k => k.path === "m/44'/60'/0'");
     await page.locator('#xp-key').fill(e.key);
     await press(page.locator('#xp-go'));
-    await press(page.locator('#xp-as .seg-btn[data-as="eth"]'));
-    const eth = (await page.locator('#xp-results .more-addr').allInnerTexts()).slice(0, 3).map(t => t.split('\n')[0]);
-    check(JSON.stringify(eth) === JSON.stringify(e.eth), 'Ethereum account key: the addresses match');
+    await press(page.locator('#xp-as .seg-btn[data-as="cross"]'));
+    const cross = await page.locator('#xp-results .ap-row').first().innerText();
+    check(['native', 'taproot', 'p2sh', 'legacy'].every((f) => cross.includes(e.receive[f][0])), "key on Ethereum's path: its Bitcoin addresses, in the four formats, match");
     await noteLayout('check with a public key');
     await page.locator('#xp-key').fill('xprv9s21ZrQH143K3GJpoapnV8SFfukcVBSfeCficPSGfubmSFDxo1kuHnLisriDvSnRRuL2Qrg5ggqHKNVpxR86QEC8w35uxmGoggxtQTPvfUu');
     await press(page.locator('#xp-go'));

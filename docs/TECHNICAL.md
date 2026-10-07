@@ -262,7 +262,7 @@ The descriptor produced is `wsh(sortedmulti(m, …))#checksum`, where every key 
 
 For a single-signature wallet, the account xpub and a descriptor are offered for monitoring without spending ability, e.g. `wpkh([fingerprint/84h/0h/0h]xpub…/0/*)#checksum` (respectively `tr(…)`, `sh(wpkh(…))`, `pkh(…)` for the other formats). The checksum follows BIP-380; the implementation is tested against the specification's example and against embit.
 
-**Check with a public key only.** An account key shared by a wallet — `xpub`, `ypub` (Nested SegWit) or `zpub` (Native SegWit) — is read, re-labelled as a plain `xpub` and derived at `/0/i` (receiving) and `/1/i` (change), in any of the four Bitcoin formats or as Ethereum and TRON addresses. An `xpub` does not say which format it was used with, so the format is chosen on screen. A watch-only descriptor without key origin is produced. Private keys (`xprv`, `yprv`, `zprv`…), testnet keys and multisig keys (`Ypub`, `Zpub`) are refused, each with its reason.
+**Check with a public key only.** An account key shared by a wallet — `xpub`, `ypub` (Nested SegWit) or `zpub` (Native SegWit) — is read, re-labelled as a plain `xpub` and derived at `/0/i` (receiving) and `/1/i` (change), in any of the four Bitcoin formats; for a key exported on the path of Ethereum (`m/44'/60'/0'`) or TRON (`m/44'/195'/0'`), the Bitcoin addresses at `key/0/n` are shown in all four formats at once, as the seed check does for those paths. An `xpub` does not say which format it was used with, so the format is chosen on screen. A watch-only descriptor without key origin is produced. Private keys (`xprv`, `yprv`, `zprv`…), testnet keys and multisig keys (`Ypub`, `Zpub`) are refused, each with its reason.
 
 ### 4.6 Seeds made by Electrum (check only)
 
@@ -386,7 +386,7 @@ For these reasons the documentation recommends running the tool on a system isol
 
 ## 7. Personal data
 
-The software does not collect, process or transmit personal data. There are no servers, endpoints or recipients. All material lives in the memory of the browser tab for the duration of the session; no files, cookies or storage entries are created.
+The software does not collect, process or transmit personal data. There are no servers, endpoints or recipients. All material lives in the memory of the browser tab for the duration of the session; no cookies or storage entries are created, and no file — except when the user presses *Save as .txt* next to a new wallet's words: the Seed Card's numbered words are then handed to the browser as a download (a `data:` link built in the page), saved wherever the browser saves downloads.
 
 Printed documents are produced locally. The Seed Card and the address lists carry neutral titles and no program name, to limit what an accidental discovery reveals. Shamir parts and SLIP-39 sheets carry only what is needed to use them years later: their number, the total, the threshold and — for Shamir — the verification code.
 
