@@ -1681,9 +1681,17 @@ const HELP = {
   },
 };
 
+/* Text without markup, for a tooltip: tags are removed until none is left,
+   so none can be rebuilt from the pieces of another, then stray brackets. */
+function plainText(html) {
+  let t = String(html), prev;
+  do { prev = t; t = t.replace(/<[^<>]*>/g, ''); } while (t !== prev);
+  return t.replace(/[<>]/g, '');
+}
+
 function help(key) {
   // Hovering shows the explanation; a click (or a tap) opens it with a link to the guide.
-  return HELP[key] ? `<span class="help-dot" data-help="${key}" title="${escapeHtml(HELP[key].d.replace(/<[^>]+>/g, ''))}" role="button" tabindex="0">?</span>` : '';
+  return HELP[key] ? `<span class="help-dot" data-help="${key}" title="${escapeHtml(plainText(HELP[key].d))}" role="button" tabindex="0">?</span>` : '';
 }
 
 /* A "?" that explains nothing itself: it jumps straight to the right spot in the guide */
