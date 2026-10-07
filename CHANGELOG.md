@@ -5,7 +5,12 @@ Notable changes are recorded here, one entry per published version.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [1.3.3] — 2026-10
+## [2.0.0] — 2026-10
+
+A new major number for a release with a new face (the "A" logo) and many
+changes to how backups are printed, saved and checked. Nothing is broken:
+the words, the parts, the sheets and every backup format are the same as
+in 1.x, and everything made with 1.x is read as before.
 
 ### Changed
 - **Printed Shamir parts carry nothing but the words** and, in a corner with
