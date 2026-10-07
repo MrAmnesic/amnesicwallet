@@ -865,7 +865,6 @@ function renderGenerateTab() {
             <label class="config-label">Into how many parts, and how many to recover?</label>
             ${thresholdConfigHTML('sh', 'parts')}
             <p class="hint" style="margin-top:8px">Each part looks like a seed of the same length but is only a fragment; the parts are put back together in <em>Check wallet → Shamir backup</em>.${helpLink('g-shamir', 'How a Shamir wallet works')}</p>
-            <div class="warn-box" style="margin-top:10px">🔢 <strong>Every part has a number, and the number is essential.</strong> To rebuild the seed, each part must be entered with its own number: the order does not matter, the number does. Without it, the seed cannot be rebuilt.</div>
           </div>` : ''}
           ${genPath === 'slip39' ? `
           <div class="config-row">

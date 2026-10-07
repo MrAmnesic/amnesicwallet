@@ -16,8 +16,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   contains, inside its words, its number and the threshold.
 - Print windows are all titled "Document".
 - **Each Shamir part's number is essential, and the program says so**: on
-  the Shamir wallet screen before generating, next to the parts, in Check
-  wallet → Shamir backup and in the FAQ. The order in which parts are
+  the parts, when one is copied, in Check wallet → Shamir backup and in
+  the FAQ. The order in which parts are
   entered does not matter; each part must go in with its own number.
 - The words, the parts and every backup format are unchanged; parts and
   sheets printed by earlier versions still work.

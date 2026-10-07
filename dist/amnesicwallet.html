@@ -8,7 +8,7 @@
 <html lang="en" data-theme="light">
 <head>
   <meta charset="UTF-8" />
-  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-4WhLaoUCBsuNJCsGuy2S0qjbB1U0JrAm6vJLag6KNdw='; style-src 'unsafe-inline'; img-src data:; base-uri 'none'; form-action 'none'">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-r9PEdmu2qaCFGLo2bHetdMUmn6ylCFffTKxwvzfKXhU='; style-src 'unsafe-inline'; img-src data:; base-uri 'none'; form-action 'none'">
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>AmnesicWallet — Offline Wallet Generator</title>
   <style>
@@ -3427,7 +3427,6 @@ Minimum version required to store current data is: `+o+`.
             <label class="config-label">Into how many parts, and how many to recover?</label>
             ${Wa("sh","parts")}
             <p class="hint" style="margin-top:8px">Each part looks like a seed of the same length but is only a fragment; the parts are put back together in <em>Check wallet \u2192 Shamir backup</em>.${Os("g-shamir","How a Shamir wallet works")}</p>
-            <div class="warn-box" style="margin-top:10px">\u{1F522} <strong>Every part has a number, and the number is essential.</strong> To rebuild the seed, each part must be entered with its own number: the order does not matter, the number does. Without it, the seed cannot be rebuilt.</div>
           </div>`:""}
           ${$e==="slip39"?`
           <div class="config-row">
