@@ -5,6 +5,72 @@ Notable changes are recorded here, one entry per published version.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.0.0] — 2026-10
+
+A new major number for a release with a new face (the "A" logo) and many
+changes to how backups are printed, saved and checked. Nothing is broken:
+the words, the parts, the sheets and every backup format are the same as
+in 1.x, and everything made with 1.x is read as before.
+
+### Changed
+- **Printed Shamir parts carry nothing but the words** and, in a corner with
+  no label, the part number and the verification code ("2 · A3F9"). The
+  number is needed to reassemble, the code confirms the result. The title
+  "Part 2 of 5", the threshold and the line naming the program are gone.
+- **Printed SLIP-39 sheets carry only their words.** Each share already
+  contains, inside its words, its number and the threshold.
+- Printed pages are titled "Document".
+- **Each Shamir part's number is essential, and the program says so**: on
+  the parts, when one is copied, in Check wallet → Shamir backup and in
+  the FAQ. The order in which parts are
+  entered does not matter; each part must go in with its own number.
+- The words, the parts and every backup format are unchanged; parts and
+  sheets printed by earlier versions still work.
+- **Check with a public key only shows Bitcoin addresses only**, in the four
+  formats: the Ethereum and TRON buttons are gone.
+- The title is centred, without the line beneath it, and the square icon beside it is replaced by the new "A" logo, which also heads the site's page.
+- **Read-only codes** of a new wallet: the xpub comes first and is copied
+  with one press, like the descriptor; what each one is opens from a "?"
+  next to it instead of always being on screen.
+- Every "?" shows its explanation when the pointer rests on it; a click still
+  opens it, with the link to the guide.
+- The warning under a new wallet's words ("Whoever holds these words…") is
+  gone.
+- **Save as .txt**, next to *Print the Seed Card*: the same numbered words
+  as the Seed Card, as a plain text file (`document.txt`) saved where the
+  browser saves downloads. Nothing is sent anywhere: the file is made in the
+  page.
+- *View xpub and descriptor* now sits right after *Copy*.
+- **Each Shamir part and each SLIP-39 sheet** can now also be saved as
+  .txt and written as a powers-of-2 grid, like the seed. A part's file and
+  grid carry its number and verification code ("2 · A3F9"); a SLIP-39 grid
+  uses the SLIP-39 list of 1024 words (eleven columns), whose numbered list
+  the program prints too.
+  *Save all as .txt* and *All in powers of 2*, next to *Print all*, do the
+  same for every part or sheet at once: one file, or one grid per page.
+- **A SLIP-39 wallet shows its xpub and descriptor** (*View xpub and
+  descriptor*, next to *Print all sheets*).
+- **Better suggestions for a mistyped word.** When one word of a seed is not
+  in the list, only the close words that make the whole seed valid are
+  suggested: the right one is now almost always among them (in tests, every
+  time for a one- or two-letter slip in a 24-word seed). When every word is
+  in the list but they do not fit together, the program lists the single
+  changes that would make them fit — a word one letter away, or two
+  neighbouring words in the other order — to compare with the backup.
+- The same diagnosis now appears in Check wallet → Shamir backup (both when
+  converting a seed and when entering a part) and in the multisig screens,
+  which used to say only that the words were not valid.
+
+### Fixed
+- **The page froze after printing** (Chrome, Edge): printing opened a new
+  tab, and for as long as that tab's print dialog stayed open the page could
+  not be scrolled or used, even when coming back to it. Pages are now
+  printed from a hidden frame of the page itself: the print dialog opens
+  over the page, and no tab holding the words is left behind.
+- Check wallet → Shamir backup said the part number was printed as "Part 2
+  of 5"; it now points to the corner of the sheet ("2 · A3F9"), and still
+  mentions the older sheets.
+
 ## [1.3.2] — 2026-10
 
 ### Added

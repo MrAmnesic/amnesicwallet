@@ -24,7 +24,7 @@
  */
 
 import {
-  WORD_OPTIONS, ENT_BYTES, CHAINS, BTC_FORMATS, METAL_COLS,
+  WORD_OPTIONS, ENT_BYTES, CHAINS, BTC_FORMATS, METAL_COLS, SLIP39_METAL_COLS, slip39Wordlist,
   isSecureRandomAvailable, combineEntropy, createMouseCollector, createTypingCollector,
   diceRollsNeeded, diceBytesFrom, shamirSplit, shamirCombine, verificationCode, classicSplit,
   deriveAll, deriveBTC, deriveBTCMany, btcAccountInfo, btcPath, deriveMultisigXpub, multisigAddress, KeyError,
@@ -120,25 +120,30 @@ function showToast(msg, type) {
   requestAnimationFrame(() => toast.classList.add('toast-show'));
   setTimeout(() => { toast.classList.remove('toast-show'); setTimeout(() => toast.remove(), 300); }, 2600);
 }
-const printWindows = [];            // closed when the user removes everything from the page
+/* Printing happens from a hidden frame of this page, not from a new tab.
+   A print started in another tab froze this one (Chromium, Edge) for as long
+   as that tab's print dialog stayed open, and left a tab holding the words.
+   The frame is removed when the print is over, before the next print, and
+   when the user removes everything from the page. */
+const printFrames = [];
+function removePrintFrames() {
+  while (printFrames.length) { try { printFrames.pop().remove(); } catch (_) {} }
+}
 function printHTML(html) {
-  const doc = html.replace(/^\s+/, '');
-  const win = window.open('', '_blank');
-  if (win) {
-    printWindows.push(win);
-    win.document.write(doc); win.document.close(); win.focus();
-    setTimeout(() => win.print(), 500);
-    return;
-  }
+  removePrintFrames();
   const iframe = document.createElement('iframe');
+  iframe.setAttribute('aria-hidden', 'true');
+  iframe.tabIndex = -1;
   iframe.style.cssText = 'position:fixed;left:-9999px;top:-9999px;width:0;height:0;border:none';
   document.body.appendChild(iframe);
-  const idoc = iframe.contentDocument || iframe.contentWindow.document;
-  idoc.open(); idoc.write(doc); idoc.close();
-  setTimeout(() => {
-    iframe.contentWindow.focus(); iframe.contentWindow.print();
-    setTimeout(() => document.body.removeChild(iframe), 1000);
-  }, 500);
+  printFrames.push(iframe);
+  const w = iframe.contentWindow;
+  w.document.open(); w.document.write(html.replace(/^\s+/, '')); w.document.close();
+  w.addEventListener('afterprint', () => setTimeout(() => {
+    const i = printFrames.indexOf(iframe);
+    if (i >= 0) { printFrames.splice(i, 1); iframe.remove(); }
+  }, 0));
+  setTimeout(() => { w.focus(); w.print(); }, 500);
 }
 
 /* ════════════════════════════════════════════════════════════════
@@ -201,16 +206,19 @@ function renderApp() {
         <button class="theme-btn" id="theme-toggle" title="Change theme">${currentTheme === 'light' ? '🌙' : '☀️'}</button>
         <div class="logo-area logo-clickable" id="go-home" title="Back to the start">
           <div class="logo-icon">
-            <svg viewBox="0 0 40 40" width="40" height="40">
-              <rect x="2" y="2" width="36" height="36" rx="8" fill="none" stroke="currentColor" stroke-width="2.5"/>
-              <path d="M12 14h16M12 20h16M12 26h10" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-              <circle cx="28" cy="26" r="3" fill="currentColor"/>
+            <svg viewBox="92 290 626 596" width="42" height="40" aria-hidden="true">
+              <defs>
+                <linearGradient id="aw-r" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#9b4dff"/><stop offset=".55" stop-color="#d9586a"/><stop offset="1" stop-color="#ff9a2e"/></linearGradient>
+                <linearGradient id="aw-l" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#b15cff"/><stop offset="1" stop-color="#6f2fc4"/></linearGradient>
+                <linearGradient id="aw-s" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#ff8a2a"/><stop offset=".3" stop-color="#ea3b3b"/><stop offset=".7" stop-color="#f58232"/><stop offset="1" stop-color="#ffb347"/></linearGradient>
+              </defs>
+              <path d="M446 325.5 L708.5 840 L587.5 840 L350 374.5 Z" fill="url(#aw-r)"/>
+              <circle cx="398" cy="350" r="54" fill="#9b4dff"/>
+              <path d="M398 350 L190 760" stroke="url(#aw-l)" stroke-width="100" stroke-linecap="round" fill="none"/>
+              <path d="M150 690 C112 770 118 850 200 850 C285 850 360 705 455 705 C505 705 535 740 548 778 C515 748 480 738 440 745 C365 760 300 875 205 878 C110 880 90 780 150 690 Z" fill="url(#aw-s)"/>
             </svg>
           </div>
-          <div>
-            <h1>AMNESIC<span class="logo-accent">WALLET</span></h1>
-            <p class="subtitle">Your wallet is born here. And stays yours alone.</p>
-          </div>
+          <h1>AMNESIC<span class="logo-accent">WALLET</span></h1>
         </div>
       </header>
 
@@ -226,7 +234,7 @@ function renderApp() {
         ${activeTab === 'guide' ? renderGuideTab() : ''}
       </main>
 
-      <footer><p>No connection. Nothing saved. No trace.<br>Everything happens here, on this device, and disappears when you close the page.</p>
+      <footer><p>No connection. Nothing saved unless you ask. No trace.<br>Everything happens here, on this device, and disappears when you close the page.</p>
         <p class="hint" style="margin-top:8px">AmnesicWallet — free software under the GNU GPL v3 or later, with absolutely no warranty.</p></footer>
     </div>
     <div id="overlay-root"></div>
@@ -456,15 +464,7 @@ function wireConvertShamir() {
     const words = (ta.value || '').trim().toLowerCase().replace(/\s+/g, ' ');
     const err = document.getElementById('cv-err');
     if (!words) { err.innerHTML = '<span style="color:var(--danger)">Type the words of your seed.</span>'; return; }
-    const n = words.split(' ').length;
-    if (![12, 15, 18, 21, 24].includes(n)) {
-      err.innerHTML = `<span style="color:var(--danger)">You typed ${n} words. A BIP-39 seed has 12, 15, 18, 21 or 24.</span>`;
-      return;
-    }
-    if (!validateMnemonic(words, wordlist)) {
-      err.innerHTML = '<span style="color:var(--danger)">These words do not form a valid seed. It is usually a typo or a similar but different word: check them one by one.</span>';
-      return;
-    }
+    if (!validateMnemonic(words, wordlist)) { err.innerHTML = diagnosisHTML(diagnoseMnemonic(words), false); return; }
     const { n: parts, m: needed } = readThreshold('cv');
     try {
       resetWalletState();
@@ -668,11 +668,7 @@ function wireCtrlMultisig() {
 /* ════════════════════════════════════════════════════════════════
    CHECK WITH A PUBLIC KEY — xpub / ypub / zpub, no words typed
    ════════════════════════════════════════════════════════════════ */
-const XP_AS = [
-  ...Object.values(BTC_FORMATS).map(f => ({ id: f.id, label: `${f.label} (${f.tag})` })),
-  { id: 'eth', label: 'Ethereum (0x…)' },
-  { id: 'trx', label: 'TRON (T…)' },
-];
+const XP_AS = Object.values(BTC_FORMATS).map(f => ({ id: f.id, label: `${f.label} (${f.tag})` }));
 
 function renderCtrlXpub() {
   return `
@@ -710,7 +706,6 @@ function renderXpResults() {
   const box = document.getElementById('xp-results');
   if (!box) return;
   if (!xp) { box.innerHTML = ''; return; }
-  const btc = !!BTC_FORMATS[xp.as];
   const label = xp.info.kind;
   const note = xp.info.format
     ? `This ${label} is labelled for <strong>${escapeHtml(BTC_FORMATS[xp.info.format].label)}</strong> addresses, so that format is selected. You can still try the others.`
@@ -724,36 +719,32 @@ function renderXpResults() {
       <div class="seg xp-as" id="xp-as" style="flex-wrap:wrap">
         ${XP_AS.map(a => `<button class="seg-btn ${xp.as === a.id ? 'seg-active' : ''}" data-as="${a.id}">${escapeHtml(a.label)}</button>`).join('')}
       </div>
-      ${btc ? `
-        <div class="seg" id="xp-branch" style="margin-top:12px">
+      <div class="seg" id="xp-branch" style="margin-top:12px">
           <button class="seg-btn ${xp.change ? '' : 'seg-active'}" data-c="0">Receiving</button>
           <button class="seg-btn ${xp.change ? 'seg-active' : ''}" data-c="1">Change</button>
         </div>
         ${xp.change ? '<p class="hint" style="margin-top:6px">When you send a payment, what is left comes back to a <strong>change address</strong>. If you have ever spent from this account, part of the funds is usually here.</p>' : ''}
-      ` : '<p class="hint" style="margin-top:10px">For Ethereum and TRON, a key exported at <code>m/44\'/60\'/0\'</code> (or <code>m/44\'/195\'/0\'</code>) gives the addresses of Account 1, 2, 3… of MetaMask-style wallets, in order.</p>'}
       <div class="more-list" style="margin-top:10px">
         ${xp.list.map(a => `
           <div class="more-row">
             <span class="more-idx">#${a.index}</span>
-            <code class="more-addr">${escapeHtml(a.address)}<br><span class="path-value" style="font-size:10px">key/${btc ? xp.change : 0}/${a.index}</span></code>
+            <code class="more-addr">${escapeHtml(a.address)}<br><span class="path-value" style="font-size:10px">key/${xp.change}/${a.index}</span></code>
             ${copyButton(a.address)}
           </div>`).join('')}
       </div>
       <div class="ov-row" style="margin-top:10px">
         <button class="btn btn-ghost btn-small" id="xp-more">Show 10 more</button>
       </div>
-      ${btc ? `
-        <div class="watch-box">
+      <div class="watch-box">
           <div class="watch-head">👁️ Descriptor for a watch-only wallet</div>
           <p class="hint" style="margin-bottom:12px">Paste it into <strong>Sparrow</strong> or <strong>Electrum</strong> to follow the balance without being able to spend.</p>
           <div class="addr-copy-row"><code class="detail-value" style="font-size:10.5px">${escapeHtml(xpubDescriptor(xp.info.xpub, xp.as))}</code>
             ${copyButton(xpubDescriptor(xp.info.xpub, xp.as))}</div>
-        </div>` : ''}
+        </div>
     </div>`;
   wireCopyButtons(box);
   box.querySelectorAll('#xp-as .seg-btn').forEach(b => b.addEventListener('click', () => {
     xp.as = b.dataset.as;
-    if (!BTC_FORMATS[xp.as]) xp.change = 0;
     computeXp(xp.list.length); renderXpResults();
   }));
   box.querySelectorAll('#xp-branch .seg-btn').forEach(b => b.addEventListener('click', () => {
@@ -993,21 +984,44 @@ function wireVerify() {
 
 /* What is wrong with the typed words, in words a person can act on:
    which position, what was typed, which list words are close to it. */
-function diagnosisHTML(d) {
+function diagnosisHTML(d, buttons = true) {
   if (!d.count) return '<div class="warn-box">Type the words of your seed.</div>';
   const parts = [];
   if (!d.countOk) parts.push(`You typed <strong>${d.count}</strong> ${d.count === 1 ? 'word' : 'words'}. A BIP-39 seed has 12, 15, 18, 21 or 24.`);
+  // With buttons (Check wallet) a suggestion replaces the word in the box;
+  // elsewhere it is only named.
+  const pick = (u, w) => buttons
+    ? `<button class="btn btn-outline btn-small vf-sugg" data-pos="${u.position}" data-word="${w}">${w}</button>`
+    : `<strong>${w}</strong>`;
   for (const u of d.unknown) {
     parts.push(`Word <strong>${u.position}</strong>, “${escapeHtml(u.word)}”, is not in the list of BIP-39 words. ` +
       (u.suggestions.length
-        ? `Did you mean ${u.suggestions.map(w => `<button class="btn btn-outline btn-small vf-sugg" data-pos="${u.position}" data-word="${w}">${w}</button>`).join(' ')}?`
-        : 'No list word is close to it: look at it again on your sheet.'));
+        ? `${u.checked ? (u.suggestions.length > 1 ? 'These list words, close to it, make the whole seed valid: ' : 'This list word, close to it, makes the whole seed valid: ') : 'Did you mean '}${u.suggestions.map(w => pick(u, w)).join(' ')}${u.checked ? '. Choose the one on your sheet.' : '?'}`
+        : u.checked
+          ? 'No list word close to it makes the seed valid: look at it again on your sheet, and at the other words too.'
+          : 'No list word is close to it: look at it again on your sheet.'));
   }
   if (d.countOk && !d.unknown.length && !d.checksumOk) {
     parts.push(`All ${d.count} words are in the list, but they do not fit together: the last word also works as a check on all the others, and here it does not match. Usually one word is a different but similar list word, or two words are in the wrong order. Compare them one by one with your sheet.`);
-    parts.push('They are not an Electrum seed either: if they come from Electrum, one word is different there too.');
+    if (d.fixes.length) {
+      parts.push(`Changes that would make them fit — check which one matches your sheet; more than one can fit by chance:<br>` +
+        d.fixes.map(f => f.kind === 'swap'
+          ? `· words ${f.position} and ${f.position + 1} in the other order (“${escapeHtml(f.to)} ${escapeHtml(f.from)}”)`
+          : `· word ${f.position}: “${escapeHtml(f.from)}” → ${pick(f, f.to)}`).join('<br>'));
+    }
+    if (buttons) parts.push('They are not an Electrum seed either: if they come from Electrum, one word is different there too.');
   }
   return `<div class="warn-box">${parts.map(t => `<p style="margin:4px 0">${t}</p>`).join('')}</div>`;
+}
+
+/* The same, in one line for a message: the first problem only. */
+function diagnosisText(d) {
+  if (!d.countOk) return `${d.count} words: a BIP-39 seed has 12, 15, 18, 21 or 24.`;
+  const u = d.unknown[0];
+  if (u) return `Word ${u.position}, “${u.word}”, is not a BIP-39 word${u.suggestions.length ? ` — perhaps ${u.suggestions.join(', ')}` : ''}.`;
+  const f = d.fixes[0];
+  return 'All the words are in the list but they do not fit together: usually one is a similar list word.'
+    + (f ? ` One possible change, to compare with your sheet: ${f.kind === 'swap' ? `words ${f.position} and ${f.position + 1} in the other order` : `word ${f.position}, “${f.from}” → “${f.to}”`}.` : '');
 }
 
 function showDiagnosis(d) {
@@ -1495,6 +1509,8 @@ function renderSlipView() {
                 <button class="btn btn-outline btn-small sl-reveal" data-i="${i}">${open ? '🙈 Hide' : '👁️ Reveal'}</button>
                 <button class="btn btn-outline btn-small sl-copy" data-i="${i}">📋 Copy</button>
                 <button class="btn btn-outline btn-small sl-print" data-i="${i}">🖨️ Print</button>
+                <button class="btn btn-outline btn-small sl-txt" data-i="${i}">💾 Save as .txt</button>
+                <button class="btn btn-outline btn-small sl-metal" data-i="${i}">🔢 Powers of 2</button>
                 <button class="btn btn-outline btn-small sl-check" data-i="${i}">✅ Check again</button>
               </div>
             </div>`;
@@ -1502,8 +1518,12 @@ function renderSlipView() {
         </div>
         <div class="ov-row" style="margin-top:16px">
           <button class="btn btn-primary" id="slip-print-all">🖨️ Print all sheets</button>
+          <button class="btn btn-outline" id="slip-txt-all">💾 Save all as .txt</button>
+          <button class="btn btn-outline" id="slip-metal-all">🔢 All in powers of 2</button>
+          ${watchButton()}
           <button class="btn btn-ghost btn-danger btn-small" id="slip-reset">✕ Start over</button>
         </div>
+        <div id="watch-panel"></div>
         <div class="note-box" style="margin-top:12px">The first three words are the same on every sheet: they identify this backup and tell you at a glance whether you are combining sheets from the same set.</div>
       </div>
 
@@ -1529,7 +1549,6 @@ function renderSlipView() {
           </div>
         </div>
         <button id="btn-derive" class="btn btn-primary">Calculate the addresses</button>
-        <div id="watch-panel"></div>
         <div id="results-container"></div>
       </div>
     </section>`;
@@ -1544,11 +1563,19 @@ function wireSlipView() {
     catch (_) { showToast('Copy failed.', 'error'); }
   }));
   document.querySelectorAll('.sl-print').forEach(b => b.addEventListener('click', () => printSlipShare(+b.dataset.i)));
+  const sheetSrc = (i) => ({ words: slipShares[i], kind: 'slip39', label: `Sheet ${i + 1}` });
+  document.querySelectorAll('.sl-txt').forEach(b => b.addEventListener('click', () => handleSaveSeedTxt(sheetSrc(+b.dataset.i))));
+  document.querySelectorAll('.sl-metal').forEach(b => b.addEventListener('click', () => showMetalIntro(sheetSrc(+b.dataset.i))));
+  document.getElementById('btn-watch')?.addEventListener('click', toggleWatch);
+  syncWatchPanel();                        // after a redraw, an open panel stays open
   document.querySelectorAll('.sl-check').forEach(b => b.addEventListener('click', () => {
     const i = +b.dataset.i;
     showVerifyBackup(slipShares[i], `Sheet ${i + 1} of ${slipConfig.n}`);
   }));
   document.getElementById('slip-print-all')?.addEventListener('click', printAllSlipShares);
+  const allSheets = () => ({ list: slipShares.map((_, i) => sheetSrc(i)), kind: 'slip39', label: `all ${slipShares.length} sheets` });
+  document.getElementById('slip-txt-all')?.addEventListener('click', () => handleSaveSeedTxt(allSheets()));
+  document.getElementById('slip-metal-all')?.addEventListener('click', () => showMetalIntro(allSheets()));
   document.getElementById('slip-reset')?.addEventListener('click', handleReset);
   document.getElementById('btn-select-all')?.addEventListener('click', handleSelectAll);
   const syncFmt = () => {
@@ -1561,13 +1588,12 @@ function wireSlipView() {
   document.getElementById('btn-derive')?.addEventListener('click', handleDerive);
 }
 
+/* A printed SLIP-39 sheet carries the words and nothing else: each share
+   already contains, inside its words, its own number and the threshold. */
 function slipShareHTML(i) {
   const w = slipShares[i].split(' ');
-  const { m, n } = slipConfig;
   return `<div class="card">
-<div class="title">Sheet ${i + 1} of ${n}</div>
 <div class="grid">${w.map((x, k) => `<div class="w"><i>${k + 1}</i>${escapeHtml(x)}</div>`).join('')}</div>
-<div class="meta">SLIP-39 backup &middot; any ${m} of the ${n} sheets recover the wallet</div>
 </div>`;
 }
 
@@ -1579,16 +1605,17 @@ body{font-family:'Courier New',monospace;background:#fff;color:#000}
 .grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
 .w{border:1px solid #bbb;border-radius:3px;padding:8px 9px;font-size:12px}
 .w i{color:#999;font-style:normal;margin-right:7px;font-size:10px}
-.meta{margin-top:18px;padding-top:12px;border-top:1px solid #ccc;font-size:11px;line-height:1.6;color:#333}`;
+.meta{margin-top:18px;padding-top:12px;border-top:1px solid #ccc;font-size:11px;line-height:1.6;color:#333}
+.corner{margin-top:14px;text-align:right;font-size:10px;color:#555;letter-spacing:1px}`;
 
 function printSlipShare(i) {
-  printHTML(`<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><title>Sheet ${i + 1}</title>
+  printHTML(`<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><title>Document</title>
 <style>${SLIP_PRINT_CSS}</style></head><body>${slipShareHTML(i)}</body></html>`);
 }
 
 function printAllSlipShares() {
   const pages = slipShares.map((_, i) => slipShareHTML(i)).join('<div class="brk"></div>');
-  printHTML(`<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><title>Sheets</title>
+  printHTML(`<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><title>Document</title>
 <style>${SLIP_PRINT_CSS}</style></head><body>${pages}</body></html>`);
 }
 
@@ -1643,6 +1670,16 @@ const HELP = {
     d: 'You retype the words looking only at your own backup. It exists to reveal today, in thirty seconds, whether the backup is wrong — instead of on the day you actually need it.',
     g: 'g-verify',
   },
+  xpub: {
+    t: 'xpub',
+    d: 'The "extended public key" of this account. On its own it generates all your Bitcoin addresses, but no signatures: whoever holds it can see, not spend.',
+    g: 'g-watch',
+  },
+  descriptor: {
+    t: 'Descriptor',
+    d: 'The xpub plus the instructions on how to use it: address format and path. This is what you paste into Sparrow or Electrum to see balance and movements in real time, while the seed stays safe.',
+    g: 'g-watch',
+  },
   evm: {
     t: 'One address, many networks',
     d: 'Ethereum, BSC, Polygon, Arbitrum, Avalanche, Optimism and Base are all <strong>EVM-compatible</strong>: they work like Ethereum and make addresses in the same way. So this address — from the same words — is yours on every one of them. The funds on each network stay separate: what arrives on BSC is on BSC, not on Ethereum. To see it, choose that network in your wallet.',
@@ -1655,8 +1692,17 @@ const HELP = {
   },
 };
 
+/* Text without markup, for a tooltip: tags are removed until none is left,
+   so none can be rebuilt from the pieces of another, then stray brackets. */
+function plainText(html) {
+  let t = String(html), prev;
+  do { prev = t; t = t.replace(/<[^<>]*>/g, ''); } while (t !== prev);
+  return t.replace(/[<>]/g, '');
+}
+
 function help(key) {
-  return HELP[key] ? `<span class="help-dot" data-help="${key}" title="What does this mean?" role="button" tabindex="0">?</span>` : '';
+  // Hovering shows the explanation; a click (or a tap) opens it with a link to the guide.
+  return HELP[key] ? `<span class="help-dot" data-help="${key}" title="${escapeHtml(plainText(HELP[key].d))}" role="button" tabindex="0">?</span>` : '';
 }
 
 /* A "?" that explains nothing itself: it jumps straight to the right spot in the guide */
@@ -2100,6 +2146,7 @@ function finishGeneration(diceBytes, typeBytes) {
    ════════════════════════════════════════════════════════════════ */
 let watchRevealed = false;
 let watchInPrint = false;
+const watchButton = () => `<button id="btn-watch" class="btn btn-outline">${watchRevealed ? '🙈 Hide xpub and descriptor' : '👁️ View xpub and descriptor'}</button>`;
 
 /* If the xpub panel is open and the format or networks change, it must be realigned:
    otherwise it would show codes for a format that is no longer selected. */
@@ -2127,33 +2174,36 @@ function wireWatchCard() {
   });
 }
 
+function toggleWatch() {
+  const panel = document.getElementById('watch-panel');
+  if (watchRevealed) {                       // second press: close again
+    watchRevealed = false; panel.innerHTML = '';
+    document.getElementById('btn-watch').innerHTML = '👁️ View xpub and descriptor';
+    return;
+  }
+  try {
+    if (!btcAccount) btcAccount = btcAccountInfo(currentSeed, btcFormat);
+    watchRevealed = true;
+    panel.innerHTML = renderWatchPanel();
+    wireWatchCard();
+    document.getElementById('btn-watch').innerHTML = '🙈 Hide xpub and descriptor';
+    panel.scrollIntoView?.({ behavior: 'smooth', block: 'nearest' });
+  } catch (err) { showToast('Error: ' + err.message, 'error'); }
+}
+
 function renderWatchPanel() {
   const a = btcAccount;
   return `
     <div class="watch-panel">
       <div class="wp-head">👁️ Read-only codes</div>
       <p class="hint" style="margin-bottom:10px">They cannot spend: they are only for watching.${help('watch')}</p>
-      <div class="wc-explain">
-        <div class="wc-item">
-          <span class="wc-name">xpub</span>
-          <span class="wc-txt">The "extended public key". On its own it generates all your Bitcoin addresses, but no signatures.</span>
-        </div>
-        <div class="wc-item">
-          <span class="wc-name">descriptor</span>
-          <span class="wc-txt">The xpub plus the instructions on how to use it: address format and path. This is what you paste into <strong>Sparrow</strong> or <strong>Electrum</strong> to see balance and movements in real time, while the seed stays safe.</span>
-        </div>
-      </div>
-      <div class="detail-label" style="margin-top:12px">Descriptor</div>
+      <div class="detail-label" style="margin-top:12px">xpub <span style="text-transform:none">&middot; ${escapeHtml(a.path)}</span>${help('xpub')}</div>
+      <div class="addr-copy-row"><code class="detail-value" style="font-size:10.5px">${escapeHtml(a.xpub)}</code>
+        <button class="btn btn-icon" id="wc-copy-xpub" title="Copy">📋</button></div>
+      <p class="hint" style="margin-top:6px">Standard ${escapeHtml(a.format.std)} &middot; Fingerprint ${escapeHtml(a.fingerprint)} &middot; Format ${escapeHtml(a.format.label)}</p>
+      <div class="detail-label" style="margin-top:12px">Descriptor${help('descriptor')}</div>
       <div class="addr-copy-row"><code class="detail-value" style="font-size:10.5px">${escapeHtml(a.descriptor)}</code>
         <button class="btn btn-icon" id="wc-copy-desc" title="Copy">📋</button></div>
-      <details class="adv" style="margin-top:10px"><summary>See the raw xpub as well</summary>
-        <div class="adv-body">
-          <div class="detail-label">Account xpub (${escapeHtml(a.path)})</div>
-          <div class="addr-copy-row"><code class="detail-value" style="font-size:10.5px">${escapeHtml(a.xpub)}</code>
-            <button class="btn btn-icon" id="wc-copy-xpub" title="Copy">📋</button></div>
-          <p class="hint" style="margin-top:8px">Standard ${escapeHtml(a.format.std)} &middot; Fingerprint ${escapeHtml(a.fingerprint)} &middot; Format ${escapeHtml(a.format.label)}</p>
-        </div>
-      </details>
       <label class="chk-row wc-print" style="margin-top:12px">
         <input type="checkbox" id="wc-print" ${watchInPrint ? 'checked' : ''}>
         <span>Include these codes in the printed summary</span>
@@ -2181,6 +2231,8 @@ function renderPartsCard() {
           <button class="btn btn-outline btn-small pc-reveal" data-i="${i}">${open ? '🙈 Hide' : '👁️ Reveal'}</button>
           <button class="btn btn-outline btn-small pc-copy" data-i="${i}">📋 Copy</button>
           <button class="btn btn-outline btn-small pc-print" data-i="${i}">🖨️ Print</button>
+          <button class="btn btn-outline btn-small pc-txt" data-i="${i}">💾 Save as .txt</button>
+          <button class="btn btn-outline btn-small pc-metal" data-i="${i}">🔢 Powers of 2</button>
           <button class="btn btn-outline btn-small pc-check" data-i="${i}">✅ Check again</button>
         </div>
       </div>`;
@@ -2194,11 +2246,14 @@ function renderPartsCard() {
       <p style="margin-bottom:6px">${classic
         ? `The seed is split into ${n} consecutive groups: <strong>all of them are needed</strong> to reassemble it.`
         : `Only <strong>${m} of ${n}</strong> are needed to get the seed back. Keep them in different places.`}</p>
+      ${classic ? '' : `<div class="warn-box" style="margin:8px 0 12px">🔢 <strong>Each part goes with its number.</strong> To rebuild the seed, every part must be entered with its own number — the order does not matter, the number does. A part whose number is unknown cannot be used. The printed sheet carries it in a corner, next to the verification code: <strong>“3 · ${escapeHtml(code)}”</strong> is part 3. If you copy a part by hand, write its number next to it.</div>`}
       <p class="hint" style="margin-bottom:14px">They stay here until you close the page or press Generate a new wallet.</p>
-      ${code ? `<div class="ok-box" style="margin-bottom:14px">Verification code: <strong>${escapeHtml(code)}</strong> &mdash; write it on every sheet. It confirms, at recovery time, that the reassembled seed is the right one.</div>` : ''}
+      ${code ? `<div class="ok-box" style="margin-bottom:14px">Verification code: <strong>${escapeHtml(code)}</strong>. It confirms, at recovery time, that the reassembled seed is the right one.</div>` : ''}
       <div class="keys-list">${rows}</div>
       <div class="ov-row" style="margin-top:16px">
         <button class="btn btn-primary" id="pc-print-all">🖨️ Print all parts</button>
+        <button class="btn btn-outline" id="pc-txt-all">💾 Save all as .txt</button>
+        <button class="btn btn-outline" id="pc-metal-all">🔢 All in powers of 2</button>
         <button class="btn btn-ghost btn-small" id="pc-forget">✕ Hide from the page</button>
       </div>
     </div>`;
@@ -2213,18 +2268,28 @@ function wirePartsCard() {
   document.querySelectorAll('.pc-copy').forEach(b => b.addEventListener('click', async () => {
     const p = shamirParts[+b.dataset.i];
     const str = classic ? p.words.join(' ') : p.words;
-    try { await copyToClipboard(str); showToast(`Part ${p.x} copied.`, 'success'); }
+    try { await copyToClipboard(str); showToast(classic ? `Part ${p.x} copied.` : `Part ${p.x} copied: keep its number, ${p.x}, with it.`, 'success'); }
     catch (_) { showToast('Copy failed.', 'error'); }
   }));
   document.querySelectorAll('.pc-print').forEach(b => b.addEventListener('click', () => {
     printShamirPart(shamirParts[+b.dataset.i], n, m, code, classic);
   }));
+  // What a part's .txt file and powers-of-2 grid carry: its words, where they
+  // start, and for a Shamir part its number (with the code) in a corner.
+  const partSrc = (p) => classic
+    ? { words: p.words.join(' '), offset: p.from - 1, label: `Part ${p.x} of ${n}` }
+    : { words: p.words, corner: `${p.x}${code ? ` · ${code}` : ''}`, label: `Part ${p.x} of ${n}` };
+  document.querySelectorAll('.pc-txt').forEach(b => b.addEventListener('click', () => handleSaveSeedTxt(partSrc(shamirParts[+b.dataset.i]))));
+  document.querySelectorAll('.pc-metal').forEach(b => b.addEventListener('click', () => showMetalIntro(partSrc(shamirParts[+b.dataset.i]))));
   document.querySelectorAll('.pc-check').forEach(b => b.addEventListener('click', () => {
     const p = shamirParts[+b.dataset.i];
     const str = classic ? p.words.join(' ') : p.words;
     showVerifyBackup(str, `Part ${p.x} of ${n}`);
   }));
   document.getElementById('pc-print-all')?.addEventListener('click', () => printAllShamirParts(n, m, code, classic));
+  const allParts = () => ({ list: shamirParts.map(partSrc), label: `all ${n} parts` });
+  document.getElementById('pc-txt-all')?.addEventListener('click', () => handleSaveSeedTxt(allParts()));
+  document.getElementById('pc-metal-all')?.addEventListener('click', () => showMetalIntro(allParts()));
   document.getElementById('pc-forget')?.addEventListener('click', () => {
     shamirParts = null; shamirMeta = null; shamirRevealed = [];
     seedUnlocked = false;
@@ -2269,20 +2334,21 @@ function renderWalletView() {
         <div class="seed-actions"${(split && !seedUnlocked) ? ' style="display:none"' : ''}>
           <button id="btn-reveal-seed" class="btn btn-outline">👁️ Reveal the words</button>
           <button id="btn-copy-seed" class="btn btn-outline">📋 Copy</button>
+          ${split && !seedUnlocked ? '' : watchButton()}
           <button id="btn-print-seed" class="btn btn-outline">🖨️ Print the Seed Card</button>
+          <button id="btn-txt-seed" class="btn btn-outline">💾 Save as .txt</button>
           <button id="btn-metal" class="btn btn-outline">🔢 Powers-of-2 backup</button>
           <button id="btn-verify-backup" class="btn btn-outline">✅ Check the seed again</button>
           ${walletKind === 'classic' && !shamirParts ? '<button id="btn-split-seed" class="btn btn-outline">✂️ Split into groups</button>' : ''}
         </div>
         <!-- Actions that never expose the seed stay available even while it is locked. -->
         <div class="seed-actions seed-actions-2">
-          <button id="btn-watch" class="btn btn-outline">👁️ View xpub and descriptor</button>
+          ${split && !seedUnlocked ? watchButton() : ''}
           <button id="btn-reset" class="btn btn-newwallet">✨ Generate a new wallet</button>
         </div>
         <div id="watch-panel"></div>
         ${pendingConfig && pendingConfig.passphrase ? `<p class="seed-warning">🔑 You set a passphrase: it is as important as the words themselves. Without it this wallet cannot be recovered.</p>` : ''}
         ${walletKind === 'classic' ? '<p class="hint" style="margin-top:10px">For a threshold backup of an existing seed: <button class="link-btn" id="go-convert">Check wallet → Shamir backup</button></p>' : ''}
-        <p class="seed-warning">⚠ Whoever holds these words holds your funds. Whoever loses them loses access, with no way back.</p>
       </div>
 
       <div class="card chain-card">
@@ -2326,23 +2392,10 @@ function wireWalletView() {
   document.getElementById('btn-reveal-seed')?.addEventListener('click', handleRevealSeed);
   document.getElementById('btn-copy-seed')?.addEventListener('click', handleCopySeed);
   document.getElementById('btn-print-seed')?.addEventListener('click', handlePrintSeed);
-  document.getElementById('btn-metal')?.addEventListener('click', showMetalIntro);
-  document.getElementById('btn-watch')?.addEventListener('click', () => {
-    const panel = document.getElementById('watch-panel');
-    if (watchRevealed) {                       // second press: close again
-      watchRevealed = false; panel.innerHTML = '';
-      document.getElementById('btn-watch').innerHTML = '👁️ View xpub and descriptor';
-      return;
-    }
-    try {
-      if (!btcAccount) btcAccount = btcAccountInfo(currentSeed, btcFormat);
-      watchRevealed = true;
-      panel.innerHTML = renderWatchPanel();
-      wireWatchCard();
-      document.getElementById('btn-watch').innerHTML = '🙈 Hide xpub and descriptor';
-      panel.scrollIntoView?.({ behavior: 'smooth', block: 'nearest' });
-    } catch (err) { showToast('Error: ' + err.message, 'error'); }
-  });
+  document.getElementById('btn-txt-seed')?.addEventListener('click', () => handleSaveSeedTxt());
+  document.getElementById('btn-metal')?.addEventListener('click', () => showMetalIntro());
+  document.getElementById('btn-watch')?.addEventListener('click', toggleWatch);
+  syncWatchPanel();                        // after a redraw, an open panel stays open
 
   document.getElementById('btn-verify-backup')?.addEventListener('click', () => showVerifyBackup());
   document.getElementById('btn-split-seed')?.addEventListener('click', showClassicSplitSetup);
@@ -2411,6 +2464,25 @@ body{font-family:'Courier New',monospace;background:#fff;color:#000}
 </div></body></html>`);
 }
 
+/* The Seed Card as plain text, saved where the browser saves downloads:
+   the same words, numbered, with no grid. The file is made in the page
+   (a data: link) — nothing is sent anywhere. */
+function handleSaveSeedTxt(src) {
+  // One block of words, or (src.list) every part or sheet, one after the other.
+  const blocks = src ? (src.list || [src]) : [{ words: currentMnemonic }];
+  const block = (m) => m.words.split(' ').map((w, i) => `${String((m.offset || 0) + i + 1).padStart(2, ' ')}  ${w}`).join('\r\n') + '\r\n'
+    + (m.corner ? `\r\n${m.corner}\r\n` : '');
+  const text = 'DOCUMENT\r\n\r\n' + blocks.map(block).join('\r\n\r\n');
+  const a = document.createElement('a');
+  a.href = 'data:text/plain;charset=utf-8,' + encodeURIComponent(text);
+  a.download = 'document.txt';
+  a.style.display = 'none';
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  showToast('Saved as document.txt, in your downloads folder.', 'success');
+}
+
 /* Forget every value tied to the wallet on screen, so nothing from one
    wallet (parts, xpub, extra addresses, passphrase flag) can ever be shown
    next to another one. */
@@ -2425,21 +2497,21 @@ function resetWalletState() {
 }
 
 /* "Generate a new wallet": nothing secret from this session stays in the
-   page — the wallet, the Check tab, the multisig keys, the print windows. */
+   page — the wallet, the Check tab, the multisig keys, what was prepared for printing. */
 function clearEverything() {
   resetWalletState();
   vfSeed = null; vfMnemonic = null; vfResults = null; csResults = null;
   vfCards = newVfCards(); vfFind = null; xp = null; vfElectrum = null; vfAlsoElectrum = ''; vfSource = null;
   msMyXpub = null; msSoloSeeds = null; msSoloVault = null; msSoloRevealed = []; msSoloConfig = null;
   recParts = [{}, {}, {}];
-  while (printWindows.length) { try { printWindows.pop().close(); } catch (_) {} }
+  removePrintFrames();
 }
 
 function handleReset() {
   overlayRoot().innerHTML = `
     <div class="ov"><div class="ov-card ov-narrow">
       <h3>Generate a new wallet?</h3>
-      <p>The current wallet will be removed from this page and cannot be brought back here — together with anything else still open in this session: seeds being checked, multisig keys, print windows. Only proceed if you have already saved the words safely.</p>
+      <p>The current wallet will be removed from this page and cannot be brought back here — together with anything else still open in this session: seeds being checked, multisig keys, pages prepared for printing. Only proceed if you have already saved the words safely.</p>
       <div class="ov-row" style="margin-top:18px">
         <button class="btn btn-outline" id="rs-no">Cancel</button>
         <button class="btn btn-primary" id="rs-yes">Yes, generate a new wallet</button>
@@ -2579,26 +2651,34 @@ function renderResults() {
    this way no row is ever empty (with 0-based numbering "abandon"
    would have no marks, indistinguishable from an unfilled row).
    ══════════════════════════════════════════════════════════════ */
-function showMetalIntro() {
-  const nw = currentMnemonic.split(' ').length;
+/* src: the words to put on the grid. Without arguments, the wallet's seed.
+   A part or a sheet passes its own words, the position of its first word
+   (a Classic group starts further on), the corner to print under the grid
+   (a Shamir part's number, which recovery needs) and 'slip39' for a
+   SLIP-39 sheet, whose words come from the 1024-word SLIP-39 dictionary. */
+function showMetalIntro(src) {
+  const m = src || { words: currentMnemonic };   // src.list: every part or sheet, one grid each
+  const slip = m.kind === 'slip39';
   overlayRoot().innerHTML = `
     <div class="ov"><div class="ov-card">
-      <h3>🔢 Powers-of-2 backup</h3>
+      <h3>🔢 Powers-of-2 backup${m.label ? ` &mdash; ${escapeHtml(m.label)}` : ''}</h3>
       <p>Instead of the words, <strong>only dots on a grid</strong>: every word becomes a sum of powers of two.${helpLink('g-powers', 'Learn more about powers-of-2 backup')}</p>
 
       <div class="metal-demo">
         <div class="metal-demo-head">How it works</div>
-        <p>Every word in the BIP-39 dictionary has a number from 1 to 2048. That number is written by marking some boxes: <strong>adding them up gives back the number</strong>, and looking that number up in the dictionary gives back the word.</p>
+        <p>Every word in the ${slip ? 'SLIP-39 dictionary has a number from 1 to 1024' : 'BIP-39 dictionary has a number from 1 to 2048'}. That number is written by marking some boxes: <strong>adding them up gives back the number</strong>, and looking that number up in the dictionary gives back the word.</p>
         <div class="metal-demo-row">
-          <span class="mdr-label">Example &mdash; the 2045th word of the dictionary</span>
-          <span class="mdr-cells">1024 + 512 + 256 + 128 + 64 + 32 + 16 + 8 + 4 + 1 = <strong>2045</strong></span>
+          <span class="mdr-label">Example &mdash; the ${slip ? '1021st' : '2045th'} word of the dictionary</span>
+          <span class="mdr-cells">${slip ? '512 + 256 + 128 + 64 + 32 + 16 + 8 + 4 + 1 = <strong>1021</strong>' : '1024 + 512 + 256 + 128 + 64 + 32 + 16 + 8 + 4 + 1 = <strong>2045</strong>'}</span>
         </div>
       </div>
 
       <p><strong>The words don't appear on the sheet</strong>, nor do the numbers: only the dots. At recovery time it will be up to you to add the columns and look up the words.</p>
+      ${m.corner ? `<p class="hint">Under the grid, in a corner, goes this part's number with the verification code: <strong>“${escapeHtml(m.corner)}”</strong>. Without the number the part cannot be used.</p>` : ''}
+      ${m.list ? `<p class="hint">One grid per ${slip ? 'sheet' : 'part'}, each on its own page${m.list[0].corner ? ', with that part\'s number and the verification code in a corner (for example “' + escapeHtml(m.list[0].corner) + '”)' : ''}.</p>` : ''}
 
       <div class="ok-box" style="margin-top:12px">
-        <strong>You will need the numbered dictionary</strong> to turn numbers into words. You'll find it in this program, but it's worth printing it below and keeping it <em>separately</em> from the grid: on its own it reveals nothing, it's a public list identical for everyone.
+        <strong>You will need the numbered ${slip ? 'SLIP-39 ' : ''}dictionary</strong> to turn numbers into words. You'll find it in this program, but it's worth printing it below and keeping it <em>separately</em> from the grid: on its own it reveals nothing, it's a public list identical for everyone.
       </div>
 
       <div class="ov-row" style="margin-top:18px">
@@ -2610,40 +2690,49 @@ function showMetalIntro() {
       </div>
     </div></div>`;
   document.getElementById('mt-close').addEventListener('click', closeOverlay);
-  document.getElementById('mt-print').addEventListener('click', printMetalSheet);
-  document.getElementById('mt-list').addEventListener('click', printWordlistIndex);
+  document.getElementById('mt-print').addEventListener('click', () => printMetalSheet(m));
+  if (m.list) document.getElementById('mt-print').innerHTML = `🖨️ Print the ${m.list.length} grids`;
+  document.getElementById('mt-list').addEventListener('click', () => printWordlistIndex(slip ? slip39Wordlist : wordlist));
 }
 
-function printMetalSheet() {
-  let rows;
-  try { rows = metalRows(currentMnemonic); }
-  catch (e) { showToast(e.message, 'error'); return; }
-  const head = METAL_COLS.map(c => `<th class="cn">${c}</th>`).join('');
-  const body = rows.map(r => `
+function printMetalSheet(m) {
+  const slip = m.kind === 'slip39';
+  const head = (slip ? SLIP39_METAL_COLS : METAL_COLS).map(c => `<th class="cn">${c}</th>`).join('');
+  const grid = (g) => {
+    const off = g.offset || 0;
+    const body = metalRows(g.words, slip ? 'slip39' : 'bip39').map(r => `
     <tr>
-      <td class="pos">${r.pos}</td>
-      ${r.marks.map(m => `<td class="cell${m ? ' on' : ''}">${m ? '●' : ''}</td>`).join('')}
+      <td class="pos">${off + r.pos}</td>
+      ${r.marks.map(on => `<td class="cell${on ? ' on' : ''}">${on ? '●' : ''}</td>`).join('')}
     </tr>`).join('');
+    return `<table>
+<tr><th></th>${head}</tr>
+${body}
+</table>
+${g.corner ? `<div class="corner">${escapeHtml(g.corner).replace(' · ', ' &middot; ')}</div>` : ''}`;
+  };
+  let pages;
+  try { pages = (m.list || [m]).map(grid).join('<div class="brk"></div>'); }
+  catch (e) { showToast(e.message, 'error'); return; }
   printHTML(`<!DOCTYPE html>
 <html lang="en"><head><meta charset="UTF-8"><title>Document</title><style>
 *{margin:0;padding:0;box-sizing:border-box}@page{size:A4;margin:14mm}
 body{font-family:'Courier New',monospace;background:#fff;color:#000}
 table{width:100%;border-collapse:collapse}
 th,td{border:1px solid #999;text-align:center;font-size:10px;padding:4px 1px}
-th{background:#eee;font-size:9px;width:7.6%}
+th{background:#eee;font-size:9px;width:${slip ? '8.3' : '7.6'}%}
 td.pos{width:28px;background:#f4f4f4;color:#666;font-weight:bold}
 td.cell{height:24px;font-size:13px}
+.corner{margin-top:10px;text-align:right;font-size:10px;color:#555;letter-spacing:1px}
+.brk{page-break-after:always}
 </style></head><body>
-<table>
-<tr><th></th>${head}</tr>
-${body}
-</table>
+${pages}
 </body></html>`);
 }
 
-function printWordlistIndex() {
+function printWordlistIndex(list) {
   const perCol = 103, cols = 5;
-  const total = wordlist.length;
+  const total = list.length;
   let pages = '';
   for (let start = 0; start < total; start += perCol * cols) {
     const chunk = [];
@@ -2651,7 +2740,7 @@ function printWordlistIndex() {
       const from = start + c * perCol;
       const items = [];
       for (let i = from; i < Math.min(from + perCol, total); i++) {
-        items.push(`<div class="wi"><span class="wn">${i + 1}</span>${escapeHtml(wordlist[i])}</div>`);
+        items.push(`<div class="wi"><span class="wn">${i + 1}</span>${escapeHtml(list[i])}</div>`);
       }
       if (items.length) chunk.push(`<div class="col">${items.join('')}</div>`);
     }
@@ -2875,33 +2964,37 @@ function makeShamirParts(n, m) {
   seedUnlocked = false;
 }
 
-/* One printed sheet per part. Besides the words, it carries what is needed
-   to use it years from now: the part number (Shamir needs it to recombine),
-   how many parts exist, the threshold and the verification code. */
+/* One printed sheet per part. A Shamir part carries its words and, in a
+   corner with no label, its number and the verification code ("2 · A3F9"):
+   the number is needed to recombine, the code confirms the result. */
 function partSheetHTML(p, n, m, code, classic) {
   const wl = classic ? p.words : p.words.split(' ');
   const off = classic ? p.from - 1 : 0;
-  const info = classic
-    ? `Sequential split &middot; words ${p.from}&ndash;${p.to} &middot; all ${n} parts are needed, in order`
-    : `Threshold backup (Shamir) &middot; any ${m} of the ${n} parts recover the seed`;
+  if (!classic) {
+    return `<div class="card">
+<div class="grid">${wl.map((w, i) => `<div class="w"><i>${i + 1}</i>${escapeHtml(w)}</div>`).join('')}</div>
+<div class="corner">${p.x}${code ? ` &middot; ${escapeHtml(code)}` : ''}</div>
+</div>`;
+  }
+  const info = `Sequential split &middot; words ${p.from}&ndash;${p.to} &middot; all ${n} parts are needed, in order`;
   return `<div class="card">
 <div class="title">Part ${p.x} of ${n}</div>
 <div class="grid">${wl.map((w, i) => `<div class="w"><i>${off + i + 1}</i>${escapeHtml(w)}</div>`).join('')}</div>
-<div class="meta">${info}${code ? `<br>Verification code: <b>${escapeHtml(code)}</b>` : ''}${classic ? '' : '<br>This is not a wallet: it is reassembled with AmnesicWallet, Check wallet &rarr; Shamir backup.'}</div>
+<div class="meta">${info}</div>
 </div>`;
 }
 
 function printAllShamirParts(n, m, code, classic) {
   const pages = shamirParts.map(p => partSheetHTML(p, n, m, code, classic)).join('<div class="brk"></div>');
   printHTML(`<!DOCTYPE html>
-<html lang="en"><head><meta charset="UTF-8"><title>Parts</title><style>
+<html lang="en"><head><meta charset="UTF-8"><title>Document</title><style>
 ${SLIP_PRINT_CSS}
 </style></head><body>${pages}</body></html>`);
 }
 
 function printShamirPart(p, n, m, code, classic) {
   printHTML(`<!DOCTYPE html>
-<html lang="en"><head><meta charset="UTF-8"><title>Part ${p.x} of ${n}</title><style>
+<html lang="en"><head><meta charset="UTF-8"><title>Document</title><style>
 ${SLIP_PRINT_CSS}
 </style></head><body>${partSheetHTML(p, n, m, code, classic)}</body></html>`);
 }
@@ -2916,13 +3009,14 @@ function renderRecoverTab() {
     <section>
       <div class="card">
         <div class="card-header"><span class="step-badge">🔐</span><h2>Reassemble a threshold backup</h2></div>
-        <p style="margin-bottom:12px">This section reassembles backups created with <strong>threshold splitting (Shamir)</strong>. You don't need all the parts: just reach the threshold shown on the sheets, for example 3 of 5.</p>
+        <p style="margin-bottom:12px">This section reassembles backups created with <strong>threshold splitting (Shamir)</strong>. You don't need all the parts: just reach the threshold chosen when they were made, for example 3 of 5.</p>
 
         <div class="ok-box" style="margin-bottom:14px">
           <strong>How to recognise the right parts.</strong> Shamir parts have these three characteristics:<br><br>
           &bull; Each one is <strong>as long as the whole seed</strong> (12 or 24 words, not a small group)<br>
-          &bull; Each one has a <strong>part number</strong>: "Part 2 of 5" (on sheets printed by older versions, just "Part 2")<br>
+          &bull; Each one has a <strong>part number</strong>: in a corner, next to the code, as in “2 · A3F9” (sheets printed by older versions say “Part 2 of 5”, or just “Part 2”)<br>
           &bull; Each one carries a 4-character <strong>verification code</strong>, the same on all of them (older versions asked you to copy it by hand)<br><br>
+          Enter <strong>each part with its own number</strong>, in any order: the number tells the program which part it is, and a part entered under the wrong number gives a wrong seed.<br><br>
           If your sheets do not match this description, they are not Shamir parts and this section is not the right one for you.
         </div>
         <div class="note-box" style="margin-bottom:16px">🛡️ <strong>Before you start:</strong> reassembling the seed makes it fully readable again. Do it with the device <strong>disconnected from the internet</strong>, ideally booted from Tails or in a clean virtual machine — the same care you took when you created it.</div>
@@ -2953,7 +3047,7 @@ function recPartRow(i) {
       <div class="rec-part-head">
         <span>Part</span>
         <select class="inp rec-x" style="width:70px">${Array.from({length:16},(_,k)=>`<option value="${k+1}">${k+1}</option>`).join('')}</select>
-        <span class="hint">as printed on the sheet: "Part <strong>2</strong> of 5"</span>
+        <span class="hint">the number in the corner of the sheet, before the code: “<strong>2</strong> · A3F9” (older sheets: “Part <strong>2</strong> of 5”)</span>
       </div>
       <textarea class="inp rec-words" rows="2" placeholder="The words of this part, separated by spaces" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false"></textarea>
     </div>`;
@@ -2975,7 +3069,7 @@ function wireRecover() {
       if (!words) continue;
       const x = parseInt(row.querySelector('.rec-x').value);
       if (!validateMnemonic(words, wordlist)) {
-        showRecResult(`<div class="warn-box">✗ The words of part ${x} are not valid. Check them one by one: it is often a typo or a similar but different word.</div>`);
+        showRecResult(`<div class="warn-box" style="margin-bottom:8px">✗ The words of part ${x} are not valid.</div>${diagnosisHTML(diagnoseMnemonic(words), false)}`);
         return;
       }
       if (parts.some(p => p.x === x)) {
@@ -3310,7 +3404,7 @@ function wireMultisig() {
     if (lines.length < 2) { showToast('At least two seeds are needed, one per line.', 'error'); return; }
     const keys = [];
     for (let i = 0; i < lines.length; i++) {
-      if (!validateMnemonic(lines[i], wordlist)) { showToast(`The seed on line ${i + 1} is not valid. Check the words again.`, 'error'); return; }
+      if (!validateMnemonic(lines[i], wordlist)) { showToast(`Seed on line ${i + 1}: ${diagnosisText(diagnoseMnemonic(lines[i]))}`, 'error'); return; }
       keys.push(deriveMultisigXpub(mnemonicToSeedSync(lines[i], '')));
     }
     ta.value = ''; lines.length = 0;   // out of memory before any output
@@ -3379,7 +3473,7 @@ function wireMultisig() {
   document.getElementById('ms-reuse-go')?.addEventListener('click', () => {
     const words = (document.getElementById('ms-seed-inp').value || '').trim().toLowerCase().replace(/\s+/g, ' ');
     const pass = document.getElementById('ms-pass-inp').value || '';
-    if (!validateMnemonic(words, wordlist)) { showToast('These words do not form a valid seed. Please check them.', 'error'); return; }
+    if (!validateMnemonic(words, wordlist)) { showToast(diagnosisText(diagnoseMnemonic(words)), 'error'); return; }
     const seed = mnemonicToSeedSync(words, pass);
     document.getElementById('ms-seed-inp').value = '';
     document.getElementById('ms-pass-inp').value = '';
@@ -3740,6 +3834,7 @@ function renderGuideFaq() {
           <p><strong>2. On a seed you already own</strong>, even one created years ago with another program. Go to <em>🔍 Check wallet → Shamir backup → I have a seed, I want to split it</em>, enter your words and choose the threshold and number of parts. The wallet does not change: same addresses, funds in place. Only the form of the backup changes.</p>
           <p>Here is the advantage over a classic seed: with the traditional phrase, whoever finds that sheet has everything. With this system, whoever finds one part has nothing. Several fragments are needed together, someone has to realise they belong together, know this backup exists and have the right program. The difference is this: a normal seed is a single weak point. With Shamir, your funds stay safe even if some piece ends up where it shouldn't.</p>
           <p><strong>A useful way to see it:</strong> the parts are a form of encryption of the backup, where the key is "holding enough parts". With one advantage over a password: there is nothing to remember. And below the threshold no attempt will do — it isn't hard to guess, it's mathematically impossible. The 4-character verification code printed on the sheets is only a short fingerprint used to confirm the result: it leaves an attacker with at least 2¹¹² possibilities, far beyond any computer.</p>
+          <p><strong>Each part's number is essential.</strong> Every part is one point of the same mathematical curve: the words are its height, the number (1, 2, 3…) its position. To rebuild the seed, each part must be entered with its own number. The order in which you enter them does not matter — part 4 first, then part 1 — but the words of part 3 must go in as part 3. A part whose number is lost cannot be used, so the number is printed on every sheet, in a corner next to the verification code: <strong>“3 · A164”</strong> is part 3. Whoever copies a part by hand writes its number next to it. (SLIP-39 does not have this concern: there the number is hidden inside the words.)</p>
           <p><strong>The parts are not wallets.</strong> Each one is made of words and looks every bit like a seed, but it is a fragment. Don't send funds to it and don't import it into a wallet expecting to find something there. On its own, below the threshold, it is worth nothing — and that is exactly what makes it safe.</p>
           <p><strong>You need this program to reassemble them.</strong> It is the price of the method and it must be said clearly: <strong>keep a copy of the file <em>amnesicwallet.html</em> together with the parts</strong>. If that dependency bothers you, consider <strong>SLIP-39</strong>, which does the same thing with a public standard read by Trezor, Sparrow and Electrum — but it must be chosen when creating a new wallet, it does not apply to an existing BIP-39 seed.</p>
           <p><strong>Careful not to confuse it with Trezor's Shamir.</strong> Trezor offers a feature called <em>Shamir Backup</em>, but it uses the SLIP-39 standard. Parts created here <strong>do not work</strong> in Trezor's Shamir recovery, and vice versa. They are two separate systems that share a name.</p>
@@ -3834,7 +3929,7 @@ function renderGuideFaq() {
         <details class="faq"><summary>📴 Does it really connect to nothing?</summary><div class="faq-body">
           <p>Really. No network request, at any moment: no servers, no statistics, no silent updates. All the cryptographic libraries are embedded in the file, and nothing is downloaded while you use it.</p>
           <p>It is not only a promise in the code. The file carries a rule for the browser, called <em>Content-Security-Policy</em>, that forbids any connection and any script other than its own: even a bug, or a modified copy of a library, would be stopped by the browser itself.</p>
-          <p>Nothing is saved either: no cookies, no local storage, no files written. The seed lives only in the page's memory, and the browser releases it when you close the tab.</p>
+          <p>Nothing is saved either: no cookies, no local storage, and no file unless you press <em>Save as .txt</em>, which saves the Seed Card's words where your browser saves downloads. The seed lives only in the page's memory, and the browser releases it when you close the tab.</p>
           <p><strong>And you can verify it yourself.</strong> Open the file on a computer disconnected from the internet: it works exactly the same way. That is in fact how we recommend using it.</p>
         </div></details>
 

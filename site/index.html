@@ -31,9 +31,7 @@
   p,li{text-wrap:pretty}
   .wrap{max-width:760px;margin:0 auto;padding:0 22px}
   header{padding:64px 0 40px;text-align:center}
-  .logo{width:60px;height:60px;margin:0 auto 20px;border:2.5px solid var(--accent);
-        border-radius:14px;display:flex;align-items:center;justify-content:center;
-        font-size:28px}
+  .logo{width:72px;height:68px;margin:0 auto 20px;display:block}
   h1{font-size:36px;letter-spacing:-.6px;margin-bottom:12px}
   .sub{font-size:17px;color:var(--dim);max-width:520px;margin:0 auto}
   .chains{margin-top:18px;font-size:13.5px;color:var(--muted);font-family:var(--mono)}
@@ -106,7 +104,17 @@
 <div class="wrap">
 
   <header>
-    <div class="logo">🔐</div>
+    <svg class="logo" viewBox="92 290 626 596" role="img" aria-label="AmnesicWallet logo">
+      <defs>
+        <linearGradient id="aw-r" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#9b4dff"/><stop offset=".55" stop-color="#d9586a"/><stop offset="1" stop-color="#ff9a2e"/></linearGradient>
+        <linearGradient id="aw-l" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#b15cff"/><stop offset="1" stop-color="#6f2fc4"/></linearGradient>
+        <linearGradient id="aw-s" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#ff8a2a"/><stop offset=".3" stop-color="#ea3b3b"/><stop offset=".7" stop-color="#f58232"/><stop offset="1" stop-color="#ffb347"/></linearGradient>
+      </defs>
+      <path d="M446 325.5 L708.5 840 L587.5 840 L350 374.5 Z" fill="url(#aw-r)"/>
+      <circle cx="398" cy="350" r="54" fill="#9b4dff"/>
+      <path d="M398 350 L190 760" stroke="url(#aw-l)" stroke-width="100" stroke-linecap="round" fill="none"/>
+      <path d="M150 690 C112 770 118 850 200 850 C285 850 360 705 455 705 C505 705 535 740 548 778 C515 748 480 738 440 745 C365 760 300 875 205 878 C110 880 90 780 150 690 Z" fill="url(#aw-s)"/>
+    </svg>
     <h1>AmnesicWallet</h1>
     <p class="sub">Generate your cryptocurrency wallet with no connection, with nothing to install,
        without a single piece of data leaving your device.</p>
@@ -143,7 +151,7 @@
     <h2>What it does</h2>
     <div class="grid">
       <div class="feat"><b>Completely offline</b><span>No network request, at any moment. The file itself tells the browser to refuse every connection. It works on a computer that has never been connected.</span></div>
-      <div class="feat"><b>Saves nothing</b><span>No cookies, no storage, no files. The seed lives only in the open page, and the browser releases it when you close the tab.</span></div>
+      <div class="feat"><b>Saves nothing</b><span>No cookies, no storage, and no file unless you ask for one. The seed lives only in the open page, and the browser releases it when you close the tab.</span></div>
       <div class="feat"><b>Four networks</b><span>Bitcoin in four address formats, Ethereum and EVM chains, TRON, Solana.</span></div>
       <div class="feat"><b>Randomness from several sources</b><span>Browser generator, keyboard rhythm, mouse movement and — if you want — real dice.</span></div>
       <div class="feat"><b>Four kinds of wallet</b><span>Classic, Shamir, SLIP-39 or multisig vault, chosen on the first screen. With Shamir and SLIP-39 you get several sheets, of which only some are needed to recover.</span></div>
@@ -170,7 +178,7 @@
        you can be certain it is the original and that nobody has modified it.</p>
 
     <p style="margin-bottom:4px"><strong>SHA-256 hash of the current version:</strong></p>
-    <code class="hash" id="sha256">0c4bdc9be7d07983ee556d82f2583399d371dfdcc66390286eccfc046a26ba3f</code>
+    <code class="hash" id="sha256">54c0a406b650fb0f441dc0b3c705733e1602b5e8f361f0747ac8d42d0705fe9c</code>
 
     <h3>On Windows</h3>
     <pre><code>Get-FileHash amnesicwallet.html -Algorithm SHA256</code></pre>

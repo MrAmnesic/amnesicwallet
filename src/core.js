@@ -40,6 +40,7 @@ import { secp256k1 } from '@noble/curves/secp256k1.js';
 import { ed25519 } from '@noble/curves/ed25519.js';
 import { base58, bech32, bech32m, createBase58check } from '@scure/base';
 import slip39lib from 'slip39';
+import slip39helper from 'slip39/src/slip39_helper.js';
 import { ELECTRUM_OLD_WORDS } from './electrum-old-words.js';
 
 export { entropyToMnemonic, mnemonicToEntropy, mnemonicToSeedSync, validateMnemonic, wordlist, HDKey };
@@ -832,18 +833,47 @@ function editDistance(a, b) {
 
 /* Up to three list words close to a word that is not in the list: first
    those sharing its first four letters (BIP-39 words are unique by
-   them), then those within two mistakes. */
-export function suggestWords(word, max = 3) {
+   them), then the nearest ones. When the rest of the seed is known, fits()
+   says whether a candidate makes the whole seed valid (its checksum): only
+   those are kept, so the right word can no longer be crowded out by
+   look-alikes, and the search may reach a little further (three mistakes). */
+export function suggestWords(word, max = 3, fits = null) {
   const w = String(word || '').toLowerCase();
   if (!w) return [];
+  const reach = fits ? 3 : 2;
   const scored = [];
   for (const cand of wordlist) {
     const prefix = w.length >= 4 && cand.slice(0, 4) === w.slice(0, 4);
     const dist = editDistance(w, cand);
-    if (prefix || dist <= 2) scored.push({ cand, score: prefix ? Math.min(dist, 1) - 1 : dist });
+    if (!(prefix || dist <= reach)) continue;
+    if (fits && !fits(cand)) continue;
+    scored.push({ cand, score: prefix ? Math.min(dist, 1) - 1 : dist });
   }
   scored.sort((x, y) => x.score - y.score || x.cand.localeCompare(y.cand));
   return scored.slice(0, max).map(x => x.cand);
+}
+
+/* When every word is in the list but the checksum fails: the single
+   changes that would make the seed valid — a word swapped for a list word
+   one letter away, or two neighbouring words in the other order. Several
+   can fit by chance (a 12-word seed has only 4 check bits), so they are
+   offered as leads to compare with the written backup, never applied. */
+function checksumFixes(words, max = 6) {
+  const fixes = [];
+  const valid = (ws) => validateMnemonic(ws.join(' '), wordlist);
+  for (let i = 0; i < words.length; i++) {
+    for (const cand of wordlist) {
+      if (cand === words[i] || editDistance(words[i], cand) !== 1) continue;
+      const ws = words.slice(); ws[i] = cand;
+      if (valid(ws)) fixes.push({ kind: 'word', position: i + 1, from: words[i], to: cand });
+    }
+  }
+  for (let i = 0; i + 1 < words.length; i++) {
+    if (words[i] === words[i + 1]) continue;
+    const ws = words.slice(); [ws[i], ws[i + 1]] = [ws[i + 1], ws[i]];
+    if (valid(ws)) fixes.push({ kind: 'swap', position: i + 1, from: words[i], to: words[i + 1] });
+  }
+  return fixes.slice(0, max);
 }
 
 /* What is wrong with a typed seed, in terms a person can act on:
@@ -852,11 +882,16 @@ export function suggestWords(word, max = 3) {
 export function diagnoseMnemonic(text) {
   const norm = normalizeWords(text);
   const words = norm ? norm.split(' ') : [];
-  const unknown = [];
-  words.forEach((w, i) => { if (!wordlist.includes(w)) unknown.push({ position: i + 1, word: w, suggestions: suggestWords(w) }); });
   const countOk = WORD_OPTIONS.includes(words.length);
+  const bad = words.map((w, i) => (wordlist.includes(w) ? -1 : i)).filter(i => i >= 0);
+  // A single unknown word in a seed of the right length: its suggestions
+  // are only words that make the whole seed valid.
+  const fitsAt = (i) => (cand) => { const ws = words.slice(); ws[i] = cand; return validateMnemonic(ws.join(' '), wordlist); };
+  const checked = countOk && bad.length === 1;
+  const unknown = bad.map(i => ({ position: i + 1, word: words[i], suggestions: suggestWords(words[i], 3, checked ? fitsAt(i) : null), checked }));
   const checksumOk = countOk && unknown.length === 0 && validateMnemonic(norm, wordlist);
-  return { words, count: words.length, countOk, unknown, checksumOk, valid: checksumOk };
+  const fixes = (countOk && unknown.length === 0 && !checksumOk) ? checksumFixes(words) : [];
+  return { words, count: words.length, countOk, unknown, checksumOk, valid: checksumOk, fixes };
 }
 
 /* ════════════════════════════════════════════════════════════════
@@ -1217,13 +1252,19 @@ export function slip39Recover(shares, passphrase) {
    Every BIP-39 word has a number from 1 to 2048, written as a sum of
    the marked columns. Numbering starts at 1 so that no row is ever
    empty ("abandon" would otherwise have no marks at all).
+   A SLIP-39 share uses its own dictionary of 1024 words (1 to 1024),
+   so one column fewer.
    ════════════════════════════════════════════════════════════════ */
 export const METAL_COLS = [2048, 1024, 512, 256, 128, 64, 32, 16, 8, 4, 2, 1];
+export const SLIP39_METAL_COLS = METAL_COLS.slice(1);
+export const slip39Wordlist = slip39helper.WORD_LIST;
 
-export function metalRows(mnemonic) {
+export function metalRows(mnemonic, kind = 'bip39') {
+  const list = kind === 'slip39' ? slip39Wordlist : wordlist;
+  const cols = kind === 'slip39' ? SLIP39_METAL_COLS : METAL_COLS;
   return mnemonic.split(' ').map((w, i) => {
-    const n = wordlist.indexOf(w) + 1;
+    const n = list.indexOf(w) + 1;
     if (n < 1) throw new Error(`Word not found in the dictionary: ${w}`);
-    return { pos: i + 1, word: w, n, marks: METAL_COLS.map(c => (n & c) !== 0) };
+    return { pos: i + 1, word: w, n, marks: cols.map(c => (n & c) !== 0) };
   });
 }

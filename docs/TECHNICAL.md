@@ -2,7 +2,7 @@
 
 **Implementation specification, security model and declared limits**
 
-Document version: 1.10 — describes AmnesicWallet 1.3.2
+Document version: 2.0 — describes AmnesicWallet 2.0.0
 
 Reference: `amnesicwallet.html` — SHA-256 hash published with every release, in `SHA256SUMS` and on the official website, [amnesicwallet.com](https://amnesicwallet.com)
 
@@ -262,7 +262,7 @@ The descriptor produced is `wsh(sortedmulti(m, …))#checksum`, where every key 
 
 For a single-signature wallet, the account xpub and a descriptor are offered for monitoring without spending ability, e.g. `wpkh([fingerprint/84h/0h/0h]xpub…/0/*)#checksum` (respectively `tr(…)`, `sh(wpkh(…))`, `pkh(…)` for the other formats). The checksum follows BIP-380; the implementation is tested against the specification's example and against embit.
 
-**Check with a public key only.** An account key shared by a wallet — `xpub`, `ypub` (Nested SegWit) or `zpub` (Native SegWit) — is read, re-labelled as a plain `xpub` and derived at `/0/i` (receiving) and `/1/i` (change), in any of the four Bitcoin formats or as Ethereum and TRON addresses. An `xpub` does not say which format it was used with, so the format is chosen on screen. A watch-only descriptor without key origin is produced. Private keys (`xprv`, `yprv`, `zprv`…), testnet keys and multisig keys (`Ypub`, `Zpub`) are refused, each with its reason.
+**Check with a public key only.** An account key shared by a wallet — `xpub`, `ypub` (Nested SegWit) or `zpub` (Native SegWit) — is read, re-labelled as a plain `xpub` and derived at `/0/i` (receiving) and `/1/i` (change), in any of the four Bitcoin formats. An `xpub` does not say which format it was used with, so the format is chosen on screen. A watch-only descriptor without key origin is produced. Private keys (`xprv`, `yprv`, `zprv`…), testnet keys and multisig keys (`Ypub`, `Zpub`) are refused, each with its reason.
 
 ### 4.6 Seeds made by Electrum (check only)
 
@@ -312,7 +312,7 @@ Shamir Secret Sharing applied byte by byte to the BIP-39 entropy. It is used whe
 
 **Detection of errors.** With fewer parts than the threshold, or a wrong part, interpolation still returns a value — which is always a valid-looking seed. Only the verification code detects it (a wrong result passes with probability 1/65,536). Without the code the program says plainly that the result cannot be confirmed.
 
-**What is printed.** Each sheet carries the part number and total ("Part 2 of 5"), the threshold, the verification code and one line saying it is reassembled with AmnesicWallet. Sheets printed by 1.0.x showed only "Part 2", and the code had to be copied by hand.
+**What is printed.** Each sheet carries the words and, in a corner with no label, the part number and the verification code ("2 · A3F9"): the number is needed to recombine, the code to confirm the result. Nothing else — neither the program's name, nor the threshold, nor how many parts exist. Sheets printed by 1.1–1.3 also showed "Part 2 of 5", the threshold and a line naming the program; those printed by 1.0.x showed only "Part 2", and the code had to be copied by hand.
 
 **Compatibility.** The format is frozen. `tests/vectors/shamir-compat.json` contains parts produced by version 1.0.1; every combination of three of them must reassemble, and the test suite fails otherwise.
 
@@ -326,6 +326,7 @@ Implementation of SLIP-39 through the `slip39` library and the adapters of 2.5.
 - Shares are created with the **extendable-backup flag** set (ext = 1), as the current revision of the specification recommends and as Trezor does. Programs that predate that revision may not read them correctly.
 - Iteration exponent 1 (20,000 PBKDF2-SHA256 iterations in the encryption of the master secret), the default of Trezor's reference implementation. Version 1.0.x used exponent 0; the exponent is written in the sheets, so older sheets remain readable.
 - The passphrase may contain only printable ASCII, as the specification requires; the rule is enforced both when the passphrase is chosen and at recovery.
+- A printed sheet carries only its words: each share already contains, inside them, its index, the threshold and the identifier shared by the set.
 - **Self-check:** before the sheets are shown, every subset of m sheets is recombined and must return the master secret (at most 35 recombinations, about one second on a desktop computer).
 - Recovery shows Bitcoin in all four formats, because the owner of a Trezor backup may use any of them.
 
@@ -342,6 +343,8 @@ Every BIP-39 word is identified by its number in the dictionary, written as a su
 **Numbering from 1.** The internal BIP-39 index starts at 0; the printed grid uses 1–2048. With zero-based numbering the first word (`abandon`) would have no marks at all and look like an unfilled row. With one-based numbering no row is ever empty.
 
 The grid shows neither words nor numbers. Reading it back needs the numbered list of BIP-39 words, which the program can also print.
+
+The same grid is offered for each Shamir part (a part is itself a BIP-39 phrase; its number and the verification code go in a corner under the grid, as on its printed sheet; a Classic group keeps the positions of its words in the seed) and for each SLIP-39 sheet. SLIP-39 words come from their own list of 1024 words, numbered 1–1024 in the order of the official `wordlist.txt`, so a SLIP-39 grid has eleven columns (1024 … 1) and is read back with the numbered SLIP-39 list, which the program prints too. The grids of all the parts, or of all the sheets, can also be printed together, one per page.
 
 ---
 
@@ -377,7 +380,7 @@ The model does **not** protect against:
 - user error in keeping the backups, or loss of the passphrase;
 - vulnerabilities in the browser engine or in the embedded libraries;
 - the clipboard: words copied with the Copy button stay there until overwritten, and some systems keep a clipboard history;
-- **memory remanence.** JavaScript offers no way to guarantee that a value is erased: strings are immutable and the garbage collector decides when memory is reused. The program overwrites the buffers it controls, and "Generate a new wallet" drops every secret of the session (wallet, seeds being checked, multisig keys) and closes the print windows it opened; but only closing the tab — better, shutting down a live system such as Tails — releases everything.
+- **memory remanence.** JavaScript offers no way to guarantee that a value is erased: strings are immutable and the garbage collector decides when memory is reused. The program overwrites the buffers it controls, and "Generate a new wallet" drops every secret of the session (wallet, seeds being checked, multisig keys) and removes the hidden frame used for printing (pages are printed from a frame of the page itself, never from a new tab); but only closing the tab — better, shutting down a live system such as Tails — releases everything.
 
 For these reasons the documentation recommends running the tool on a system isolated from the network, preferably booted from removable media without persistence.
 
@@ -385,7 +388,7 @@ For these reasons the documentation recommends running the tool on a system isol
 
 ## 7. Personal data
 
-The software does not collect, process or transmit personal data. There are no servers, endpoints or recipients. All material lives in the memory of the browser tab for the duration of the session; no files, cookies or storage entries are created.
+The software does not collect, process or transmit personal data. There are no servers, endpoints or recipients. All material lives in the memory of the browser tab for the duration of the session; no cookies or storage entries are created, and no file — except when the user presses *Save as .txt* next to a new wallet's words, a Shamir part or a SLIP-39 sheet (one, or all of them in a single file): those numbered words (with a part's number and verification code) are then handed to the browser as a download (a `data:` link built in the page), saved wherever the browser saves downloads.
 
 Printed documents are produced locally. The Seed Card and the address lists carry neutral titles and no program name, to limit what an accidental discovery reveals. Shamir parts and SLIP-39 sheets carry only what is needed to use them years later: their number, the total, the threshold and — for Shamir — the verification code.
 
@@ -433,6 +436,7 @@ npm test
 | Every derivation offered by the check, for accounts 1, 2 and 5; change branches; the address search; addresses and descriptors from account xpubs, ypubs and zpubs, and every refusal | Computed with **bip_utils**, **embit** and PyNaCl for 3 mnemonics (`tests/vectors/paths.py`); Bitcoin cross-checked between the two libraries |
 | Electrum seeds: types, BIP-32 seeds (including Japanese, Chinese and Spanish words and Unicode passphrases), master public keys, receiving and change addresses of Standard, Segwit and 1.x seeds, the address search | Electrum's own test values (`tests/test_mnemonic.py`, `tests/test_wallet_vertical.py`); more seeds and addresses computed with Python's `hashlib` and **bip_utils**, cross-checked with bip_utils' own Electrum module (`tests/vectors/electrum.py`) |
 | Diagnosis of a mistyped seed (position, suggestions, checksum) | Official BIP-39 word list and vectors; constructed mistakes |
+| SLIP-39 word numbers for the powers-of-2 grid | Official `wordlist.txt` of trezor/python-shamir-mnemonic |
 | Ethereum checksum | EIP-55 examples |
 | Solana derivation | SLIP-10 ed25519 official vectors |
 | Descriptor checksum | BIP-380 example |

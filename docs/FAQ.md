@@ -88,6 +88,8 @@ Here is the advantage over a classic seed: with the traditional phrase, whoever 
 
 **A useful way to see it:** the parts are a form of encryption of the backup, where the key is "holding enough parts". With one advantage over a password: there is nothing to remember. And below the threshold no attempt will do — it isn't hard to guess, it's mathematically impossible. The 4-character verification code printed on the sheets is only a short fingerprint used to confirm the result: it leaves an attacker with at least 2¹¹² possibilities, far beyond any computer.
 
+**Each part's number is essential.** Every part is one point of the same mathematical curve: the words are its height, the number (1, 2, 3…) its position. To rebuild the seed, each part must be entered with its own number. The order in which you enter them does not matter — part 4 first, then part 1 — but the words of part 3 must go in as part 3. A part whose number is lost cannot be used, so the number is printed on every sheet, in a corner next to the verification code: **“3 · A164”** is part 3. Whoever copies a part by hand writes its number next to it. (SLIP-39 does not have this concern: there the number is hidden inside the words.)
+
 **The parts are not wallets.** Each one is made of words and looks every bit like a seed, but it is a fragment. Don't send funds to it and don't import it into a wallet expecting to find something there. On its own, below the threshold, it is worth nothing — and that is exactly what makes it safe.
 
 **You need this program to reassemble them.** It is the price of the method and it must be said clearly: **keep a copy of the file *amnesicwallet.html* together with the parts**. If that dependency bothers you, consider **SLIP-39**, which does the same thing with a public standard read by Trezor, Sparrow and Electrum — but it must be chosen when creating a new wallet, it does not apply to an existing BIP-39 seed.
@@ -232,7 +234,7 @@ Really. No network request, at any moment: no servers, no statistics, no silent 
 
 It is not only a promise in the code. The file carries a rule for the browser, called *Content-Security-Policy*, that forbids any connection and any script other than its own: even a bug, or a modified copy of a library, would be stopped by the browser itself.
 
-Nothing is saved either: no cookies, no local storage, no files written. The seed lives only in the page's memory, and the browser releases it when you close the tab.
+Nothing is saved either: no cookies, no local storage, and no file unless you press *Save as .txt*, which saves the Seed Card's words where your browser saves downloads. The seed lives only in the page's memory, and the browser releases it when you close the tab.
 
 **And you can verify it yourself.** Open the file on a computer disconnected from the internet: it works exactly the same way. That is in fact how we recommend using it.
 
