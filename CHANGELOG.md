@@ -23,7 +23,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   sheets printed by earlier versions still work.
 - **Check with a public key only shows Bitcoin addresses only**, in the four
   formats: the Ethereum and TRON buttons are gone.
-- The title is centred, without the line beneath it, and the square icon beside it is replaced by the new "A" logo.
+- The title is centred, without the line beneath it, and the square icon beside it is replaced by the new "A" logo, which also heads the site's page.
 - **Read-only codes** of a new wallet: the xpub comes first and is copied
   with one press, like the descriptor; what each one is opens from a "?"
   next to it instead of always being on screen.
