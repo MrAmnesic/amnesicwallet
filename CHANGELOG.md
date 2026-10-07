@@ -21,7 +21,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   entered does not matter; each part must go in with its own number.
 - The words, the parts and every backup format are unchanged; parts and
   sheets printed by earlier versions still work.
-
 - **Check with a public key only shows Bitcoin addresses only**, in the four
   formats: the Ethereum and TRON buttons are gone.
 - The title is centred, without the line beneath it.
