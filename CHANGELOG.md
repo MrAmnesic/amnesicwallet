@@ -22,10 +22,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - The words, the parts and every backup format are unchanged; parts and
   sheets printed by earlier versions still work.
 
-- **Check with a public key only: "ETH / TRON paths"** replaces the
-  Ethereum and TRON buttons. For a key exported on the path of Ethereum or
-  TRON it shows the Bitcoin addresses on that path, in the four formats, as
-  Check wallet does with a seed — not Ethereum or TRON addresses.
+- **Check with a public key only shows Bitcoin addresses only**, in the four
+  formats: the Ethereum and TRON buttons are gone.
+- The title is centred, without the line beneath it.
 - **Read-only codes** of a new wallet: the xpub comes first and is copied
   with one press, like the descriptor; what each one is opens from a "?"
   next to it instead of always being on screen.

@@ -262,7 +262,7 @@ The descriptor produced is `wsh(sortedmulti(m, …))#checksum`, where every key 
 
 For a single-signature wallet, the account xpub and a descriptor are offered for monitoring without spending ability, e.g. `wpkh([fingerprint/84h/0h/0h]xpub…/0/*)#checksum` (respectively `tr(…)`, `sh(wpkh(…))`, `pkh(…)` for the other formats). The checksum follows BIP-380; the implementation is tested against the specification's example and against embit.
 
-**Check with a public key only.** An account key shared by a wallet — `xpub`, `ypub` (Nested SegWit) or `zpub` (Native SegWit) — is read, re-labelled as a plain `xpub` and derived at `/0/i` (receiving) and `/1/i` (change), in any of the four Bitcoin formats; for a key exported on the path of Ethereum (`m/44'/60'/0'`) or TRON (`m/44'/195'/0'`), the Bitcoin addresses at `key/0/n` are shown in all four formats at once, as the seed check does for those paths. An `xpub` does not say which format it was used with, so the format is chosen on screen. A watch-only descriptor without key origin is produced. Private keys (`xprv`, `yprv`, `zprv`…), testnet keys and multisig keys (`Ypub`, `Zpub`) are refused, each with its reason.
+**Check with a public key only.** An account key shared by a wallet — `xpub`, `ypub` (Nested SegWit) or `zpub` (Native SegWit) — is read, re-labelled as a plain `xpub` and derived at `/0/i` (receiving) and `/1/i` (change), in any of the four Bitcoin formats. An `xpub` does not say which format it was used with, so the format is chosen on screen. A watch-only descriptor without key origin is produced. Private keys (`xprv`, `yprv`, `zprv`…), testnet keys and multisig keys (`Ypub`, `Zpub`) are refused, each with its reason.
 
 ### 4.6 Seeds made by Electrum (check only)
 

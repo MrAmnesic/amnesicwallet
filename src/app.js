@@ -212,10 +212,7 @@ function renderApp() {
               <circle cx="28" cy="26" r="3" fill="currentColor"/>
             </svg>
           </div>
-          <div>
-            <h1>AMNESIC<span class="logo-accent">WALLET</span></h1>
-            <p class="subtitle">Your wallet is born here. And stays yours alone.</p>
-          </div>
+          <h1>AMNESIC<span class="logo-accent">WALLET</span></h1>
         </div>
       </header>
 
@@ -673,10 +670,7 @@ function wireCtrlMultisig() {
 /* ════════════════════════════════════════════════════════════════
    CHECK WITH A PUBLIC KEY — xpub / ypub / zpub, no words typed
    ════════════════════════════════════════════════════════════════ */
-const XP_AS = [
-  ...Object.values(BTC_FORMATS).map(f => ({ id: f.id, label: `${f.label} (${f.tag})` })),
-  { id: 'cross', label: 'ETH / TRON paths' },
-];
+const XP_AS = Object.values(BTC_FORMATS).map(f => ({ id: f.id, label: `${f.label} (${f.tag})` }));
 
 function renderCtrlXpub() {
   return `
@@ -706,21 +700,14 @@ function publicKeyError(err) {
   }
 }
 
-/* 'cross': a key exported on the path of Ethereum (m/44'/60'/0') or TRON
-   (m/44'/195'/0') gives, at key/0/n, the Bitcoin addresses on that path —
-   where funds end up when a wallet mixes up networks. All four formats. */
 function computeXp(count) {
-  if (xp.as === 'cross') {
-    const byFmt = Object.keys(BTC_FORMATS).map(f => [f, addressesFromXpub(xp.info.xpub, f, 0, 0, count)]);
-    xp.list = byFmt[0][1].map((a, i) => ({ index: a.index, formats: byFmt.map(([f, l]) => ({ format: f, address: l[i].address })) }));
-  } else xp.list = addressesFromXpub(xp.info.xpub, xp.as, xp.change, 0, count);
+  xp.list = addressesFromXpub(xp.info.xpub, xp.as, xp.change, 0, count);
 }
 
 function renderXpResults() {
   const box = document.getElementById('xp-results');
   if (!box) return;
   if (!xp) { box.innerHTML = ''; return; }
-  const btc = !!BTC_FORMATS[xp.as];
   const label = xp.info.kind;
   const note = xp.info.format
     ? `This ${label} is labelled for <strong>${escapeHtml(BTC_FORMATS[xp.info.format].label)}</strong> addresses, so that format is selected. You can still try the others.`
@@ -734,42 +721,32 @@ function renderXpResults() {
       <div class="seg xp-as" id="xp-as" style="flex-wrap:wrap">
         ${XP_AS.map(a => `<button class="seg-btn ${xp.as === a.id ? 'seg-active' : ''}" data-as="${a.id}">${escapeHtml(a.label)}</button>`).join('')}
       </div>
-      ${btc ? `
-        <div class="seg" id="xp-branch" style="margin-top:12px">
+      <div class="seg" id="xp-branch" style="margin-top:12px">
           <button class="seg-btn ${xp.change ? '' : 'seg-active'}" data-c="0">Receiving</button>
           <button class="seg-btn ${xp.change ? 'seg-active' : ''}" data-c="1">Change</button>
         </div>
         ${xp.change ? '<p class="hint" style="margin-top:6px">When you send a payment, what is left comes back to a <strong>change address</strong>. If you have ever spent from this account, part of the funds is usually here.</p>' : ''}
-      ` : '<p class="hint" style="margin-top:10px">Bitcoin addresses on the paths of Ethereum and TRON, where funds can end up when a wallet mixes up networks: for a key exported at <code>m/44\'/60\'/0\'</code> (Ethereum) or <code>m/44\'/195\'/0\'</code> (TRON), the addresses at <code>key/0/n</code>, in the four formats.</p>'}
       <div class="more-list" style="margin-top:10px">
-        ${btc ? xp.list.map(a => `
+        ${xp.list.map(a => `
           <div class="more-row">
             <span class="more-idx">#${a.index}</span>
             <code class="more-addr">${escapeHtml(a.address)}<br><span class="path-value" style="font-size:10px">key/${xp.change}/${a.index}</span></code>
             ${copyButton(a.address)}
-          </div>`).join('') : xp.list.map(a => `
-          <div class="ap-row">
-            <div class="ap-top"><span class="more-idx">#${a.index}</span><code class="path-value">key/0/${a.index}</code></div>
-            ${a.formats.map(f => `
-              <div class="more-row"><span class="ap-fmt">${escapeHtml(BTC_FORMATS[f.format].label)}</span>
-                <code class="more-addr">${escapeHtml(f.address)}</code>${copyButton(f.address)}</div>`).join('')}
           </div>`).join('')}
       </div>
       <div class="ov-row" style="margin-top:10px">
         <button class="btn btn-ghost btn-small" id="xp-more">Show 10 more</button>
       </div>
-      ${btc ? `
-        <div class="watch-box">
+      <div class="watch-box">
           <div class="watch-head">👁️ Descriptor for a watch-only wallet</div>
           <p class="hint" style="margin-bottom:12px">Paste it into <strong>Sparrow</strong> or <strong>Electrum</strong> to follow the balance without being able to spend.</p>
           <div class="addr-copy-row"><code class="detail-value" style="font-size:10.5px">${escapeHtml(xpubDescriptor(xp.info.xpub, xp.as))}</code>
             ${copyButton(xpubDescriptor(xp.info.xpub, xp.as))}</div>
-        </div>` : ''}
+        </div>
     </div>`;
   wireCopyButtons(box);
   box.querySelectorAll('#xp-as .seg-btn').forEach(b => b.addEventListener('click', () => {
     xp.as = b.dataset.as;
-    if (!BTC_FORMATS[xp.as]) xp.change = 0;
     computeXp(xp.list.length); renderXpResults();
   }));
   box.querySelectorAll('#xp-branch .seg-btn').forEach(b => b.addEventListener('click', () => {
