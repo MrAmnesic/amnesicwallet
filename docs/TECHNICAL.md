@@ -2,7 +2,7 @@
 
 **Implementation specification, security model and declared limits**
 
-Document version: 1.10 — describes AmnesicWallet 1.3.2
+Document version: 1.11 — describes AmnesicWallet 1.3.3
 
 Reference: `amnesicwallet.html` — SHA-256 hash published with every release, in `SHA256SUMS` and on the official website, [amnesicwallet.com](https://amnesicwallet.com)
 
@@ -312,7 +312,7 @@ Shamir Secret Sharing applied byte by byte to the BIP-39 entropy. It is used whe
 
 **Detection of errors.** With fewer parts than the threshold, or a wrong part, interpolation still returns a value — which is always a valid-looking seed. Only the verification code detects it (a wrong result passes with probability 1/65,536). Without the code the program says plainly that the result cannot be confirmed.
 
-**What is printed.** Each sheet carries the part number and total ("Part 2 of 5"), the threshold, the verification code and one line saying it is reassembled with AmnesicWallet. Sheets printed by 1.0.x showed only "Part 2", and the code had to be copied by hand.
+**What is printed.** Each sheet carries the words and, in a corner with no label, the part number and the verification code ("2 · A3F9"): the number is needed to recombine, the code to confirm the result. Nothing else — neither the program's name, nor the threshold, nor how many parts exist. Sheets printed by 1.1–1.3 also showed "Part 2 of 5", the threshold and a line naming the program; those printed by 1.0.x showed only "Part 2", and the code had to be copied by hand.
 
 **Compatibility.** The format is frozen. `tests/vectors/shamir-compat.json` contains parts produced by version 1.0.1; every combination of three of them must reassemble, and the test suite fails otherwise.
 
@@ -326,6 +326,7 @@ Implementation of SLIP-39 through the `slip39` library and the adapters of 2.5.
 - Shares are created with the **extendable-backup flag** set (ext = 1), as the current revision of the specification recommends and as Trezor does. Programs that predate that revision may not read them correctly.
 - Iteration exponent 1 (20,000 PBKDF2-SHA256 iterations in the encryption of the master secret), the default of Trezor's reference implementation. Version 1.0.x used exponent 0; the exponent is written in the sheets, so older sheets remain readable.
 - The passphrase may contain only printable ASCII, as the specification requires; the rule is enforced both when the passphrase is chosen and at recovery.
+- A printed sheet carries only its words: each share already contains, inside them, its index, the threshold and the identifier shared by the set.
 - **Self-check:** before the sheets are shown, every subset of m sheets is recombined and must return the master secret (at most 35 recombinations, about one second on a desktop computer).
 - Recovery shows Bitcoin in all four formats, because the owner of a Trezor backup may use any of them.
 

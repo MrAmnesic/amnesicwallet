@@ -865,6 +865,7 @@ function renderGenerateTab() {
             <label class="config-label">Into how many parts, and how many to recover?</label>
             ${thresholdConfigHTML('sh', 'parts')}
             <p class="hint" style="margin-top:8px">Each part looks like a seed of the same length but is only a fragment; the parts are put back together in <em>Check wallet → Shamir backup</em>.${helpLink('g-shamir', 'How a Shamir wallet works')}</p>
+            <div class="warn-box" style="margin-top:10px">🔢 <strong>Every part has a number, and the number is essential.</strong> To rebuild the seed, each part must be entered with its own number: the order does not matter, the number does. Without it, the seed cannot be rebuilt.</div>
           </div>` : ''}
           ${genPath === 'slip39' ? `
           <div class="config-row">
@@ -1561,13 +1562,12 @@ function wireSlipView() {
   document.getElementById('btn-derive')?.addEventListener('click', handleDerive);
 }
 
+/* A printed SLIP-39 sheet carries the words and nothing else: each share
+   already contains, inside its words, its own number and the threshold. */
 function slipShareHTML(i) {
   const w = slipShares[i].split(' ');
-  const { m, n } = slipConfig;
   return `<div class="card">
-<div class="title">Sheet ${i + 1} of ${n}</div>
 <div class="grid">${w.map((x, k) => `<div class="w"><i>${k + 1}</i>${escapeHtml(x)}</div>`).join('')}</div>
-<div class="meta">SLIP-39 backup &middot; any ${m} of the ${n} sheets recover the wallet</div>
 </div>`;
 }
 
@@ -1579,16 +1579,17 @@ body{font-family:'Courier New',monospace;background:#fff;color:#000}
 .grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
 .w{border:1px solid #bbb;border-radius:3px;padding:8px 9px;font-size:12px}
 .w i{color:#999;font-style:normal;margin-right:7px;font-size:10px}
-.meta{margin-top:18px;padding-top:12px;border-top:1px solid #ccc;font-size:11px;line-height:1.6;color:#333}`;
+.meta{margin-top:18px;padding-top:12px;border-top:1px solid #ccc;font-size:11px;line-height:1.6;color:#333}
+.corner{margin-top:14px;text-align:right;font-size:10px;color:#555;letter-spacing:1px}`;
 
 function printSlipShare(i) {
-  printHTML(`<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><title>Sheet ${i + 1}</title>
+  printHTML(`<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><title>Document</title>
 <style>${SLIP_PRINT_CSS}</style></head><body>${slipShareHTML(i)}</body></html>`);
 }
 
 function printAllSlipShares() {
   const pages = slipShares.map((_, i) => slipShareHTML(i)).join('<div class="brk"></div>');
-  printHTML(`<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><title>Sheets</title>
+  printHTML(`<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><title>Document</title>
 <style>${SLIP_PRINT_CSS}</style></head><body>${pages}</body></html>`);
 }
 
@@ -2194,6 +2195,7 @@ function renderPartsCard() {
       <p style="margin-bottom:6px">${classic
         ? `The seed is split into ${n} consecutive groups: <strong>all of them are needed</strong> to reassemble it.`
         : `Only <strong>${m} of ${n}</strong> are needed to get the seed back. Keep them in different places.`}</p>
+      ${classic ? '' : `<div class="warn-box" style="margin:8px 0 12px">🔢 <strong>Each part goes with its number.</strong> To rebuild the seed, every part must be entered with its own number — the order does not matter, the number does. A part whose number is unknown cannot be used. The printed sheet carries it in a corner, next to the verification code: <strong>“3 · ${escapeHtml(code)}”</strong> is part 3. If you copy a part by hand, write its number next to it.</div>`}
       <p class="hint" style="margin-bottom:14px">They stay here until you close the page or press Generate a new wallet.</p>
       ${code ? `<div class="ok-box" style="margin-bottom:14px">Verification code: <strong>${escapeHtml(code)}</strong> &mdash; write it on every sheet. It confirms, at recovery time, that the reassembled seed is the right one.</div>` : ''}
       <div class="keys-list">${rows}</div>
@@ -2213,7 +2215,7 @@ function wirePartsCard() {
   document.querySelectorAll('.pc-copy').forEach(b => b.addEventListener('click', async () => {
     const p = shamirParts[+b.dataset.i];
     const str = classic ? p.words.join(' ') : p.words;
-    try { await copyToClipboard(str); showToast(`Part ${p.x} copied.`, 'success'); }
+    try { await copyToClipboard(str); showToast(classic ? `Part ${p.x} copied.` : `Part ${p.x} copied: keep its number, ${p.x}, with it.`, 'success'); }
     catch (_) { showToast('Copy failed.', 'error'); }
   }));
   document.querySelectorAll('.pc-print').forEach(b => b.addEventListener('click', () => {
@@ -2875,33 +2877,37 @@ function makeShamirParts(n, m) {
   seedUnlocked = false;
 }
 
-/* One printed sheet per part. Besides the words, it carries what is needed
-   to use it years from now: the part number (Shamir needs it to recombine),
-   how many parts exist, the threshold and the verification code. */
+/* One printed sheet per part. A Shamir part carries its words and, in a
+   corner with no label, its number and the verification code ("2 · A3F9"):
+   the number is needed to recombine, the code confirms the result. */
 function partSheetHTML(p, n, m, code, classic) {
   const wl = classic ? p.words : p.words.split(' ');
   const off = classic ? p.from - 1 : 0;
-  const info = classic
-    ? `Sequential split &middot; words ${p.from}&ndash;${p.to} &middot; all ${n} parts are needed, in order`
-    : `Threshold backup (Shamir) &middot; any ${m} of the ${n} parts recover the seed`;
+  if (!classic) {
+    return `<div class="card">
+<div class="grid">${wl.map((w, i) => `<div class="w"><i>${i + 1}</i>${escapeHtml(w)}</div>`).join('')}</div>
+<div class="corner">${p.x}${code ? ` &middot; ${escapeHtml(code)}` : ''}</div>
+</div>`;
+  }
+  const info = `Sequential split &middot; words ${p.from}&ndash;${p.to} &middot; all ${n} parts are needed, in order`;
   return `<div class="card">
 <div class="title">Part ${p.x} of ${n}</div>
 <div class="grid">${wl.map((w, i) => `<div class="w"><i>${off + i + 1}</i>${escapeHtml(w)}</div>`).join('')}</div>
-<div class="meta">${info}${code ? `<br>Verification code: <b>${escapeHtml(code)}</b>` : ''}${classic ? '' : '<br>This is not a wallet: it is reassembled with AmnesicWallet, Check wallet &rarr; Shamir backup.'}</div>
+<div class="meta">${info}</div>
 </div>`;
 }
 
 function printAllShamirParts(n, m, code, classic) {
   const pages = shamirParts.map(p => partSheetHTML(p, n, m, code, classic)).join('<div class="brk"></div>');
   printHTML(`<!DOCTYPE html>
-<html lang="en"><head><meta charset="UTF-8"><title>Parts</title><style>
+<html lang="en"><head><meta charset="UTF-8"><title>Document</title><style>
 ${SLIP_PRINT_CSS}
 </style></head><body>${pages}</body></html>`);
 }
 
 function printShamirPart(p, n, m, code, classic) {
   printHTML(`<!DOCTYPE html>
-<html lang="en"><head><meta charset="UTF-8"><title>Part ${p.x} of ${n}</title><style>
+<html lang="en"><head><meta charset="UTF-8"><title>Document</title><style>
 ${SLIP_PRINT_CSS}
 </style></head><body>${partSheetHTML(p, n, m, code, classic)}</body></html>`);
 }
@@ -2916,13 +2922,14 @@ function renderRecoverTab() {
     <section>
       <div class="card">
         <div class="card-header"><span class="step-badge">🔐</span><h2>Reassemble a threshold backup</h2></div>
-        <p style="margin-bottom:12px">This section reassembles backups created with <strong>threshold splitting (Shamir)</strong>. You don't need all the parts: just reach the threshold shown on the sheets, for example 3 of 5.</p>
+        <p style="margin-bottom:12px">This section reassembles backups created with <strong>threshold splitting (Shamir)</strong>. You don't need all the parts: just reach the threshold chosen when they were made, for example 3 of 5.</p>
 
         <div class="ok-box" style="margin-bottom:14px">
           <strong>How to recognise the right parts.</strong> Shamir parts have these three characteristics:<br><br>
           &bull; Each one is <strong>as long as the whole seed</strong> (12 or 24 words, not a small group)<br>
-          &bull; Each one has a <strong>part number</strong>: "Part 2 of 5" (on sheets printed by older versions, just "Part 2")<br>
+          &bull; Each one has a <strong>part number</strong>: in a corner, next to the code, as in “2 · A3F9” (sheets printed by older versions say “Part 2 of 5”, or just “Part 2”)<br>
           &bull; Each one carries a 4-character <strong>verification code</strong>, the same on all of them (older versions asked you to copy it by hand)<br><br>
+          Enter <strong>each part with its own number</strong>, in any order: the number tells the program which part it is, and a part entered under the wrong number gives a wrong seed.<br><br>
           If your sheets do not match this description, they are not Shamir parts and this section is not the right one for you.
         </div>
         <div class="note-box" style="margin-bottom:16px">🛡️ <strong>Before you start:</strong> reassembling the seed makes it fully readable again. Do it with the device <strong>disconnected from the internet</strong>, ideally booted from Tails or in a clean virtual machine — the same care you took when you created it.</div>
@@ -3740,6 +3747,7 @@ function renderGuideFaq() {
           <p><strong>2. On a seed you already own</strong>, even one created years ago with another program. Go to <em>🔍 Check wallet → Shamir backup → I have a seed, I want to split it</em>, enter your words and choose the threshold and number of parts. The wallet does not change: same addresses, funds in place. Only the form of the backup changes.</p>
           <p>Here is the advantage over a classic seed: with the traditional phrase, whoever finds that sheet has everything. With this system, whoever finds one part has nothing. Several fragments are needed together, someone has to realise they belong together, know this backup exists and have the right program. The difference is this: a normal seed is a single weak point. With Shamir, your funds stay safe even if some piece ends up where it shouldn't.</p>
           <p><strong>A useful way to see it:</strong> the parts are a form of encryption of the backup, where the key is "holding enough parts". With one advantage over a password: there is nothing to remember. And below the threshold no attempt will do — it isn't hard to guess, it's mathematically impossible. The 4-character verification code printed on the sheets is only a short fingerprint used to confirm the result: it leaves an attacker with at least 2¹¹² possibilities, far beyond any computer.</p>
+          <p><strong>Each part's number is essential.</strong> Every part is one point of the same mathematical curve: the words are its height, the number (1, 2, 3…) its position. To rebuild the seed, each part must be entered with its own number. The order in which you enter them does not matter — part 4 first, then part 1 — but the words of part 3 must go in as part 3. A part whose number is lost cannot be used, so the number is printed on every sheet, in a corner next to the verification code: <strong>“3 · A164”</strong> is part 3. Whoever copies a part by hand writes its number next to it. (SLIP-39 does not have this concern: there the number is hidden inside the words.)</p>
           <p><strong>The parts are not wallets.</strong> Each one is made of words and looks every bit like a seed, but it is a fragment. Don't send funds to it and don't import it into a wallet expecting to find something there. On its own, below the threshold, it is worth nothing — and that is exactly what makes it safe.</p>
           <p><strong>You need this program to reassemble them.</strong> It is the price of the method and it must be said clearly: <strong>keep a copy of the file <em>amnesicwallet.html</em> together with the parts</strong>. If that dependency bothers you, consider <strong>SLIP-39</strong>, which does the same thing with a public standard read by Trezor, Sparrow and Electrum — but it must be chosen when creating a new wallet, it does not apply to an existing BIP-39 seed.</p>
           <p><strong>Careful not to confuse it with Trezor's Shamir.</strong> Trezor offers a feature called <em>Shamir Backup</em>, but it uses the SLIP-39 standard. Parts created here <strong>do not work</strong> in Trezor's Shamir recovery, and vice versa. They are two separate systems that share a name.</p>

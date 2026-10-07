@@ -5,6 +5,23 @@ Notable changes are recorded here, one entry per published version.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.3.3] — 2026-10
+
+### Changed
+- **Printed Shamir parts carry nothing but the words** and, in a corner with
+  no label, the part number and the verification code ("2 · A3F9"). The
+  number is needed to reassemble, the code confirms the result. The title
+  "Part 2 of 5", the threshold and the line naming the program are gone.
+- **Printed SLIP-39 sheets carry only their words.** Each share already
+  contains, inside its words, its number and the threshold.
+- Print windows are all titled "Document".
+- **Each Shamir part's number is essential, and the program says so**: on
+  the Shamir wallet screen before generating, next to the parts, in Check
+  wallet → Shamir backup and in the FAQ. The order in which parts are
+  entered does not matter; each part must go in with its own number.
+- The words, the parts and every backup format are unchanged; parts and
+  sheets printed by earlier versions still work.
+
 ## [1.3.2] — 2026-10
 
 ### Added
