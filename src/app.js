@@ -206,10 +206,16 @@ function renderApp() {
         <button class="theme-btn" id="theme-toggle" title="Change theme">${currentTheme === 'light' ? '🌙' : '☀️'}</button>
         <div class="logo-area logo-clickable" id="go-home" title="Back to the start">
           <div class="logo-icon">
-            <svg viewBox="0 0 40 40" width="40" height="40">
-              <rect x="2" y="2" width="36" height="36" rx="8" fill="none" stroke="currentColor" stroke-width="2.5"/>
-              <path d="M12 14h16M12 20h16M12 26h10" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-              <circle cx="28" cy="26" r="3" fill="currentColor"/>
+            <svg viewBox="92 290 626 596" width="42" height="40" aria-hidden="true">
+              <defs>
+                <linearGradient id="aw-r" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#9b4dff"/><stop offset=".55" stop-color="#d9586a"/><stop offset="1" stop-color="#ff9a2e"/></linearGradient>
+                <linearGradient id="aw-l" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#b15cff"/><stop offset="1" stop-color="#6f2fc4"/></linearGradient>
+                <linearGradient id="aw-s" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#ff8a2a"/><stop offset=".3" stop-color="#ea3b3b"/><stop offset=".7" stop-color="#f58232"/><stop offset="1" stop-color="#ffb347"/></linearGradient>
+              </defs>
+              <path d="M446 325.5 L708.5 840 L587.5 840 L350 374.5 Z" fill="url(#aw-r)"/>
+              <circle cx="398" cy="350" r="54" fill="#9b4dff"/>
+              <path d="M398 350 L190 760" stroke="url(#aw-l)" stroke-width="100" stroke-linecap="round" fill="none"/>
+              <path d="M150 690 C112 770 118 850 200 850 C285 850 360 705 455 705 C505 705 535 740 548 778 C515 748 480 738 440 745 C365 760 300 875 205 878 C110 880 90 780 150 690 Z" fill="url(#aw-s)"/>
             </svg>
           </div>
           <h1>AMNESIC<span class="logo-accent">WALLET</span></h1>
