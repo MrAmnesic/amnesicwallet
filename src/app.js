@@ -2472,7 +2472,8 @@ function handleSaveSeedTxt(src) {
   const blocks = src ? (src.list || [src]) : [{ words: currentMnemonic }];
   const block = (m) => m.words.split(' ').map((w, i) => `${String((m.offset || 0) + i + 1).padStart(2, ' ')}  ${w}`).join('\r\n') + '\r\n'
     + (m.corner ? `\r\n${m.corner}\r\n` : '');
-  const text = 'DOCUMENT\r\n\r\n' + blocks.map(block).join('\r\n\r\n');
+  const text = 'DOCUMENT\r\n\r\n' + blocks.map(block).join('\r\n\r\n')
+    + (src && src.tail ? `\r\n\r\n${src.tail}\r\n` : '');
   const a = document.createElement('a');
   a.href = 'data:text/plain;charset=utf-8,' + encodeURIComponent(text);
   a.download = 'document.txt';
@@ -2675,7 +2676,8 @@ function showMetalIntro(src) {
 
       <p><strong>The words don't appear on the sheet</strong>, nor do the numbers: only the dots. At recovery time it will be up to you to add the columns and look up the words.</p>
       ${m.corner ? `<p class="hint">Under the grid, in a corner, goes this part's number with the verification code: <strong>“${escapeHtml(m.corner)}”</strong>. Without the number the part cannot be used.</p>` : ''}
-      ${m.list ? `<p class="hint">One grid per ${slip ? 'sheet' : 'part'}, each on its own page${m.list[0].corner ? ', with that part\'s number and the verification code in a corner (for example “' + escapeHtml(m.list[0].corner) + '”)' : ''}.</p>` : ''}
+      ${m.list ? `<p class="hint">One grid per ${m.unit || (slip ? 'sheet' : 'part')}, each on its own page${m.list[0].corner ? ', with that part\'s number and the verification code in a corner (for example “' + escapeHtml(m.list[0].corner) + '”)' : ''}.</p>` : ''}
+      ${m.tail ? '<p class="hint">The grids hold only the words: keep the vault\'s descriptor with them (<em>Print the summary</em>, or <em>Save all as .txt</em>, which ends with it).</p>' : ''}
 
       <div class="ok-box" style="margin-top:12px">
         <strong>You will need the numbered ${slip ? 'SLIP-39 ' : ''}dictionary</strong> to turn numbers into words. You'll find it in this program, but it's worth printing it below and keeping it <em>separately</em> from the grid: on its own it reveals nothing, it's a public list identical for everyone.
@@ -3232,6 +3234,8 @@ function renderMsSoloResult() {
                 <button class="btn btn-outline btn-small k-reveal" data-i="${i}">${open ? '🙈 Hide' : '👁️ Reveal'}</button>
                 <button class="btn btn-outline btn-small k-copy" data-i="${i}">📋 Copy</button>
                 <button class="btn btn-outline btn-small k-print" data-i="${i}">🖨️ Print</button>
+                <button class="btn btn-outline btn-small k-txt" data-i="${i}">💾 Save as .txt</button>
+                <button class="btn btn-outline btn-small k-metal" data-i="${i}">🔢 Powers of 2</button>
                 <button class="btn btn-outline btn-small k-check" data-i="${i}">✅ Check again</button>
               </div>
             </div>`;
@@ -3239,6 +3243,8 @@ function renderMsSoloResult() {
         </div>
         <div class="ov-row" style="margin-top:16px">
           <button class="btn btn-primary" id="msolo-print-all">🖨️ Print all keys</button>
+          <button class="btn btn-outline" id="msolo-txt-all">💾 Save all as .txt</button>
+          <button class="btn btn-outline" id="msolo-metal-all">🔢 All in powers of 2</button>
           <button class="btn btn-ghost btn-small" id="msolo-forget">✕ Remove the keys from the page</button>
         </div>
         <div class="note-box" style="margin-top:12px">Once they are all saved, remove them from this page: from then on they exist only where you put them.</div>
@@ -3448,6 +3454,15 @@ function wireMultisig() {
     catch (_) { showToast('Copy failed.', 'error'); }
   }));
   document.querySelectorAll('.k-print').forEach(b => b.addEventListener('click', () => printSoloKey(+b.dataset.i)));
+  // A key's .txt and grid hold its words; all the keys together also end
+  // with the vault's descriptor in the .txt, since the keys alone do not
+  // say how they combine.
+  const keySrc = (i) => ({ words: msSoloSeeds[i], label: `Key ${i + 1}` });
+  const allKeys = () => ({ list: msSoloSeeds.map((_, i) => keySrc(i)), label: `all ${msSoloSeeds.length} keys`, unit: 'key', tail: msSoloVault.descriptor });
+  document.querySelectorAll('.k-txt').forEach(b => b.addEventListener('click', () => handleSaveSeedTxt(keySrc(+b.dataset.i))));
+  document.querySelectorAll('.k-metal').forEach(b => b.addEventListener('click', () => showMetalIntro(keySrc(+b.dataset.i))));
+  document.getElementById('msolo-txt-all')?.addEventListener('click', () => handleSaveSeedTxt(allKeys()));
+  document.getElementById('msolo-metal-all')?.addEventListener('click', () => showMetalIntro(allKeys()));
   document.querySelectorAll('.k-check').forEach(b => b.addEventListener('click', () => {
     const i = +b.dataset.i;
     showVerifyBackup(msSoloSeeds[i], `Key ${i + 1} of ${msSoloConfig.n}`);
@@ -3594,6 +3609,8 @@ async function showMsKey(info, silent) {
           <button class="btn btn-outline btn-small" id="msk-reveal">👁️ Reveal</button>
           <button class="btn btn-outline btn-small" id="msk-copy">📋 Copy the seed</button>
           <button class="btn btn-outline btn-small" id="msk-print">🖨️ Print the Seed Card</button>
+          <button class="btn btn-outline btn-small" id="msk-txt">💾 Save as .txt</button>
+          <button class="btn btn-outline btn-small" id="msk-metal">🔢 Powers of 2</button>
           <button class="btn btn-outline btn-small" id="msk-check">✅ Check again</button>
         </div>
       </div>` : ''}
@@ -3616,6 +3633,8 @@ async function showMsKey(info, silent) {
       try { await copyToClipboard(info.mnemonic); showToast('Seed copied to the clipboard.', 'success'); } catch (_) { showToast('Copy failed', 'error'); }
     });
     document.getElementById('msk-print')?.addEventListener('click', () => handlePrintSeed(info.mnemonic));
+    document.getElementById('msk-txt')?.addEventListener('click', () => handleSaveSeedTxt({ words: info.mnemonic }));
+    document.getElementById('msk-metal')?.addEventListener('click', () => showMetalIntro({ words: info.mnemonic }));
     document.getElementById('msk-check')?.addEventListener('click', () => showVerifyBackup(info.mnemonic, 'the seed of this key'));
     let shown = false;
     document.getElementById('msk-reveal')?.addEventListener('click', (ev) => {
