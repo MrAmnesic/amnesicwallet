@@ -325,6 +325,30 @@ async function run(browser, engine, device) {
     check(/^[xz]pub/.test(await page.locator('#watch-panel code').first().innerText()), 'SLIP-39 wallet: xpub and descriptor can be viewed');
     await press(page.locator('#slip-reset'));
     await press(page.locator('#rs-yes'));
+
+    step = 'a multisig vault, all keys mine';
+    await press(page.locator('#gen-multisig'));
+    await press(page.locator('#ms-pick-solo'));
+    await press(page.locator('#msolo-gen'));
+    await typeRandomly();
+    await draw();
+    await page.locator('.k-reveal').first().waitFor({ timeout: 15000 });
+    check(await page.locator('.keys-list .key-block').count() === 3, 'multisig: 3 keys');
+    await press(page.locator('.k-reveal').first());
+    const key1 = (await page.locator('.keys-list .key-block').first().locator('.part-word').allInnerTexts()).map((t) => t.replace(/^\d+\s*/, '').trim());
+    check(validateMnemonic(key1.join(' '), wordlist), 'multisig: a key is a valid BIP-39 seed');
+    const key1Txt = await saveText(page.locator('.k-txt').first());
+    check(key1Txt.includes(` 1  ${key1[0]}`) && key1Txt.trim().endsWith(`12  ${key1[11]}`), "multisig: a key's .txt has its 12 words");
+    const desc = (await page.locator('#msolo-copy-desc').locator('xpath=..').locator('code').innerText()).trim();
+    const allKeysTxt = await saveText(page.locator('#msolo-txt-all'));
+    check((allKeysTxt.match(/^12 {2}\S+/gm) || []).length === 3 && allKeysTxt.trim().endsWith(desc), 'multisig: all keys in one .txt, ending with the descriptor');
+    await press(page.locator('.k-metal').first());
+    check((await page.locator('.ov-card h3').innerText()).includes('Key 1'), "multisig: a key's powers-of-2 grid");
+    await press(page.locator('#mt-close'));
+    await press(page.locator('#msolo-metal-all'));
+    check((await page.locator('#mt-print').innerText()).includes('3 grids'), 'multisig: all keys in powers of 2, one grid each');
+    await press(page.locator('#mt-close'));
+    await press(page.locator('#msolo-restart'));
   }
 
   /* 2. Check wallet, with seeds whose addresses were computed elsewhere */

@@ -2,7 +2,7 @@
 
 **Implementation specification, security model and declared limits**
 
-Document version: 2.0 — describes AmnesicWallet 2.0.0
+Document version: 2.1 — describes AmnesicWallet 2.1.0
 
 Reference: `amnesicwallet.html` — SHA-256 hash published with every release, in `SHA256SUMS` and on the official website, [amnesicwallet.com](https://amnesicwallet.com)
 
@@ -344,7 +344,7 @@ Every BIP-39 word is identified by its number in the dictionary, written as a su
 
 The grid shows neither words nor numbers. Reading it back needs the numbered list of BIP-39 words, which the program can also print.
 
-The same grid is offered for each Shamir part (a part is itself a BIP-39 phrase; its number and the verification code go in a corner under the grid, as on its printed sheet; a Classic group keeps the positions of its words in the seed) and for each SLIP-39 sheet. SLIP-39 words come from their own list of 1024 words, numbered 1–1024 in the order of the official `wordlist.txt`, so a SLIP-39 grid has eleven columns (1024 … 1) and is read back with the numbered SLIP-39 list, which the program prints too. The grids of all the parts, or of all the sheets, can also be printed together, one per page.
+The same grid is offered for each Shamir part (a part is itself a BIP-39 phrase; its number and the verification code go in a corner under the grid, as on its printed sheet; a Classic group keeps the positions of its words in the seed) for each SLIP-39 sheet, and for each key of a multisig vault. SLIP-39 words come from their own list of 1024 words, numbered 1–1024 in the order of the official `wordlist.txt`, so a SLIP-39 grid has eleven columns (1024 … 1) and is read back with the numbered SLIP-39 list, which the program prints too. The grids of all the parts, all the sheets or all the keys can also be printed together, one per page.
 
 ---
 
@@ -388,7 +388,7 @@ For these reasons the documentation recommends running the tool on a system isol
 
 ## 7. Personal data
 
-The software does not collect, process or transmit personal data. There are no servers, endpoints or recipients. All material lives in the memory of the browser tab for the duration of the session; no cookies or storage entries are created, and no file — except when the user presses *Save as .txt* next to a new wallet's words, a Shamir part or a SLIP-39 sheet (one, or all of them in a single file): those numbered words (with a part's number and verification code) are then handed to the browser as a download (a `data:` link built in the page), saved wherever the browser saves downloads.
+The software does not collect, process or transmit personal data. There are no servers, endpoints or recipients. All material lives in the memory of the browser tab for the duration of the session; no cookies or storage entries are created, and no file — except when the user presses *Save as .txt* next to a new wallet's words, a Shamir part, a SLIP-39 sheet or a multisig key (one, or all of them in a single file): those numbered words (with a part's number and verification code; all the keys of a vault end with its descriptor) are then handed to the browser as a download (a `data:` link built in the page), saved wherever the browser saves downloads.
 
 Printed documents are produced locally. The Seed Card and the address lists carry neutral titles and no program name, to limit what an accidental discovery reveals. Shamir parts and SLIP-39 sheets carry only what is needed to use them years later: their number, the total, the threshold and — for Shamir — the verification code.
 

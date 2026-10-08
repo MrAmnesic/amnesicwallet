@@ -5,6 +5,16 @@ Notable changes are recorded here, one entry per published version.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.1.0] — 2026-10
+
+### Added
+- **Multisig keys can be saved as .txt and written as powers-of-2 grids**,
+  like the seed, the Shamir parts and the SLIP-39 sheets: each key on its
+  own, or all of them at once (*Save all as .txt*, *All in powers of 2*,
+  next to *Print all keys*). The .txt with all the keys ends with the
+  vault's descriptor, which the keys alone do not give. In a vault made
+  with other people, the seed of your own key has the same two buttons.
+
 ## [2.0.0] — 2026-10
 
 A new major number for a release with a new face (the "A" logo) and many
