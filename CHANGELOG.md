@@ -5,6 +5,16 @@ Notable changes are recorded here, one entry per published version.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.2.0] — 2026-11
+
+### Added
+- **Each key of a multisig vault shows its own xpub.** When the program
+  creates all the keys, *View xpub* on each key shows its xpub (path
+  m/48'/0'/0'/2'), the fingerprint of its seed and the path, with a copy
+  button: what Sparrow and other co-signing programs ask for to add the
+  key. When the vault is computed from seeds you type, or once the keys are
+  removed from the page, the vault card lists every key's xpub.
+
 ## [2.1.0] — 2026-10
 
 ### Added

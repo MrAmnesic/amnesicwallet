@@ -185,6 +185,8 @@ let msMyXpub = null;                 // xpub of multisig section A
 let msMode = null;                   // null | 'solo' | 'group'
 let msSoloConfig = null;             // {n, m}
 let msSoloSeeds = null;              // mnemonics of the created keys
+let msSoloKeys = null;               // each key's {xpub, fingerprint, path}, in the same order
+let msSoloXpubShown = [];            // which keys show their xpub
 let msSoloIndex = 0;
 let msSoloRevealed = [];             // which keys are revealed on screen
 let msSoloVault = null;              // {address, descriptor, n, m}
@@ -1675,6 +1677,11 @@ const HELP = {
     d: 'The "extended public key" of this account. On its own it generates all your Bitcoin addresses, but no signatures: whoever holds it can see, not spend.',
     g: 'g-watch',
   },
+  msxpub: {
+    t: "A key's xpub",
+    d: "The public side of this key (path m/48'/0'/0'/2', the multisig standard). It is what a co-signing program such as Sparrow asks for, with the fingerprint, to add the key to a vault. It cannot sign. On its own it does not give the vault's addresses: those need every key's xpub, which the descriptor holds.",
+    g: 'g-multisig',
+  },
   descriptor: {
     t: 'Descriptor',
     d: 'The xpub plus the instructions on how to use it: address format and path. This is what you paste into Sparrow or Electrum to see balance and movements in real time, while the seed stays safe.',
@@ -2503,7 +2510,7 @@ function clearEverything() {
   resetWalletState();
   vfSeed = null; vfMnemonic = null; vfResults = null; csResults = null;
   vfCards = newVfCards(); vfFind = null; xp = null; vfElectrum = null; vfAlsoElectrum = ''; vfSource = null;
-  msMyXpub = null; msSoloSeeds = null; msSoloVault = null; msSoloRevealed = []; msSoloConfig = null;
+  msMyXpub = null; msSoloSeeds = null; msSoloKeys = null; msSoloXpubShown = []; msSoloVault = null; msSoloRevealed = []; msSoloConfig = null;
   recParts = [{}, {}, {}];
   removePrintFrames();
 }
@@ -3209,6 +3216,19 @@ function renderMsSolo() {
     </section>`;
 }
 
+/* A key's public side, as a co-signing program asks for it: the xpub,
+   the fingerprint of its seed and the derivation path. */
+function soloXpubHTML(i) {
+  const k = msSoloKeys && msSoloKeys[i];
+  if (!k) return '';
+  return `<div class="k-xpub-box" style="margin-top:10px">
+    <div class="detail-label">xpub &middot; Key ${i + 1}${help('msxpub')}</div>
+    <div class="addr-copy-row"><code class="detail-value" style="font-size:10.5px">${escapeHtml(k.xpub)}</code>
+      <button class="btn btn-icon k-copy-xpub" data-i="${i}" title="Copy">📋</button></div>
+    <p class="hint" style="margin-top:6px">Fingerprint ${escapeHtml(k.fingerprint)} &middot; Path <span style="text-transform:none">${escapeHtml(k.path)}</span></p>
+  </div>`;
+}
+
 function renderMsSoloResult() {
   const r = msSoloVault;
   const hasKeys = Array.isArray(msSoloSeeds) && msSoloSeeds.length > 0;
@@ -3236,8 +3256,10 @@ function renderMsSoloResult() {
                 <button class="btn btn-outline btn-small k-print" data-i="${i}">🖨️ Print</button>
                 <button class="btn btn-outline btn-small k-txt" data-i="${i}">💾 Save as .txt</button>
                 <button class="btn btn-outline btn-small k-metal" data-i="${i}">🔢 Powers of 2</button>
+                <button class="btn btn-outline btn-small k-xpub" data-i="${i}">${msSoloXpubShown[i] ? '🙈 Hide xpub' : '👁️ View xpub'}</button>
                 <button class="btn btn-outline btn-small k-check" data-i="${i}">✅ Check again</button>
               </div>
+              ${msSoloXpubShown[i] ? soloXpubHTML(i) : ''}
             </div>`;
           }).join('')}
         </div>
@@ -3262,6 +3284,7 @@ function renderMsSoloResult() {
         <div class="detail-label" style="margin-top:14px">Descriptor &mdash; the formula that holds the keys together</div>
         <div class="addr-copy-row"><code class="detail-value" style="font-size:10.5px">${escapeHtml(r.descriptor)}</code>
           <button class="btn btn-icon" id="msolo-copy-desc" title="Copy">📋</button></div>
+        ${!hasKeys && msSoloKeys ? `<div class="detail-label" style="margin-top:14px">The keys' xpubs</div>${msSoloKeys.map((_, i) => soloXpubHTML(i)).join('')}` : ''}
         <div class="ok-box" style="margin-top:12px">📌 <strong>Keep the descriptor together with the keys.</strong> With the seeds alone, without knowing how they combine, rebuilding the vault is far more laborious. Print it or write it down.</div>
         <div class="ov-row" style="margin-top:14px">
           <button class="btn btn-outline" id="msolo-print">🖨️ Print the summary</button>
@@ -3418,6 +3441,7 @@ function wireMultisig() {
     try {
       msSoloConfig = { n: keys.length, m };
       msSoloVault = multisigAddress(keys, m);
+      msSoloKeys = keys; msSoloXpubShown = [];
       msSoloSeeds = [];
       renderApp();
       showToast('Vault computed. The words you typed have been discarded.', 'success');
@@ -3434,7 +3458,7 @@ function wireMultisig() {
     try { await copyToClipboard(msSoloVault.descriptor); showToast('Descriptor copied.', 'success'); } catch (_) {}
   });
   document.getElementById('msolo-restart')?.addEventListener('click', () => {
-    msSoloSeeds = null; msSoloVault = null; msSoloConfig = null; msSoloIndex = 0; msSoloRevealed = [];
+    msSoloSeeds = null; msSoloKeys = null; msSoloXpubShown = []; msSoloVault = null; msSoloConfig = null; msSoloIndex = 0; msSoloRevealed = [];
     renderApp();
   });
   document.getElementById('msolo-print')?.addEventListener('click', printSoloVault);
@@ -3454,6 +3478,14 @@ function wireMultisig() {
     catch (_) { showToast('Copy failed.', 'error'); }
   }));
   document.querySelectorAll('.k-print').forEach(b => b.addEventListener('click', () => printSoloKey(+b.dataset.i)));
+  document.querySelectorAll('.k-xpub').forEach(b => b.addEventListener('click', () => {
+    const i = +b.dataset.i;
+    msSoloXpubShown[i] = !msSoloXpubShown[i];
+    renderApp();
+  }));
+  document.querySelectorAll('.k-copy-xpub').forEach(b => b.addEventListener('click', async () => {
+    try { await copyToClipboard(msSoloKeys[+b.dataset.i].xpub); showToast(`xpub of key ${+b.dataset.i + 1} copied.`, 'success'); } catch (_) {}
+  }));
   // A key's .txt and grid hold its words; all the keys together also end
   // with the vault's descriptor in the .txt, since the keys alone do not
   // say how they combine.
@@ -3515,12 +3547,13 @@ function finishMultiSoloKeys(entropy, mouseBytes, typeBytes, diceBytes) {
   try {
     const keys = msSoloSeeds.map(x => deriveMultisigXpub(mnemonicToSeedSync(x, '')));
     msSoloVault = multisigAddress(keys, msSoloConfig.m);
+    msSoloKeys = keys; msSoloXpubShown = [];
     msSoloRevealed = msSoloSeeds.map(() => false);
     closeOverlay();
     renderApp();
     showToast('Vault created. Now save the keys, one at a time.', 'success');
   } catch (err) {
-    msSoloSeeds = null;
+    msSoloSeeds = null; msSoloKeys = null;
     closeOverlay();
     showToast('Error: ' + err.message, 'error');
   }
