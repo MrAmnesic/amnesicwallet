@@ -340,6 +340,10 @@ async function run(browser, engine, device) {
     const key1Txt = await saveText(page.locator('.k-txt').first());
     check(key1Txt.includes(` 1  ${key1[0]}`) && key1Txt.trim().endsWith(`12  ${key1[11]}`), "multisig: a key's .txt has its 12 words");
     const desc = (await page.locator('#msolo-copy-desc').locator('xpath=..').locator('code').innerText()).trim();
+    await press(page.locator('.k-xpub').first());
+    const key1Xpub = (await page.locator('.k-xpub-box code').first().innerText()).trim();
+    const expectXpub = HDKey.fromMasterSeed(mnemonicToSeedSync(key1.join(' '), '')).derive("m/48'/0'/0'/2'").publicExtendedKey;
+    check(key1Xpub === expectXpub && desc.includes(expectXpub), "multisig: a key's xpub is shown, is the one its seed gives, and is in the descriptor");
     const allKeysTxt = await saveText(page.locator('#msolo-txt-all'));
     check((allKeysTxt.match(/^12 {2}\S+/gm) || []).length === 3 && allKeysTxt.trim().endsWith(desc), 'multisig: all keys in one .txt, ending with the descriptor');
     await press(page.locator('.k-metal').first());

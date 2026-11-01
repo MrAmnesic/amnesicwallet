@@ -2,7 +2,7 @@
 
 **Implementation specification, security model and declared limits**
 
-Document version: 2.1 — describes AmnesicWallet 2.1.0
+Document version: 2.2 — describes AmnesicWallet 2.2.0
 
 Reference: `amnesicwallet.html` — SHA-256 hash published with every release, in `SHA256SUMS` and on the official website, [amnesicwallet.com](https://amnesicwallet.com)
 
@@ -253,6 +253,8 @@ Two derivations that give the same path for the account shown (for Account 1, `m
 ### 4.4 Multisig
 
 Script `OP_m <pubkey…> OP_n OP_CHECKMULTISIG`, wrapped in P2WSH; public keys sorted according to BIP-67, so the address does not depend on the order in which keys were entered. From 2 to 15 keys; threshold from 1 to n (with a warning that a threshold of 1 lets any single key spend).
+
+When the program creates every key of a vault, or computes it from seeds the user types, each key's public side — its `xpub` at `m/48'/0'/0'/2'`, the fingerprint of its seed and the path — can be shown and copied on its own, as co-signing programs ask for it when a vault is built key by key.
 
 Accepted co-signer keys: an **xpub**, or the **Zpub** that Electrum shows for native-SegWit multisig (converted to the same key). Refused, each with its own explanation: private keys of any kind (xprv, yprv, zprv, Yprv, Zprv), testnet keys, keys labelled for another script type (ypub, zpub, Ypub), malformed keys, and **the same key twice** — a duplicate would let one person provide two signatures. Duplicates are recognised by what determines the derived keys (chain code and public key), not by the text: the same key given once as xpub and once as Zpub, or with altered metadata (depth, parent fingerprint, child number), is refused.
 
